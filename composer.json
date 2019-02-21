@@ -21,6 +21,9 @@
             "url": "ssh://git@github.com/devgeniem/redipress.git"
         }
     ],
+    "require": {
+        "predis/predis": "^1.1"
+    },
     "autoload": {
         "psr-4": {"Geniem\\RediPress\\": "src/"}
     }

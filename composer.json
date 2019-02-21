@@ -1,0 +1,27 @@
+{
+    "name": "devgeniem/redipress",
+    "type": "wordpress-plugin",
+    "description": "RediPress",
+    "authors": [
+        {
+            "name": "Miika Arponen",
+            "email": "miika@geniem.com",
+            "homepage": "http://geniem.com/",
+            "role": "Developer"
+        }
+    ],
+    "keywords": [
+        "wordpress", "redis", "redisearch"
+    ],
+    "license": "GPL-3.0-or-later",
+    "minimum-stability": "dev",
+    "repositories": [
+        {
+            "type": "git",
+            "url": "ssh://git@github.com/devgeniem/redipress.git"
+        }
+    ],
+    "autoload": {
+        "psr-4": {"Geniem\\RediPress\\": "src/"}
+    }
+}

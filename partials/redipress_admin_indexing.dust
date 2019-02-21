@@ -1,0 +1,3 @@
+<p><button type="button" class="button-secondary" id="redipress_index">Create index</button> <span id="redipress_index_info"></span></p>
+<p><button type="button" class="button-secondary" id="redipress_drop_index">Delete index</button> <span id="redipress_drop_index_info"></span></p>
+<p><button type="button" class="button-secondary" id="redipress_index_all">Index all</button> <span id="redipress_index_all_info"></span></p>

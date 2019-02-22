@@ -252,7 +252,7 @@ class Index {
         // Gather field names from hardcoded field for later.
         $core_field_names = array_map( [ $this, 'return_field_name' ], $this->core_schema_fields );
 
-        $additional_fields = array_diff( $core_field_names, $fields  );
+        $additional_fields = array_diff( $fields, $core_field_names );
 
         $additional_values = array_map( function( $field ) use ( $post ) {
             $value = apply_filters( 'redipress/additional_field/' . $field, null, $post->ID, $post );

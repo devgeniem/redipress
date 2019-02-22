@@ -132,7 +132,7 @@ class Search {
     }
 
     /**
-     * Format RediSearch out formatted results to an array of WordPress posts.
+     * Format RediSearch output formatted results to an array of WordPress posts.
      *
      * @param array $results Original array to format.
      * @return array

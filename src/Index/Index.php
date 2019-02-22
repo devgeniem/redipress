@@ -10,7 +10,8 @@ use Geniem\RediPress\Admin,
     Geniem\RediPress\Entity\NumericField,
     Geniem\RediPress\Entity\TagField,
     Geniem\RediPress\Entity\TextField,
-    Geniem\RediPress\Redis\Client;
+    Geniem\RediPress\Redis\Client,
+    Geniem\RediPress\Utility;
 
 /**
  * RediPress index class
@@ -32,6 +33,15 @@ class Index {
     protected $index;
 
     /**
+     * Names for core fields
+     *
+     * These are stored for filtering purposes.
+     *
+     * @var array
+     */
+    protected $core_schema_fields = [];
+
+    /**
      * Construct the index object
      *
      * @param Client $client Client instance.
@@ -49,6 +59,8 @@ class Index {
 
         // Register indexing hooks
         add_action( 'save_post', [ $this, 'upsert' ], 10, 3 );
+
+        $this->define_core_fields();
     }
 
     /**
@@ -61,13 +73,13 @@ class Index {
     }
 
     /**
-     * Create a RediSearch index.
+     * Define core fields for the RediSearch schema
      *
-     * @return mixed
+     * @return void
      */
-    public function create() {
+    public function define_core_fields() {
         // Define the WordPress core fields
-        $schema_fields = [
+        $this->core_schema_fields = [
             new TextField([
                 'name'     => 'post_title',
                 'weight'   => 5.0,
@@ -105,8 +117,16 @@ class Index {
                 'name' => 'search_index',
             ]),
         ];
+    }
 
-        $schema_fields = apply_filters( 'redipress/schema_fields', $schema_fields );
+    /**
+     * Create a RediSearch index.
+     *
+     * @return mixed
+     */
+    public function create() {
+        // Filter to add possible more fields.
+        $schema_fields = apply_filters( 'redipress/schema_fields', $this->core_schema_fields );
 
         $raw_schema = array_reduce( $schema_fields,
             /**
@@ -207,7 +227,7 @@ class Index {
         $args = [];
 
         // Get the author data
-        $author_field = apply_filters( 'redipress/post_author_field', 'display_name' );
+        $author_field = apply_filters( 'redipress/post_author_field', 'display_name', $post->ID, $post );
         $user_object  = get_userdata( $post->post_author );
 
         if ( $user_object instanceof \WP_User ) {
@@ -217,13 +237,33 @@ class Index {
             $post_author = '';
         }
 
-        $args['post_author'] = apply_filters( 'redipress/post_author', $post_author, $post );
+        $args['post_author'] = apply_filters( 'redipress/post_author', $post_author, $post->ID, $post );
 
         // Get the post date
         $args['post_date'] = strtotime( $post->post_date ) ?: null;
 
+        // Get the RediSearch schema for possible additional fields
+        $schema = $this->client->raw_command( 'FT.INFO', [ $this->index ] );
+
+        $schema = Utility::format( $schema );
+
+        $fields = Utility::get_schema_fields( $schema['fields'] ?? [] );
+
+        // Gather field names from hardcoded field for later.
+        $core_field_names = array_map( [ $this, 'return_field_name' ], $this->core_schema_fields );
+
+        $additional_fields = array_diff( $core_field_names, $fields  );
+
+        $additional_values = array_map( function( $field ) use ( $post ) {
+            $value = apply_filters( 'redipress/additional_field/' . $field, null, $post->ID, $post );
+            return apply_filters( 'redipress/additional_field/' . $post->ID . '/' . $field, $value, $post );
+        }, $additional_fields );
+
+        $additions = array_combine( $additional_fields, $additional_values );
+
         // Gather the additional search index
-        $search_index = apply_filters( 'redipress/search_index', '', $post );
+        $search_index = apply_filters( 'redipress/search_index', '', $post->ID, $post );
+        $search_index = apply_filters( 'redipress/search_index/' . $post->ID, $search_index, $post );
 
         // Get rest of the fields
         $rest = [
@@ -239,7 +279,7 @@ class Index {
             'search_index'   => $search_index,
         ];
 
-        return $this->client->convert_associative( array_merge( $args, $rest ) );
+        return $this->client->convert_associative( array_merge( $args, $rest, $additions ) );
     }
 
     /**
@@ -294,5 +334,15 @@ class Index {
      */
     public function write_to_disk() {
         return $this->client->raw_command( 'SAVE', [] );
+    }
+
+    /**
+     * A helper function to use in gathering field names from objects.
+     *
+     * @param SchemaField $field The field object to handle.
+     * @return string
+     */
+    private function return_field_name( SchemaField $field ) : string {
+        return $field->name;
     }
 }

@@ -116,6 +116,10 @@ class Index {
             new TextField([
                 'name' => 'search_index',
             ]),
+            new TagField([
+                'name'      => 'category',
+                'separator' => ',',
+            ]),
         ];
     }
 
@@ -159,6 +163,8 @@ class Index {
      * @return mixed
      */
     public function index_all() {
+        do_action( 'redipress/before_index_all' );
+
         $args = [
             'posts_per_page' => -1,
             'post_type'      => 'any',
@@ -224,6 +230,8 @@ class Index {
      */
     public function convert_post( \WP_Post $post ) : array {
 
+        do_action( 'redipress/before_index_post', $post );
+
         $args = [];
 
         // Get the author data
@@ -265,6 +273,16 @@ class Index {
         $search_index = apply_filters( 'redipress/search_index', '', $post->ID, $post );
         $search_index = apply_filters( 'redipress/search_index/' . $post->ID, $search_index, $post );
 
+        // Filter the post object that will be added to the database serialized.
+        $post_object = apply_filters( 'redipress/post_object', $post );
+
+        $categories = get_the_terms( $post->ID, 'category' ) ?: [];
+
+        // Add categories
+        $category = implode( ',', array_map( function( $term ) {
+            return $term->term_id;
+        }, $categories ) );
+
         // Get rest of the fields
         $rest = [
             'post_id'        => $post->ID,
@@ -273,11 +291,14 @@ class Index {
             'post_excerpt'   => $post->post_excerpt,
             'post_content'   => wp_strip_all_tags( $post->post_content, true ),
             'post_type'      => $post->post_type,
-            'post_object'    => serialize( $post ),
+            'post_object'    => serialize( $post_object ),
             'permalink'      => get_permalink( $post->ID ),
             'menu_order'     => absint( $post->menu_order ),
             'search_index'   => $search_index,
+            'category'       => $category,
         ];
+
+        do_action( 'redipress/indexed_post', $post );
 
         return $this->client->convert_associative( array_merge( $args, $rest, $additions ) );
     }

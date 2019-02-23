@@ -39,6 +39,17 @@ class Search {
     protected $results = [];
 
     /**
+     * List of supported query vars for WP_Query.
+     *
+     * @var array
+     */
+    protected $supported_query_vars = [
+        's',
+        'categories__in',
+        'categories__and',
+    ];
+
+    /**
      * Construct the index object
      *
      * @param Client $client Client instance.
@@ -58,12 +69,12 @@ class Search {
      * The search function itself
      *
      * @param \WP_Query $query The WP_Query object for the search.
-     * @return array Search results.
+     * @return mixed Search results.
      */
-    public function search( \WP_Query $query ) : array {
-        $search_term = $query->query_vars['s'];
+    public function search( \WP_Query $query ) {
+        $search_query = $this->build_query( $query );
 
-        $search_term = apply_filters( 'redipress/search_term', $search_term, $query );
+        $search_query = apply_filters( 'redipress/search_query', $search_query, $query );
 
         $limit = $query->query_vars['posts_per_page'];
 
@@ -76,8 +87,42 @@ class Search {
 
         return $this->client->raw_command(
             'FT.SEARCH',
-            [ $this->index, $search_term, 'RETURN', 1, 'post_object', 'LIMIT', $offset, $limit ]
+            [ $this->index, $search_query, 'RETURN', 1, 'post_object', 'LIMIT', $offset, $limit ]
         );
+    }
+
+    /**
+     * Build the RediSearch search query
+     *
+     * @param \WP_Query $wp_query The WP_Query object.
+     * @return string
+     */
+    public function build_query( \WP_Query $wp_query ) : string {
+        $query_string = [];
+
+        if ( ! empty( $wp_query->query_vars['s'] ) ) {
+            $query[] = $wp_query->query_vars['s'];
+        }
+
+        if ( ! empty( $wp_query->query_vars['category__in'] ) ) {
+            $cats = $wp_query->query_vars['category__in'];
+
+            $cat = is_array( $cats ) ? $cats : [ $cats ];
+
+            $query[] = '@category:{' . implode( '|', $cat ) . '}';
+        }
+
+        if ( ! empty( $wp_query->query_vars['category__and'] ) ) {
+            $cats = $wp_query->query_vars['category__and'];
+
+            $cat = is_array( $cats ) ? $cats : [ $cats ];
+
+            $query[] = implode( ' ', array_map( function( $cat ) {
+                return '@category:{' . $cat . '}';
+            }, $cat ));
+        }
+
+        return implode( ' ', $query );
     }
 
     /**
@@ -89,25 +134,21 @@ class Search {
      */
     public function posts_request( string $request, \WP_Query $query ) : string {
         // Only filter front-end search queries
-        if (
-            is_admin() ||
-            ! $query->is_main_query() ||
-            ( method_exists( $query, 'is_search' ) && ! $query->is_search() ) ||
-            empty( $query->query_vars['s'] )
-        ) {
+        if ( $this->enable() ) {
+            $results = $this->search( $query );
+
+            $count = $results[0];
+
+            $this->results = $this->format_results( $results );
+
+            $query->found_posts = $count;
+            $query->max_num_pages( ceil( $count / $query->query_vars['posts_per_page'] ) );
+
+            return 'SELECT * FROM $wpdb->posts WHERE 1=0';
+        }
+        else {
             return $request;
         }
-
-        $results = $this->search( $query );
-
-        $count = $results[0];
-
-        $this->results = $this->format_results( $results );
-
-        $query->found_posts = $count;
-        $query->max_num_pages( ceil( $count / $query->query_vars['posts_per_page'] ) );
-
-        return 'SELECT * FROM $wpdb->posts WHERE 1=0';
     }
 
     /**
@@ -119,16 +160,30 @@ class Search {
      */
     public function the_posts( array $posts, \WP_Query $query ) : array {
         // Only filter front-end search queries
-        if (
-            is_admin() ||
-            ! $query->is_main_query() ||
-            ( method_exists( $query, 'is_search' ) && ! $query->is_search() ) ||
-            empty( $query->query_vars['s'] )
-        ) {
+        if ( $this->enable() ) {
+            return $this->results;
+        }
+        else {
             return $posts;
         }
+    }
 
-        return $this->results;
+    /**
+     * A method to determine whether we want to override the normal query or not.
+     *
+     * @param \WP_Query $wp_query The WP Query object.
+     * @return boolean
+     */
+    protected function enable( \WP_Query $wp_query ) : bool {
+        $query_vars           = $wp_query->query_vars;
+        $supported_query_vars = $this->supported_query_vars;
+
+        if ( count( array_diff( $query_vars, $supported_query_vars ) ) > 0 ) {
+            return false;
+        }
+        else {
+            return true;
+        }
     }
 
     /**

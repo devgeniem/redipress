@@ -47,6 +47,11 @@ class RediPress {
 
             return $partials;
         });
+
+        // Register the CLI commands if WP CLI is available
+        if ( defined( 'WP_CLI' ) && WP_CLI ) {
+            \WP_CLI::add_command( 'redipress', __NAMESPACE__ . '\\CLI' );
+        }
     }
 
     /**

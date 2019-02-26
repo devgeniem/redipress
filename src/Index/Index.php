@@ -42,6 +42,11 @@ class Index {
     protected $core_schema_fields = [];
 
     /**
+     * The default tag separator.
+     */
+    protected const TAG_SEPARATOR = '*';
+
+    /**
      * Construct the index object
      *
      * @param Client $client Client instance.
@@ -56,6 +61,10 @@ class Index {
         dustpress()->register_ajax_function( 'redipress_create_index', [ $this, 'create' ] );
         dustpress()->register_ajax_function( 'redipress_drop_index', [ $this, 'drop' ] );
         dustpress()->register_ajax_function( 'redipress_index_all', [ $this, 'index_all' ] );
+
+        // Register CLI bindings
+        add_action( 'redipress/cli/index_all', [ $this, 'index_all' ], 50, 0 );
+        add_action( 'redipress/cli/index_single', [ $this, 'index_single' ], 50, 1 );
 
         // Register indexing hooks
         add_action( 'save_post', [ $this, 'upsert' ], 10, 3 );
@@ -84,6 +93,9 @@ class Index {
                 'name'     => 'post_title',
                 'weight'   => 5.0,
                 'sortable' => true,
+            ]),
+            new TextField([
+                'name' => 'post_name',
             ]),
             new TextField([
                 'name' => 'post_content',
@@ -116,11 +128,22 @@ class Index {
             new TextField([
                 'name' => 'search_index',
             ]),
-            new TagField([
-                'name'      => 'category',
-                'separator' => ',',
-            ]),
         ];
+
+        // Add taxonomies to core fields
+        $taxonomies = get_taxonomies();
+
+        foreach ( $taxonomies as $taxonomy ) {
+            $this->core_schema_fields[] = new TagField([
+                'name'      => 'taxonomy_' . $taxonomy,
+                'separator' => $this->get_tag_separator(),
+            ]);
+
+            $this->core_schema_fields[] = new TagField([
+                'name'      => 'taxonomy_id_' . $taxonomy,
+                'separator' => $this->get_tag_separator(),
+            ]);
+        }
     }
 
     /**
@@ -172,17 +195,48 @@ class Index {
 
         $query = new \WP_Query( $args );
 
-        $result = array_map( function( $post ) {
+        $count = count( $query->posts );
+
+        if ( defined( 'WP_CLI' ) && WP_CLI ) {
+            $progress = \WP_CLI\Utils\make_progress_bar( __( 'Indexing posts', 'redipress' ), $count );
+        }
+        else {
+            $progress = null;
+        }
+
+        $result = array_map( function( $post ) use ( $progress ) {
             $converted = $this->convert_post( $post );
 
-            return $this->add_post( $converted, $post->ID );
+            $return = $this->add_post( $converted, $post->ID );
+
+            if ( ! empty( $progress ) ) {
+                $progress->tick();
+            }
         }, $query->posts );
 
         do_action( 'redipress/indexed_all', $result, $query );
 
         $this->maybe_write_to_disk( 'indexed_all' );
 
-        return $result;
+        if ( ! empty( $progress ) ) {
+            $progress->finish();
+        }
+
+        return $count;
+    }
+
+    /**
+     * Index a single post by its ID.
+     *
+     * @param integer $post_id The post ID to index.
+     * @return mixed
+     */
+    public function index_single( int $post_id ) {
+        $post = get_post( $post_id );
+
+        $converted = $this->convert_post( $post );
+
+        return $this->add_post( $converted, $post_id );
     }
 
     /**
@@ -276,16 +330,10 @@ class Index {
         // Filter the post object that will be added to the database serialized.
         $post_object = apply_filters( 'redipress/post_object', $post );
 
-        $categories = get_the_terms( $post->ID, 'category' ) ?: [];
-
-        // Add categories
-        $category = implode( ',', array_map( function( $term ) {
-            return $term->term_id;
-        }, $categories ) );
-
         // Get rest of the fields
         $rest = [
             'post_id'        => $post->ID,
+            'post_name'      => $post->post_name,
             'post_title'     => $post->post_title,
             'post_author_id' => $post->post_author,
             'post_excerpt'   => $post->post_excerpt,
@@ -295,8 +343,27 @@ class Index {
             'permalink'      => get_permalink( $post->ID ),
             'menu_order'     => absint( $post->menu_order ),
             'search_index'   => $search_index,
-            'category'       => $category,
         ];
+
+        // Handle the taxonomies
+        $taxonomies = get_taxonomies();
+
+        foreach ( $taxonomies as $taxonomy ) {
+            $terms = get_the_terms( $post->ID, $taxonomy ) ?: [];
+
+            // Add the terms
+            $term_string = implode( $this->get_tag_separator(), array_map( function( $term ) {
+                return $term->name;
+            }, $terms ) );
+
+            // Add the terms
+            $id_string = implode( $this->get_tag_separator(), array_map( function( $term ) {
+                return $term->term_id;
+            }, $terms ) );
+
+            $rest[ 'taxonomy_' . $taxonomy ]    = $term_string;
+            $rest[ 'taxonomy_id_' . $taxonomy ] = $id_string;
+        }
 
         do_action( 'redipress/indexed_post', $post );
 
@@ -365,5 +432,14 @@ class Index {
      */
     private function return_field_name( SchemaField $field ) : string {
         return $field->name;
+    }
+
+    /**
+     * Returns the tag separator value through a filter.
+     *
+     * @return string
+     */
+    protected function get_tag_separator() : string {
+        return apply_filters( 'redipress/tag_separator', self::TAG_SEPARATOR );
     }
 }

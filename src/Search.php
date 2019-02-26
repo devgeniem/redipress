@@ -44,9 +44,15 @@ class Search {
      * @var array
      */
     protected $supported_query_vars = [
+        'p',
+        'name',
+        'pagename',
+        'post_type',
         's',
-        'categories__in',
-        'categories__and',
+        'category__in',
+        'category__and',
+        'category__not_in',
+        'category_name',
     ];
 
     /**
@@ -100,6 +106,28 @@ class Search {
     public function build_query( \WP_Query $wp_query ) : string {
         $query_string = [];
 
+        if ( ! empty( $wp_query->query_vars['p'] ) ) {
+            $query[] = '@post_id:[' . $wp_query->query_vars['p'] . ' ' . $wp_query->query_vars['p'] . ']';
+        }
+
+        if ( ! empty( $wp_query->query_vars['name'] ) ) {
+            $query[] = '@post_name:' . $wp_query->query_vars['name'];
+        }
+
+        if ( ! empty( $wp_query->query_vars['pagename'] ) ) {
+            $query[] = '@post_name:' . $wp_query->query_vars['pagename'];
+        }
+
+        if ( ! empty( $wp_query->query_vars['post_type'] ) ) {
+            $post_type = $wp_query->query_vars['post_type'];
+
+            if ( $post_type !== 'any' ) {
+                $post_types = is_array( $post_type ) ? $post_type : [ $post_type ];
+
+                $query[] = '@post_type:(' . implode( '|', $post_types ) . ')';
+            }
+        }
+
         if ( ! empty( $wp_query->query_vars['s'] ) ) {
             $query[] = $wp_query->query_vars['s'];
         }
@@ -109,7 +137,15 @@ class Search {
 
             $cat = is_array( $cats ) ? $cats : [ $cats ];
 
-            $query[] = '@category:{' . implode( '|', $cat ) . '}';
+            $query[] = '@taxonomy_id_category:{' . implode( '|', $cat ) . '}';
+        }
+
+        if ( ! empty( $wp_query->query_vars['category__not_in'] ) ) {
+            $cats = $wp_query->query_vars['category__not_in'];
+
+            $cat = is_array( $cats ) ? $cats : [ $cats ];
+
+            $query[] = '-@taxonomy_id_category:{' . implode( '|', $cat ) . '}';
         }
 
         if ( ! empty( $wp_query->query_vars['category__and'] ) ) {
@@ -118,8 +154,22 @@ class Search {
             $cat = is_array( $cats ) ? $cats : [ $cats ];
 
             $query[] = implode( ' ', array_map( function( $cat ) {
-                return '@category:{' . $cat . '}';
+                return '@taxonomy_id_category:{' . $cat . '}';
             }, $cat ));
+        }
+
+        if ( ! empty( $wp_query->query_vars['category_name'] ) ) {
+            $cat = $wp_query->query_vars['category_name'];
+
+            $all_cats = explode( '+', $cat );
+
+            foreach ( $all_cats as $all ) {
+                $some_cats = explode( ',', $all );
+
+                foreach ( $some_cats as $some ) {
+                    $query[] = '@taxonomy_category:{' . implode( '|', $some ) . '}';
+                }
+            }
         }
 
         return implode( ' ', $query );
@@ -134,7 +184,7 @@ class Search {
      */
     public function posts_request( string $request, \WP_Query $query ) : string {
         // Only filter front-end search queries
-        if ( $this->enable() ) {
+        if ( $this->enable( $query ) ) {
             $results = $this->search( $query );
 
             $count = $results[0];
@@ -143,6 +193,8 @@ class Search {
 
             $query->found_posts = $count;
             $query->max_num_pages( ceil( $count / $query->query_vars['posts_per_page'] ) );
+
+            $query->using_redisearch = true;
 
             return 'SELECT * FROM $wpdb->posts WHERE 1=0';
         }
@@ -160,7 +212,7 @@ class Search {
      */
     public function the_posts( array $posts, \WP_Query $query ) : array {
         // Only filter front-end search queries
-        if ( $this->enable() ) {
+        if ( $this->enable( $query ) ) {
             return $this->results;
         }
         else {
@@ -175,10 +227,12 @@ class Search {
      * @return boolean
      */
     protected function enable( \WP_Query $wp_query ) : bool {
-        $query_vars           = $wp_query->query_vars;
+        $query_vars           = $wp_query->query;
         $supported_query_vars = $this->supported_query_vars;
 
-        if ( count( array_diff( $query_vars, $supported_query_vars ) ) > 0 ) {
+        $differences = array_diff( array_keys( $query_vars ), $supported_query_vars );
+
+        if ( count( $differences ) > 0 ) {
             return false;
         }
         else {

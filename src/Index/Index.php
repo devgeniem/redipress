@@ -101,6 +101,9 @@ class Index {
                 'name' => 'post_content',
             ]),
             new TextField([
+                'name' => 'post_type',
+            ]),
+            new TextField([
                 'name'   => 'post_excerpt',
                 'weight' => 2.0,
             ]),

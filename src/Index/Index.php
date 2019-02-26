@@ -125,6 +125,9 @@ class Index {
                 'name'     => 'post_date',
                 'sortable' => true,
             ]),
+            new NumericField([
+                'name' => 'post_parent',
+            ]),
             new TextField([
                 'name' => 'search_index',
             ]),
@@ -339,6 +342,7 @@ class Index {
             'post_excerpt'   => $post->post_excerpt,
             'post_content'   => wp_strip_all_tags( $post->post_content, true ),
             'post_type'      => $post->post_type,
+            'post_parent'    => $post->post_parent,
             'post_object'    => serialize( $post_object ),
             'permalink'      => get_permalink( $post->ID ),
             'menu_order'     => absint( $post->menu_order ),

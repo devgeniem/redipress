@@ -44,10 +44,12 @@ class Search {
      * @var array
      */
     protected $supported_query_vars = [
+        'paged',
         'p',
         'name',
         'pagename',
         'post_type',
+        'post_parent',
         's',
         'category__in',
         'category__and',
@@ -126,6 +128,10 @@ class Search {
 
                 $query[] = '@post_type:(' . implode( '|', $post_types ) . ')';
             }
+        }
+
+        if ( ! empty( $wp_query->query_vars['post_parent'] ) ) {
+            $query[] = '@post_parent:' . $wp_query->query_vars['post_parent'];
         }
 
         if ( ! empty( $wp_query->query_vars['s'] ) ) {

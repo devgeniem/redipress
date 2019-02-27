@@ -39,22 +39,22 @@ class Search {
     protected $results = [];
 
     /**
-     * List of supported query vars for WP_Query.
+     * QueryBuilder instance
+     *
+     * @var Search\QueryBuilder
+     */
+    protected $query_builder = null;
+
+    /**
+     * List of fields to include in search queries by default
      *
      * @var array
      */
-    protected $supported_query_vars = [
-        'paged',
-        'p',
-        'name',
-        'pagename',
-        'post_type',
-        'post_parent',
-        's',
-        'category__in',
-        'category__and',
-        'category__not_in',
-        'category_name',
+    protected $default_search_fields = [
+        'post_title',
+        'post_excerpt',
+        'post_content',
+        'search_index',
     ];
 
     /**
@@ -80,9 +80,15 @@ class Search {
      * @return mixed Search results.
      */
     public function search( \WP_Query $query ) {
-        $search_query = $this->build_query( $query );
+        $search_query = $this->query_builder->get_query();
 
         $search_query = apply_filters( 'redipress/search_query', $search_query, $query );
+
+        $search_query_string = apply_filters( 'redipress/search_query_string', implode( ' ', $search_query ) );
+
+        $infields = array_unique( apply_filters( 'redipress/search_fields', $this->default_search_fields, $query ) );
+
+        $return = array_unique( apply_filters( 'redipress/return_fields', [ 'post_object' ], $query ) );
 
         $limit = $query->query_vars['posts_per_page'];
 
@@ -95,90 +101,14 @@ class Search {
 
         return $this->client->raw_command(
             'FT.SEARCH',
-            [ $this->index, $search_query, 'RETURN', 1, 'post_object', 'LIMIT', $offset, $limit ]
+            array_merge(
+                [ $this->index, $search_query_string, 'INFIELDS', count( $infields ) ],
+                $infields,
+                [ 'RETURN', count( $return ) ],
+                $return,
+                [ 'LIMIT', $offset, $limit ]
+            )
         );
-    }
-
-    /**
-     * Build the RediSearch search query
-     *
-     * @param \WP_Query $wp_query The WP_Query object.
-     * @return string
-     */
-    public function build_query( \WP_Query $wp_query ) : string {
-        $query_string = [];
-
-        if ( ! empty( $wp_query->query_vars['p'] ) ) {
-            $query[] = '@post_id:[' . $wp_query->query_vars['p'] . ' ' . $wp_query->query_vars['p'] . ']';
-        }
-
-        if ( ! empty( $wp_query->query_vars['name'] ) ) {
-            $query[] = '@post_name:' . $wp_query->query_vars['name'];
-        }
-
-        if ( ! empty( $wp_query->query_vars['pagename'] ) ) {
-            $query[] = '@post_name:' . $wp_query->query_vars['pagename'];
-        }
-
-        if ( ! empty( $wp_query->query_vars['post_type'] ) ) {
-            $post_type = $wp_query->query_vars['post_type'];
-
-            if ( $post_type !== 'any' ) {
-                $post_types = is_array( $post_type ) ? $post_type : [ $post_type ];
-
-                $query[] = '@post_type:(' . implode( '|', $post_types ) . ')';
-            }
-        }
-
-        if ( ! empty( $wp_query->query_vars['post_parent'] ) ) {
-            $query[] = '@post_parent:' . $wp_query->query_vars['post_parent'];
-        }
-
-        if ( ! empty( $wp_query->query_vars['s'] ) ) {
-            $query[] = $wp_query->query_vars['s'];
-        }
-
-        if ( ! empty( $wp_query->query_vars['category__in'] ) ) {
-            $cats = $wp_query->query_vars['category__in'];
-
-            $cat = is_array( $cats ) ? $cats : [ $cats ];
-
-            $query[] = '@taxonomy_id_category:{' . implode( '|', $cat ) . '}';
-        }
-
-        if ( ! empty( $wp_query->query_vars['category__not_in'] ) ) {
-            $cats = $wp_query->query_vars['category__not_in'];
-
-            $cat = is_array( $cats ) ? $cats : [ $cats ];
-
-            $query[] = '-@taxonomy_id_category:{' . implode( '|', $cat ) . '}';
-        }
-
-        if ( ! empty( $wp_query->query_vars['category__and'] ) ) {
-            $cats = $wp_query->query_vars['category__and'];
-
-            $cat = is_array( $cats ) ? $cats : [ $cats ];
-
-            $query[] = implode( ' ', array_map( function( $cat ) {
-                return '@taxonomy_id_category:{' . $cat . '}';
-            }, $cat ));
-        }
-
-        if ( ! empty( $wp_query->query_vars['category_name'] ) ) {
-            $cat = $wp_query->query_vars['category_name'];
-
-            $all_cats = explode( '+', $cat );
-
-            foreach ( $all_cats as $all ) {
-                $some_cats = explode( ',', $all );
-
-                foreach ( $some_cats as $some ) {
-                    $query[] = '@taxonomy_category:{' . implode( '|', $some ) . '}';
-                }
-            }
-        }
-
-        return implode( ' ', $query );
     }
 
     /**
@@ -189,9 +119,15 @@ class Search {
      * @return string The resulting query.
      */
     public function posts_request( string $request, \WP_Query $query ) : string {
+        $this->query_builder = new Search\QueryBuilder( $query );
+
         // Only filter front-end search queries
-        if ( $this->enable( $query ) ) {
+        if ( $this->query_builder->enable() ) {
             $results = $this->search( $query );
+
+            if ( $results === '0' ) {
+                return $request;
+            }
 
             $count = $results[0];
 
@@ -218,31 +154,11 @@ class Search {
      */
     public function the_posts( array $posts, \WP_Query $query ) : array {
         // Only filter front-end search queries
-        if ( $this->enable( $query ) ) {
+        if ( $this->query_builder->enable() ) {
             return $this->results;
         }
         else {
             return $posts;
-        }
-    }
-
-    /**
-     * A method to determine whether we want to override the normal query or not.
-     *
-     * @param \WP_Query $wp_query The WP Query object.
-     * @return boolean
-     */
-    protected function enable( \WP_Query $wp_query ) : bool {
-        $query_vars           = $wp_query->query;
-        $supported_query_vars = $this->supported_query_vars;
-
-        $differences = array_diff( array_keys( $query_vars ), $supported_query_vars );
-
-        if ( count( $differences ) > 0 ) {
-            return false;
-        }
-        else {
-            return true;
         }
     }
 

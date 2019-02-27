@@ -66,6 +66,9 @@ class Index {
         add_action( 'redipress/cli/index_all', [ $this, 'index_all' ], 50, 0 );
         add_action( 'redipress/cli/index_single', [ $this, 'index_single' ], 50, 1 );
 
+        // Register actions to index custom data manually
+        add_action( 'redipress/index_post', [ $this, 'upsert' ], 50, 3 );
+
         // Register indexing hooks
         add_action( 'save_post', [ $this, 'upsert' ], 10, 3 );
 
@@ -210,6 +213,8 @@ class Index {
             $progress = null;
         }
 
+        $posts = apply_filters( 'redipress/custom_posts', $query->posts );
+
         $result = array_map( function( $post ) use ( $progress ) {
             $converted = $this->convert_post( $post );
 
@@ -218,7 +223,7 @@ class Index {
             if ( ! empty( $progress ) ) {
                 $progress->tick();
             }
-        }, $query->posts );
+        }, $posts );
 
         do_action( 'redipress/indexed_all', $result, $query );
 
@@ -248,12 +253,12 @@ class Index {
     /**
      * Update or insert a post in the RediSearch database
      *
-     * @param int      $post_id The post ID.
-     * @param \WP_Post $post    The post object.
-     * @param bool     $update  Whether this is an existing post being updated or not.
+     * @param string|int $post_id The post ID, can be real or arbitrary.
+     * @param \WP_Post   $post    The post object.
+     * @param bool       $update  Whether this is an existing post being updated or not.
      * @return mixed
      */
-    public function upsert( int $post_id, \WP_Post $post, bool $update ) {
+    public function upsert( $post_id, \WP_Post $post, bool $update = null ) {
         // Run a list of checks if we really want to do this or not.
         if (
             wp_is_post_revision( $post_id ) ||
@@ -332,18 +337,29 @@ class Index {
         // Gather the additional search index
         $search_index = apply_filters( 'redipress/search_index', '', $post->ID, $post );
         $search_index = apply_filters( 'redipress/search_index/' . $post->ID, $search_index, $post );
+        $search_index = apply_filters( 'redipress/index_strings', $search_index );
 
         // Filter the post object that will be added to the database serialized.
         $post_object = apply_filters( 'redipress/post_object', $post );
+
+        $post_title = apply_filters( 'redipress/post_title', $post->post_title );
+        $post_title = apply_filters( 'redipress/index_strings', $post_title );
+
+        $post_excerpt = apply_filters( 'redipress/post_excerpt', $post->post_excerpt );
+        $post_excerpt = apply_filters( 'redipress/index_strings', $post_excerpt );
+
+        $post_content = wp_strip_all_tags( $post->post_content, true );
+        $post_content = apply_filters( 'redipress/post_content', $post_content );
+        $post_content = apply_filters( 'redipress/index_strings', $post_content );
 
         // Get rest of the fields
         $rest = [
             'post_id'        => $post->ID,
             'post_name'      => $post->post_name,
-            'post_title'     => $post->post_title,
+            'post_title'     => $post_title,
             'post_author_id' => $post->post_author,
-            'post_excerpt'   => $post->post_excerpt,
-            'post_content'   => wp_strip_all_tags( $post->post_content, true ),
+            'post_excerpt'   => $post_excerpt,
+            'post_content'   => $post_content,
             'post_type'      => $post->post_type,
             'post_parent'    => $post->post_parent,
             'post_object'    => serialize( $post_object ),

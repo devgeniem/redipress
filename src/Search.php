@@ -10,7 +10,8 @@ use Geniem\RediPress\Admin,
     Geniem\RediPress\Entity\NumericField,
     Geniem\RediPress\Entity\TagField,
     Geniem\RediPress\Entity\TextField,
-    Geniem\RediPress\Redis\Client;
+    Geniem\RediPress\Redis\Client,
+    Geniem\RediPress\Utility;
 
 /**
  * RediPress search class
@@ -74,6 +75,15 @@ class Search {
     }
 
     /**
+     * Return the client instance.
+     *
+     * @return Client
+     */
+    public function get_client() : Client {
+        return $this->client;
+    }
+
+    /**
      * The search function itself
      *
      * @param \WP_Query $query The WP_Query object for the search.
@@ -88,7 +98,7 @@ class Search {
 
         $infields = array_unique( apply_filters( 'redipress/search_fields', $this->default_search_fields, $query ) );
 
-        $return = array_unique( apply_filters( 'redipress/return_fields', [ 'post_object' ], $query ) );
+        $return = array_unique( apply_filters( 'redipress/return_fields', [ 'post_object', 'post_date', 'post_type', 'post_id' ], $query ) );
 
         $limit = $query->query_vars['posts_per_page'];
 
@@ -99,7 +109,7 @@ class Search {
             $offset = 0;
         }
 
-        return $this->client->raw_command(
+        $results = $this->client->raw_command(
             'FT.SEARCH',
             array_merge(
                 [ $this->index, $search_query_string, 'INFIELDS', count( $infields ) ],
@@ -109,6 +119,16 @@ class Search {
                 [ 'LIMIT', $offset, $limit ]
             )
         );
+
+        $counts = $this->client->raw_command(
+            'FT.AGGREGATE',
+            [ $this->index, $search_query_string, 'GROUPBY', 1, '@post_type', 'REDUCE', 'COUNT', '0', 'AS', 'amount' ]
+        );
+
+        return apply_filters( 'redipress/search_results', (object) [
+            'results' => $results,
+            'counts'  => $counts,
+        ], $query );
     }
 
     /**
@@ -119,26 +139,58 @@ class Search {
      * @return string The resulting query.
      */
     public function posts_request( string $request, \WP_Query $query ) : string {
+        global $wpdb;
+
         $this->query_builder = new Search\QueryBuilder( $query );
+
+        // If we don't have explicitly defined post type query, use the public ones
+        if ( empty( $query->query['post_type'] ) ) {
+            $post_types = get_post_types([
+                'public'              => true,
+                'publicly_queryable'  => true,
+                'exclude_from_search' => false,
+            ], 'names' );
+
+            $post_types = apply_filters( 'redipress/search_post_types', $post_types );
+
+            $query->query['post_type']      = $post_types;
+            $query->query_vars['post_type'] = $post_types;
+        }
 
         // Only filter front-end search queries
         if ( $this->query_builder->enable() ) {
-            $results = $this->search( $query );
+            do_action( 'redipress/before_search', $this, $query );
 
-            if ( $results === '0' ) {
+            $raw_results = $this->search( $query );
+
+            if ( $raw_results->results === '0' ) {
                 return $request;
             }
 
-            $count = $results[0];
+            $count = $raw_results->results[0];
 
-            $this->results = $this->format_results( $results );
+            $results = $this->format_results( $raw_results->results );
+
+            $query->post_type_counts = [];
+
+            if ( is_array( $raw_results->counts ) ) {
+                unset( $raw_results->counts[0] );
+
+                foreach ( $raw_results->counts as $post_type ) {
+                    $formatted = Utility::format( $post_type );
+
+                    $query->post_type_counts[ $formatted['post_type'] ] = $formatted['amount'];
+                }
+            }
+
+            $this->results = apply_filters( 'redipress/formatted_search_results', $results );
 
             $query->found_posts = $count;
             $query->max_num_pages( ceil( $count / $query->query_vars['posts_per_page'] ) );
 
             $query->using_redisearch = true;
 
-            return 'SELECT * FROM $wpdb->posts WHERE 1=0';
+            return "SELECT * FROM $wpdb->posts WHERE 1=0";
         }
         else {
             return $request;

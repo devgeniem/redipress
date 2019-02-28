@@ -66,7 +66,8 @@ class Index {
         add_action( 'redipress/cli/index_all', [ $this, 'index_all' ], 50, 0 );
         add_action( 'redipress/cli/index_single', [ $this, 'index_single' ], 50, 1 );
 
-        // Register actions to index custom data manually
+        // Register external actions
+        add_action( 'redipress/delete_post', [ $this, 'delete_post' ], 50, 1 );
         add_action( 'redipress/index_post', [ $this, 'upsert' ], 50, 3 );
 
         // Register indexing hooks
@@ -104,7 +105,8 @@ class Index {
                 'name' => 'post_content',
             ]),
             new TextField([
-                'name' => 'post_type',
+                'name'     => 'post_type',
+                'sortable' => true,
             ]),
             new TextField([
                 'name'   => 'post_excerpt',
@@ -116,7 +118,7 @@ class Index {
             new NumericField([
                 'name' => 'post_author_id',
             ]),
-            new NumericField([
+            new TextField([
                 'name'     => 'post_id',
                 'sortable' => true,
             ]),
@@ -198,8 +200,9 @@ class Index {
         do_action( 'redipress/before_index_all' );
 
         $args = [
-            'posts_per_page' => -1,
-            'post_type'      => 'any',
+            'posts_per_page'   => -1,
+            'post_type'        => 'any',
+            'bypass_redipress' => true,
         ];
 
         $query = new \WP_Query( $args );

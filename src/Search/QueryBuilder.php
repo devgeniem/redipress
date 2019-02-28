@@ -107,7 +107,7 @@ class QueryBuilder {
      * @return string
      */
     protected function s() : string {
-        return $this->wp_query->query_vars['s'];
+        return apply_filters( 'redipress/search_terms', $this->wp_query->query_vars['s'] );
     }
 
     /**

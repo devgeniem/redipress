@@ -143,7 +143,11 @@ class Search {
     public function posts_request( string $request, \WP_Query $query ) : string {
         global $wpdb;
 
-        $this->query_builder = new Search\QueryBuilder( $query );
+        if ( empty( $query->query ) ) {
+            $query->is_front_page = true;
+            $this->query_builder  = new Search\QueryBuilder( $query );
+            return $request;
+        }
 
         // If we don't have explicitly defined post type query, use the public ones
         if ( empty( $query->query['post_type'] ) ) {

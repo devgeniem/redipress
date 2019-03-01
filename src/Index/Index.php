@@ -65,6 +65,8 @@ class Index {
         // Register CLI bindings
         add_action( 'redipress/cli/index_all', [ $this, 'index_all' ], 50, 0 );
         add_action( 'redipress/cli/index_single', [ $this, 'index_single' ], 50, 1 );
+        add_filter( 'redipress/create_index', [ $this, 'create' ], 50, 1 );
+        add_filter( 'redipress/drop_index', [ $this, 'drop' ], 50, 1 );
 
         // Register external actions
         add_action( 'redipress/delete_post', [ $this, 'delete_post' ], 50, 1 );
@@ -337,8 +339,37 @@ class Index {
 
         $additions = array_combine( $additional_fields, $additional_values );
 
+        $search_index = [];
+        $tax          = [];
+
+        // Handle the taxonomies
+        $taxonomies = get_taxonomies();
+
+        $wanted_taxonomies = Admin::get( 'taxonomies' );
+
+        foreach ( $taxonomies as $taxonomy ) {
+            $terms = get_the_terms( $post->ID, $taxonomy ) ?: [];
+
+            // Add the terms
+            $term_string = implode( $this->get_tag_separator(), array_map( function( $term ) {
+                return $term->name;
+            }, $terms ) );
+
+            // Add the terms
+            $id_string = implode( $this->get_tag_separator(), array_map( function( $term ) {
+                return $term->term_id;
+            }, $terms ) );
+
+            $tax[ 'taxonomy_' . $taxonomy ]    = $term_string;
+            $tax[ 'taxonomy_id_' . $taxonomy ] = $id_string;
+
+            if ( in_array( $taxonomy, $wanted_taxonomies, true ) ) {
+                $search_index[] = $term_string;
+            }
+        }
+
         // Gather the additional search index
-        $search_index = apply_filters( 'redipress/search_index', '', $post->ID, $post );
+        $search_index = apply_filters( 'redipress/search_index', implode( ' ', $search_index ), $post->ID, $post );
         $search_index = apply_filters( 'redipress/search_index/' . $post->ID, $search_index, $post );
         $search_index = apply_filters( 'redipress/index_strings', $search_index );
 
@@ -371,29 +402,9 @@ class Index {
             'search_index'   => $search_index,
         ];
 
-        // Handle the taxonomies
-        $taxonomies = get_taxonomies();
-
-        foreach ( $taxonomies as $taxonomy ) {
-            $terms = get_the_terms( $post->ID, $taxonomy ) ?: [];
-
-            // Add the terms
-            $term_string = implode( $this->get_tag_separator(), array_map( function( $term ) {
-                return $term->name;
-            }, $terms ) );
-
-            // Add the terms
-            $id_string = implode( $this->get_tag_separator(), array_map( function( $term ) {
-                return $term->term_id;
-            }, $terms ) );
-
-            $rest[ 'taxonomy_' . $taxonomy ]    = $term_string;
-            $rest[ 'taxonomy_id_' . $taxonomy ] = $id_string;
-        }
-
         do_action( 'redipress/indexed_post', $post );
 
-        return $this->client->convert_associative( array_merge( $args, $rest, $additions ) );
+        return $this->client->convert_associative( array_merge( $args, $rest, $tax, $additions ) );
     }
 
     /**

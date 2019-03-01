@@ -107,7 +107,19 @@ class QueryBuilder {
      * @return string
      */
     protected function s() : string {
-        return apply_filters( 'redipress/search_terms', $this->wp_query->query_vars['s'] );
+        $terms = apply_filters( 'redipress/search_terms', $this->wp_query->query_vars['s'] );
+
+        $sort = explode( ' ', $terms );
+
+        $tilde = array_filter( $sort, function( $word ) {
+            return strpos( $word, '~' ) === 0;
+        });
+
+        $rest = array_diff( $sort, $tilde );
+
+        $terms = array_merge( $rest, $tilde );
+
+        return implode( ' ', $terms );
     }
 
     /**

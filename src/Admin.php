@@ -266,18 +266,16 @@ class Admin {
         $tab->set_key( self::PREFIX . 'taxonomies' )
             ->set_placement( 'left' );
 
-        $post_type_list = get_taxonomies([
-            'public'  => true,
-            'show_ui' => true,
-        ], 'objects' );
+        $taxonomy_list = get_taxonomies( [], 'objects' );
 
         $taxonomies = new Field\Checkbox( __( 'Taxonomies', 'redipress' ) );
         $taxonomies->set_key( self::PREFIX . 'taxonomies' )
+            ->set_name( 'taxonomies' )
             ->set_instructions( __( 'Select the taxonomies that will be included in the search results.', 'redipress' ) )
             ->allow_toggle()
-            ->set_choices( array_map( function( $post_type ) {
-                return $post_type->labels->name;
-            }, $post_type_list ));
+            ->set_choices( array_map( function( $taxonomy ) {
+                return $taxonomy->labels->name ?: $taxonomy->name;
+            }, $taxonomy_list ));
 
         $tab->add_fields([
             $taxonomies,
@@ -296,7 +294,11 @@ class Admin {
         if ( defined( strtoupper( $field['key'] ) ) ) {
             $field['value']        = constant( strtoupper( $field['key'] ) );
             $field['readonly']     = true;
-            $field['instructions'] = __( 'Value is defined in a constant and can\'t be changed here.', 'redipress' );
+            $field['instructions'] = $field['instructions'] . '<br/> ' . __( 'Value is defined in a constant and can\'t be changed here.', 'redipress' );
+
+            if ( ! empty( $field['choices'] ) ) {
+                $field['disabled'] = array_keys( $field['choices'] );
+            }
         }
 
         return $field;
@@ -325,6 +327,6 @@ class Admin {
      * @return mixed
      */
     public static function get( string $option ) {
-        return get_field( $option, 'redipress' );
+        return get_field( $option, 'redipress', true );
     }
 }

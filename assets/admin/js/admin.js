@@ -58,7 +58,7 @@ class RediPressAdmin {
                             case true:
                                 $( '#redipress_drop_index_info' ).html( __( 'Index deleted.', 'redipress' ) );
                                 break;
-                            case 'Index already exists. Drop it first!':
+                            case 'Unknown Index name':
                                 $( '#redipress_drop_index_info' ).html( __( 'There were no index to delete or it was created under another name.', 'redipress' ) );
                                 break;
                             default:

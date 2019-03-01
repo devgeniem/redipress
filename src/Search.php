@@ -96,6 +96,8 @@ class Search {
 
         $search_query_string = apply_filters( 'redipress/search_query_string', implode( ' ', $search_query ) );
 
+        $query->search_query_string = $search_query_string;
+
         $infields = array_unique( apply_filters( 'redipress/search_fields', $this->default_search_fields, $query ) );
 
         $return = array_unique( apply_filters( 'redipress/return_fields', [ 'post_object', 'post_date', 'post_type', 'post_id' ], $query ) );

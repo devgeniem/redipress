@@ -96,6 +96,8 @@ class Search {
 
         $search_query_string = apply_filters( 'redipress/search_query_string', implode( ' ', $search_query ) );
 
+        $count_search_query_string = apply_filters( 'redipress/count_search_query_string', $search_query_string );
+
         $query->search_query_string = $search_query_string;
 
         $infields = array_unique( apply_filters( 'redipress/search_fields', $this->default_search_fields, $query ) );
@@ -124,7 +126,7 @@ class Search {
 
         $counts = $this->client->raw_command(
             'FT.AGGREGATE',
-            [ $this->index, $search_query_string, 'GROUPBY', 1, '@post_type', 'REDUCE', 'COUNT', '0', 'AS', 'amount' ]
+            [ $this->index, $count_search_query_string, 'GROUPBY', 1, '@post_type', 'REDUCE', 'COUNT', '0', 'AS', 'amount' ]
         );
 
         return apply_filters( 'redipress/search_results', (object) [

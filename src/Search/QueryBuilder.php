@@ -52,6 +52,8 @@ class QueryBuilder {
      */
     public function __construct( WP_Query $wp_query ) {
         $this->wp_query = $wp_query;
+
+        $this->ignore_query_vars = apply_filters( 'redipress/ignore_query_vars', [] );
     }
 
     /**
@@ -61,6 +63,10 @@ class QueryBuilder {
      */
     public function get_query() : array {
         $return = array_filter( array_map( function( $query_var ) : string {
+            if ( in_array( $query_var, $this->ignore_query_vars, true ) ) {
+                return false;
+            }
+
             if ( ! empty( $this->query_vars[ $query_var ] ) ) {
                 add_filter( 'redipress/search_fields', function( $fields ) use ( $query_var ) {
                     $fields[] = $this->query_vars[ $query_var ];
@@ -88,11 +94,13 @@ class QueryBuilder {
     public function enable() : bool {
         $query_vars = $this->wp_query->query;
 
-        return array_reduce( array_keys( $query_vars ), function( bool $carry, string $item ) {
+        $allowed = array_merge( array_keys( $this->query_vars ), $this->ignore_query_vars );
+
+        return array_reduce( array_keys( $query_vars ), function( bool $carry, string $item ) use ( $allowed ) {
             if ( ! $carry ) {
                 return false;
             }
-            elseif ( array_key_exists( $item, $this->query_vars ) ) {
+            elseif ( array_search( $item, $allowed, true ) !== -1 ) {
                 return true;
             }
             else {

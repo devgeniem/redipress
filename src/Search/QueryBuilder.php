@@ -20,6 +20,13 @@ class QueryBuilder {
     protected $wp_query = null;
 
     /**
+     * Possible preferred modifiers
+     *
+     * @var array
+     */
+    protected $modifiers = [];
+
+    /**
      * Mapped query vars
      *
      * @var array
@@ -53,7 +60,7 @@ class QueryBuilder {
      * @return array
      */
     public function get_query() : array {
-        return array_filter( array_map( function( $query_var ) : string {
+        $return = array_filter( array_map( function( $query_var ) : string {
             if ( ! empty( $this->query_vars[ $query_var ] ) ) {
                 add_filter( 'redipress/search_fields', function( $fields ) use ( $query_var ) {
                     $fields[] = $this->query_vars[ $query_var ];
@@ -69,6 +76,8 @@ class QueryBuilder {
                 return '@' . $this->query_vars[ $query_var ] . ':' . $this->wp_query->query_vars[ $query_var ];
             }
         }, array_keys( $this->wp_query->query ) ) );
+
+        return array_merge( $return, $this->modifiers );
     }
 
     /**
@@ -117,9 +126,9 @@ class QueryBuilder {
 
         $rest = array_diff( $sort, $tilde );
 
-        $terms = array_merge( $rest, $tilde );
+        $this->modifiers = $tilde;
 
-        return implode( ' ', $terms );
+        return implode( ' ', $rest );
     }
 
     /**

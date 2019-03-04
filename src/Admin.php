@@ -327,6 +327,9 @@ class Admin {
      * @return mixed
      */
     public static function get( string $option ) {
-        return get_field( $option, 'redipress', true );
+        $key = 'redipress_' . $option;
+
+        // First try the appropriate constant and fallback to ACF only if it's not defined.
+        return defined( strtoupper( $key ) ) ? constant( strtoupper( $key ) ) : get_field( $option, 'redipress', true );
     }
 }

@@ -94,6 +94,10 @@ class QueryBuilder {
     public function enable() : bool {
         $query_vars = $this->wp_query->query;
 
+        if ( $this->wp_query->is_front_page ) {
+            return false;
+        }
+
         $allowed = array_merge( array_keys( $this->query_vars ), $this->ignore_query_vars );
 
         return array_reduce( array_keys( $query_vars ), function( bool $carry, string $item ) use ( $allowed ) {

@@ -108,7 +108,7 @@ class RediPress {
             $this->connection = $client->connect(
                 Admin::get( 'hostname' ) ?? '127.0.0.1',
                 Admin::get( 'port' ) ?? 6379,
-                Admin::get( 'database' ) ?? 0,
+                0,
                 Admin::get( 'password' ) ?: null
             );
 

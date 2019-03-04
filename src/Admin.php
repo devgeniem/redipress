@@ -197,16 +197,6 @@ class Admin {
             ->set_name( 'password' )
             ->set_instructions( __( 'If your Redis server is not password protected, leave this field empty.', 'redipress' ) );
 
-        $database = new Field\Number( __( 'Database', 'redipress' ) );
-        $database->set_key( self::PREFIX . 'database' )
-            ->set_name( 'database' )
-            ->set_required()
-            ->set_instructions( __( 'Redis database number.', 'redipress' ) )
-            ->set_step( 1 )
-            ->set_min( 0 )
-            ->set_default_value( 0 )
-            ->set_placeholder( 0 );
-
         $index = new Field\Text( 'Index name', 'redipress' );
         $index->set_key( self::PREFIX . 'index' )
             ->set_name( 'index' )
@@ -217,7 +207,6 @@ class Admin {
             $hostname,
             $port,
             $password,
-            $database,
             $index,
         ]);
 

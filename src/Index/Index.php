@@ -350,6 +350,16 @@ class Index {
         foreach ( $taxonomies as $taxonomy ) {
             $terms = get_the_terms( $post->ID, $taxonomy ) ?: [];
 
+            if ( ! empty( $post->taxonomies[ $taxonomy ] ) ) {
+                $custom_terms = get_terms([
+                    'taxonomy'   => $taxonomy,
+                    'include'    => $post->taxonomies[ $taxonomy ],
+                    'hide_empty' => false,
+                ]);
+
+                $terms = array_merge( $terms, $custom_terms );
+            }
+
             // Add the terms
             $term_string = implode( $this->get_tag_separator(), array_map( function( $term ) {
                 return $term->name;

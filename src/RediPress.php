@@ -8,7 +8,8 @@ namespace Geniem\RediPress;
 use Geniem\RediPressPlugin,
     Geniem\RediPress\Admin,
     Geniem\RediPress\Index\Index,
-    Geniem\RediPress\Redis\Client;
+    Geniem\RediPress\Redis\Client,
+    Geniem\RediPress\Utility;
 
 /**
  * RediPress main class
@@ -28,6 +29,13 @@ class RediPress {
      * @var Client
      */
     protected $connection;
+
+    /**
+     * The index information
+     *
+     * @var array
+     */
+    protected $index_info = null;
 
     /**
      * Store the plugin core instance and initialize rest of the functionalities.
@@ -86,7 +94,7 @@ class RediPress {
 
         if ( $acf ) {
             // Create the admin page
-            new Admin();
+            new Admin( $this );
 
             return true;
         }
@@ -155,20 +163,30 @@ class RediPress {
      * @return boolean Whether the Redisearch index exists or not.
      */
     protected function check_index() : bool {
-        // TEMP:
-        $index_name = 'redipress';
+        $index_name = Admin::get( 'index' );
 
         $index = $this->connection->raw_command( 'FT.INFO', [ $index_name ] );
 
         if ( $index === 'Unknown Index name' ) {
-            $this->plugin->show_admin_error( __( 'Redisearch index is not created', 'redipress' ) );
+            $this->plugin->show_admin_error( __( 'Redisearch index is not created.', 'redipress' ) );
             return false;
         }
         else {
-            // Initialize searching features, we have everything we need to have here.
-            new Search( $this->connection );
+            $info = Utility::format( $index );
 
-            return true;
+            if ( (int) $info['num_docs'] === 0 ) {
+                $this->plugin->show_admin_error( __( 'Redisearch index is empty.', 'redipress' ) );
+                return false;
+            }
+            else {
+                // Store the index information
+                $this->index_info = $info;
+
+                // Initialize searching features, we have everything we need to have here.
+                new Search( $this->connection );
+
+                return true;
+            }
         }
     }
 
@@ -179,5 +197,14 @@ class RediPress {
      */
     public function get_plugin() : RediPressPlugin {
         return $this->plugin;
+    }
+
+    /**
+     * Get the index information
+     *
+     * @return array|null
+     */
+    public function get_index_info() : ?array {
+        return $this->index_info;
     }
 }

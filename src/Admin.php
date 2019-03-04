@@ -8,6 +8,7 @@ namespace Geniem\RediPress;
 use Geniem\ACF\RuleGroup,
     Geniem\ACF\Group,
     Geniem\ACF\Field,
+    Geniem\RediPress\RediPress,
     Geniem\RediPressPlugin;
 
 /**
@@ -28,9 +29,19 @@ class Admin {
     protected $field_group = null;
 
     /**
+     * RediPress instance
+     *
+     * @var RediPress
+     */
+    protected $redipress = null;
+
+    /**
      * Run appropriate functionalities
      */
-    public function __construct() {
+    public function __construct( RediPress $redipress ) {
+
+        // Store the RediPress instance
+        $this->redipress = $redipress;
 
         // Create an options page for the plugin
         $this->create_options_page();
@@ -130,7 +141,9 @@ class Admin {
         $index->run( function( $field ) {
             dustpress()->render([
                 'partial' => 'redipress_admin_indexing',
-                'data'    => false,
+                'data'    => [
+                    'index_information' => $this->redipress->get_index_info(),
+                ],
                 'echo'    => true,
             ]);
         });

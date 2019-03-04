@@ -100,7 +100,7 @@ class QueryBuilder {
             if ( ! $carry ) {
                 return false;
             }
-            elseif ( array_search( $item, $allowed, true ) !== -1 ) {
+            elseif ( array_search( $item, $allowed, true ) !== false ) {
                 return true;
             }
             else {

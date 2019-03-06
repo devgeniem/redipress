@@ -214,7 +214,7 @@ class Search {
      * @param \WP_Query $query The WP Query object.
      * @return array
      */
-    public function the_posts( array $posts, \WP_Query $query ) : array {
+    public function the_posts( ?array $posts, \WP_Query $query ) : ?array {
         // Only filter front-end search queries
         if ( $this->query_builder->enable() ) {
             return $this->results;

@@ -6,10 +6,6 @@
 namespace Geniem\RediPress;
 
 use Geniem\RediPress\Admin,
-    Geniem\RediPress\Entity\SchemaField,
-    Geniem\RediPress\Entity\NumericField,
-    Geniem\RediPress\Entity\TagField,
-    Geniem\RediPress\Entity\TextField,
     Geniem\RediPress\Redis\Client,
     Geniem\RediPress\Utility;
 

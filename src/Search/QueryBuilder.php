@@ -330,6 +330,14 @@ class QueryBuilder {
 
                             $this->add_search_field( 'taxonomy_' . $clause['taxonomy'] );
                             break;
+                        case 'slug':
+                            $clause['terms'] = array_map( function( $term ) {
+                                $term_obj = get_term_by( 'slug', $term );
+
+                                return $term_obj->term_id;
+                            }, $clause['terms'] );
+
+                            // The fallthrough is intentional: we only turn the slugs into ids.
                         case 'term_id':
                             $queries[] = sprintf(
                                 '(@taxonomy_id_%s:{%s})',

@@ -44,6 +44,9 @@ class QueryBuilder {
         'category__and'    => 'taxonomy_id_category',
         'category_name'    => 'taxonomy_category',
         'tax_query'        => null,
+        'posts_per_page'   => null,
+        'offset'           => null,
+        'post_status'      => null,
     ];
 
     /**
@@ -54,7 +57,15 @@ class QueryBuilder {
     public function __construct( WP_Query $wp_query ) {
         $this->wp_query = $wp_query;
 
-        $this->ignore_query_vars = apply_filters( 'redipress/ignore_query_vars', [] );
+        $this->ignore_query_vars = apply_filters(
+            'redipress/ignore_query_vars',
+            [
+                'posts_per_page',
+                'offset',
+                'paged',
+                'post_status',
+            ]
+        );
     }
 
     /**
@@ -286,8 +297,13 @@ class QueryBuilder {
                             }
                             break;
                         case 'slug':
-                            $clause['terms'] = array_map( function( $term ) {
-                                $term_obj = get_term_by( 'slug', $term );
+
+                            $taxonomy = $clause['taxonomy'] ?? false;
+
+                            // Change slug to the term id.
+                            // We are searching with the term id not with the term slug.
+                            $clause['terms'] = array_map( function( $term ) use ( $taxonomy ) {
+                                $term_obj = get_term_by( 'slug', $term, $taxonomy );
 
                                 return $term_obj->term_id;
                             }, $clause['terms'] );
@@ -313,7 +329,7 @@ class QueryBuilder {
                 }
             }
 
-            return '(' . implode( ' ', $queries ) . ')';
+            return count( $queries ) ? '(' . implode( ' ', $queries ) . ')' : '';
         }
         elseif ( $relation === 'OR' ) {
             $queries = [];
@@ -331,8 +347,13 @@ class QueryBuilder {
                             $this->add_search_field( 'taxonomy_' . $clause['taxonomy'] );
                             break;
                         case 'slug':
-                            $clause['terms'] = array_map( function( $term ) {
-                                $term_obj = get_term_by( 'slug', $term );
+
+                            $taxonomy = $clause['taxonomy'] ?? false;
+
+                            // Change slug to the term id.
+                            // We are searching with the term id not with the term slug.
+                            $clause['terms'] = array_map( function( $term ) use ( $taxonomy ) {
+                                $term_obj = get_term_by( 'slug', $term, $taxonomy );
 
                                 return $term_obj->term_id;
                             }, $clause['terms'] );
@@ -356,7 +377,7 @@ class QueryBuilder {
                 }
             }
 
-            return '(' . implode( '|', $queries ) . ')';
+            return count( $queries ) ? '(' . implode( '|', $queries ) . ')' : '';
         }
     }
 }

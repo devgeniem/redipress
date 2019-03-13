@@ -105,6 +105,9 @@ class Search {
         if ( isset( $query->query_vars['paged'] ) && $query->query_vars['paged'] > 1 ) {
             $offset = $query->query_vars['posts_per_page'] * ( $query->query_vars['paged'] - 1 );
         }
+        elseif ( isset( $query->query_vars['offset'] ) ) {
+            $offset = $query->query_vars['offset'];
+        }
         else {
             $offset = 0;
         }
@@ -174,6 +177,10 @@ class Search {
             }
 
             $count = $raw_results->results[0];
+
+/*             var_dump( $query->search_query_string );
+            var_dump( $raw_results->results );
+            die; */
 
             $results = $this->format_results( $raw_results->results );
 

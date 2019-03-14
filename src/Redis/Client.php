@@ -39,6 +39,11 @@ class Client {
 
         $this->predis->connect();
 
+        // You can use this in your theme to get a Client instance.
+        add_filter( 'redipress/client', function( $client = null ) {
+            return $this;
+        });
+
         return $this;
     }
 

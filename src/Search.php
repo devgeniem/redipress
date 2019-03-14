@@ -178,10 +178,6 @@ class Search {
 
             $count = $raw_results->results[0];
 
-/*             var_dump( $query->search_query_string );
-            var_dump( $raw_results->results );
-            die; */
-
             $results = $this->format_results( $raw_results->results );
 
             $query->post_type_counts = [];

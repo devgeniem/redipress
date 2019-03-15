@@ -18,14 +18,14 @@ class CLI {
      * @param array $args Command arguments.
      * @return void
      */
-	public function __invoke( array $args = [] ) {
-		// Check if we have at least one parameter for the command
-		if ( isset( $args[0] ) ) {
+    public function __invoke( array $args = [] ) {
+        // Check if we have at least one parameter for the command
+        if ( isset( $args[0] ) ) {
             // Check if we have a class that corresponds to the asked command
             $class = __NAMESPACE__ . '\\CLI\\' . ucfirst( $args[0] );
 
             if ( class_exists( $class ) ) {
-                $implements = class_implements( $class, __NAMESPACE__ . '\\CLI\\Command' );
+                $implements = class_implements( $class );
 
                 if ( in_array( __NAMESPACE__ . '\\CLI\\Command', $implements, true ) ) {
                     $parameters = array_splice( $args, 1 );
@@ -54,12 +54,11 @@ class CLI {
             else {
                 WP_CLI::error( 'RediPress: command "' . $args[0] . '" can not be found.' );
             }
-            //self::{$args[0]}( ...array_splice( $args, 1 ) );
-		}
-		// If not, ask for more.
-		else {
-			echo "Usage: wp redipress [command]\n";
-			exit;
-		}
-	}
+        }
+        // If not, ask for more.
+        else {
+            echo "Usage: wp redipress [command]\n";
+            exit;
+        }
+    }
 }

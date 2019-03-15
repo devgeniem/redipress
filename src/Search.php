@@ -22,11 +22,18 @@ class Search {
     protected $client;
 
     /**
-     * Index
+     * Index name
      *
      * @var string
      */
     protected $index;
+
+    /**
+     * Index info
+     *
+     * @var array
+     */
+    protected $index_info;
 
     /**
      * Stored search results
@@ -57,10 +64,12 @@ class Search {
     /**
      * Construct the index object
      *
-     * @param Client $client Client instance.
+     * @param Client $client     Client instance.
+     * @param array  $index_info Index information.
      */
-    public function __construct( Client $client ) {
-        $this->client = $client;
+    public function __construct( Client $client, array $index_info ) {
+        $this->client     = $client;
+        $this->index_info = $index_info;
 
         // Get the index name from settings
         $this->index = Admin::get( 'index' );
@@ -109,6 +118,8 @@ class Search {
             $offset = 0;
         }
 
+        $sortby = $this->query_builder->get_sortby();
+
         $results = $this->client->raw_command(
             'FT.SEARCH',
             array_merge(
@@ -116,6 +127,7 @@ class Search {
                 $infields,
                 [ 'RETURN', count( $return ) ],
                 $return,
+                $sortby,
                 [ 'LIMIT', $offset, $limit ]
             )
         );
@@ -143,11 +155,11 @@ class Search {
 
         if ( empty( $query->query ) ) {
             $query->is_front_page = true;
-            $this->query_builder  = new Search\QueryBuilder( $query );
+            $this->query_builder  = new Search\QueryBuilder( $query, $this->index_info );
             return $request;
         }
 
-        $this->query_builder = new Search\QueryBuilder( $query );
+        $this->query_builder = new Search\QueryBuilder( $query, $this->index_info );
 
         // If we don't have explicitly defined post type query, use the public ones
         if ( empty( $query->query['post_type'] ) ) {

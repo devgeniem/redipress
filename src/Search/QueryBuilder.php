@@ -6,6 +6,7 @@
 namespace Geniem\RediPress\Search;
 
 use WP_Query;
+use Geniem\RediPress\Utility;
 
 /**
  * RediPress search query builder class
@@ -27,6 +28,20 @@ class QueryBuilder {
     protected $modifiers = [];
 
     /**
+     * Possible sortby command
+     *
+     * @var array
+     */
+    protected $sortby = [];
+
+    /**
+     * Index info
+     *
+     * @var array
+     */
+    protected $index_info;
+
+    /**
      * Mapped query vars
      *
      * @var array
@@ -44,17 +59,37 @@ class QueryBuilder {
         'category__and'    => 'taxonomy_id_category',
         'category_name'    => 'taxonomy_category',
         'tax_query'        => null,
+        'meta_query'       => null,
+        'order'            => null,
+        'orderby'          => null,
     ];
 
     /**
      * Query builder constructor
      *
-     * @param WP_Query $wp_query WP Query object.
+     * @param WP_Query $wp_query   WP Query object.
+     * @param array    $index_info Index information.
      */
-    public function __construct( WP_Query $wp_query ) {
-        $this->wp_query = $wp_query;
+    public function __construct( WP_Query $wp_query, array $index_info ) {
+        $this->wp_query   = $wp_query;
+        $this->index_info = $index_info;
 
-        $this->ignore_query_vars = apply_filters( 'redipress/ignore_query_vars', [] );
+        $this->ignore_query_vars = apply_filters( 'redipress/ignore_query_vars', [
+            'order',
+            'orderby',
+            'paged',
+            'posts_per_page',
+            'offset',
+        ] );
+    }
+
+    /**
+     * Get the determined sortby command.
+     *
+     * @return array
+     */
+    public function get_sortby() : array {
+        return $this->sortby;
     }
 
     /**
@@ -80,7 +115,10 @@ class QueryBuilder {
             }
         }, array_keys( $this->wp_query->query ) ) );
 
-        return array_merge( $return, $this->modifiers );
+        return array_merge(
+            $return,
+            $this->modifiers
+        );
     }
 
     /**
@@ -106,6 +144,10 @@ class QueryBuilder {
         $query_vars = $this->wp_query->query;
 
         if ( $this->wp_query->is_front_page ) {
+            return false;
+        }
+
+        if ( ! $this->get_orderby() ) {
             return false;
         }
 
@@ -257,6 +299,88 @@ class QueryBuilder {
     }
 
     /**
+     * WP_Query orderby parameter.
+     *
+     * @return string
+     */
+    protected function orderby() : string {
+        $this->get_orderby();
+
+        return '';
+    }
+
+    /**
+     * WP_Query meta_query parameter.
+     *
+     * @return string
+     */
+    protected function meta_query() : string {
+        $query = $this->wp_query->query_vars['meta_query'];
+
+        // Sanitize and validate the query through the WP_Meta_Query class
+        $meta_query = new \WP_Meta_Query( $query );
+
+        return $this->create_meta_query( $meta_query->queries );
+    }
+
+    /**
+     * Determine sortby query values.
+     *
+     * @return boolean Whether we have a qualified orderby or not.
+     */
+    private function get_orderby() : bool {
+        if ( ! empty( $this->sortby ) ) {
+            return true;
+        }
+
+        $query = $this->wp_query->query_vars;
+
+        $order = $query['order'] ?? 'DESC';
+
+        // If we have a simple string as the orderby parameter.
+        if (
+            is_string( $query['orderby'] ) &&
+            ! empty( $query['orderby'] ) &&
+            strpos( $query['orderby'], ' ' ) === false
+        ) {
+            $orderby = $query['orderby'];
+        }
+        // If we have an array with only one key-value pair.
+        elseif (
+            is_array( $query['orderby'] ) &&
+            count( $query['orderby'] ) === 1
+        ) {
+            $order   = reset( $query['orderby'] );
+            $orderby = key( $query['orderby'] );
+        }
+        // Anything else is a no-go.
+        else {
+            return false;
+        }
+
+        // We may also have a meta value as the orderby.
+        if ( in_array( $orderby, [ 'meta_value', 'meta_value_num' ], true ) ) {
+            if ( is_string( $query['meta_key'] ) && ! empty( $query['meta_key'] ) ) {
+                $orderby = $query['meta_key'];
+            }
+            else {
+                return false;
+            }
+        }
+
+        // If we don't have the field in the schema, it's a no-go as well.
+        $fields = array_column( $this->index_info['fields'], 0 );
+
+        if ( ! in_array( $orderby, $fields, true ) ) {
+            return false;
+        }
+
+        $this->sortby = [ 'SORTBY', $orderby, $order ];
+
+        return true;
+    }
+
+    /**
      * Create a RediSearch taxonomy query from a single WP_Query tax_query block.
      *
      * @param array  $query    The block to create the block from.
@@ -358,5 +482,81 @@ class QueryBuilder {
 
             return '(' . implode( '|', $queries ) . ')';
         }
+    }
+
+    /**
+     * Create a RediSearch meta query from a single WP_Query meta_query block.
+     *
+     * @param array  $query    The block to create the block from.
+     * @param string $operator Possible operator of the parent array.
+     * @return string
+     */
+    private function create_meta_query( array $query, string $operator = 'AND' ) : string {
+        $relation = $query['relation'] ?? $operator;
+        unset( $query['relation'] );
+
+        // Determine the relation type
+        if ( $relation === 'AND' ) {
+            $queries = [];
+
+            foreach ( $query as $clause ) {
+                if ( ! empty( $clause['key'] ) ) {
+                    $queries[] = $this->create_meta_clause( $clause );
+
+                    $this->add_search_field( $clause['key'] );
+                }
+                else {
+                    $queries[] = $this->create_meta_query( $clause, 'AND' );
+                }
+            }
+
+            return '(' . implode( ' ', $queries ) . ')';
+        }
+        elseif ( $relation === 'OR' ) {
+            $queries = [];
+
+            foreach ( $query as $clause ) {
+                if ( ! empty( $clause['key'] ) ) {
+                    $queries[] = $this->create_meta_clause( $clause );
+
+                    $this->add_search_field( $clause['key'] );
+                }
+                else {
+                    $queries[] = $this->create_meta_query( $clause, 'OR' );
+                }
+            }
+
+            return '(' . implode( '|', $queries ) . ')';
+        }
+    }
+
+    /**
+     * Create a single meta clause from an array representation.
+     *
+     * @param array $clause The array to work with.
+     * @return string|null
+     */
+    private function create_meta_clause( array $clause ) : ?string {
+        $fields = Utility::format( $this->index_info['fields'] );
+
+        $type = array_reduce( $fields, function( $carry = null, $item = null ) use ( $clause ) {
+            if ( ! empty( $carry ) ) {
+                return $carry;
+            }
+
+            $name = $item[0];
+
+            if ( $name === $clause['key'] ) {
+                return Utility::get_value( $item, 'type' );
+            }
+
+            return null;
+        });
+
+        return sprintf(
+            '(@%s:%s)',
+            $clause['key'],
+            $clause['value']
+        );
     }
 }

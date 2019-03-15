@@ -59,7 +59,6 @@ class QueryBuilder {
         'category__and'    => 'taxonomy_id_category',
         'category_name'    => 'taxonomy_category',
         'tax_query'        => null,
-        'meta_query'       => null,
         'order'            => null,
         'orderby'          => null,
     ];

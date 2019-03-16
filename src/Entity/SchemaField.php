@@ -52,4 +52,13 @@ abstract class SchemaField {
 
         return $export;
     }
+
+    /**
+     * This is used to identify possible duplicates when creating the index
+     *
+     * @return string
+     */
+    public function __toString() {
+        return $this->name;
+    }
 }

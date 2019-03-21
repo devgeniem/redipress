@@ -64,6 +64,7 @@ class QueryBuilder {
         'posts_per_page'   => null,
         'offset'           => null,
         'post_status'      => null,
+        'meta_key'         => null,
     ];
 
     /**
@@ -82,6 +83,8 @@ class QueryBuilder {
             'paged',
             'posts_per_page',
             'offset',
+            'post_status',
+            'meta_key',
         ] );
     }
 
@@ -354,6 +357,10 @@ class QueryBuilder {
         ) {
             $order   = reset( $query['orderby'] );
             $orderby = key( $query['orderby'] );
+        }
+        elseif ( empty( $query['orderby'] ) ) {
+            $this->sortby = [];
+            return true;
         }
         // Anything else is a no-go.
         else {

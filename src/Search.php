@@ -204,7 +204,7 @@ class Search {
                 }
             }
 
-            $this->results = apply_filters( 'redipress/formatted_search_results', $results );
+            $this->results = apply_filters( 'redipress/formatted_search_results', $results, $raw_results );
 
             $query->found_posts = $count;
             $query->max_num_pages( ceil( $count / $query->query_vars['posts_per_page'] ) );

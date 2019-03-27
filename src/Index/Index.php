@@ -168,6 +168,9 @@ class Index {
         // Filter to add possible more fields.
         $schema_fields = apply_filters( 'redipress/schema_fields', $this->core_schema_fields );
 
+        // Remove possible duplicate fields
+        $schema_fields = array_unique( $schema_fields );
+
         $raw_schema = array_reduce( $schema_fields,
             /**
              * Convert SchemaField objects into raw arrays

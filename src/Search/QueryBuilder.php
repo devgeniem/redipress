@@ -61,6 +61,9 @@ class QueryBuilder {
         'tax_query'        => null,
         'order'            => null,
         'orderby'          => null,
+        'posts_per_page'   => null,
+        'offset'           => null,
+        'post_status'      => null,
     ];
 
     /**
@@ -79,6 +82,7 @@ class QueryBuilder {
             'paged',
             'posts_per_page',
             'offset',
+            'post_status',
         ] );
     }
 
@@ -128,7 +132,7 @@ class QueryBuilder {
      */
     private function add_search_field( string $field ) {
         add_filter( 'redipress/search_fields', function( $fields ) use ( $field ) {
-            $fields[] = $this->query_vars[ $field ];
+            $fields[] = $this->query_vars[ $field ] ?? $field;
 
             return $fields;
         }, 9999, 1 );
@@ -140,6 +144,11 @@ class QueryBuilder {
      * @return boolean
      */
     public function enable() : bool {
+        // Don't use RediPress in admin
+        if ( is_admin() ) {
+            return false;
+        }
+
         $query_vars = $this->wp_query->query;
 
         if ( $this->wp_query->is_front_page ) {
@@ -148,6 +157,12 @@ class QueryBuilder {
 
         if ( ! $this->get_orderby() ) {
             return false;
+        }
+
+        if ( ! empty( $query_vars['meta_query'] ) ) {
+            if ( ! $this->meta_query() ) {
+                return false;
+            }
         }
 
         $allowed = array_merge( array_keys( $this->query_vars ), $this->ignore_query_vars );
@@ -311,15 +326,27 @@ class QueryBuilder {
     /**
      * WP_Query meta_query parameter.
      *
-     * @return string
+     * @return string|null
      */
-    protected function meta_query() : string {
+    protected function meta_query() : ?string {
+        if ( ! empty( $this->meta_query ) ) {
+            return $this->meta_query;
+        }
+
         $query = $this->wp_query->query_vars['meta_query'];
 
         // Sanitize and validate the query through the WP_Meta_Query class
         $meta_query = new \WP_Meta_Query( $query );
 
-        return $this->create_meta_query( $meta_query->queries );
+        $query = $this->create_meta_query( $meta_query->queries );
+
+        if ( $query ) {
+            $this->meta_query = $query;
+            return $query;
+        }
+        else {
+            return null;
+        }
     }
 
     /**
@@ -333,6 +360,11 @@ class QueryBuilder {
         }
 
         $query = $this->wp_query->query_vars;
+
+        // Bail early if we don't have orderby defined
+        if ( empty( $query['orderby'] ) ) {
+            return true;
+        }
 
         $order = $query['order'] ?? 'DESC';
 
@@ -409,8 +441,12 @@ class QueryBuilder {
                             }
                             break;
                         case 'slug':
-                            $clause['terms'] = array_map( function( $term ) {
-                                $term_obj = get_term_by( 'slug', $term );
+                            $taxonomy = $clause['taxonomy'] ?? false;
+
+                            // Change slug to the term id.
+                            // We are searching with the term id not with the term slug.
+                            $clause['terms'] = array_map( function( $term ) use ( $taxonomy ) {
+                                $term_obj = get_term_by( 'slug', $term, $taxonomy );
 
                                 return $term_obj->term_id;
                             }, $clause['terms'] );
@@ -436,7 +472,7 @@ class QueryBuilder {
                 }
             }
 
-            return '(' . implode( ' ', $queries ) . ')';
+            return count( $queries ) ? '(' . implode( ' ', $queries ) . ')' : '';
         }
         elseif ( $relation === 'OR' ) {
             $queries = [];
@@ -454,8 +490,12 @@ class QueryBuilder {
                             $this->add_search_field( 'taxonomy_' . $clause['taxonomy'] );
                             break;
                         case 'slug':
-                            $clause['terms'] = array_map( function( $term ) {
-                                $term_obj = get_term_by( 'slug', $term );
+                            $taxonomy = $clause['taxonomy'] ?? false;
+
+                            // Change slug to the term id.
+                            // We are searching with the term id not with the term slug.
+                            $clause['terms'] = array_map( function( $term ) use ( $taxonomy ) {
+                                $term_obj = get_term_by( 'slug', $term, $taxonomy );
 
                                 return $term_obj->term_id;
                             }, $clause['terms'] );
@@ -479,7 +519,351 @@ class QueryBuilder {
                 }
             }
 
+            return count( $queries ) ? '(' . implode( '|', $queries ) . ')' : '';
+        }
+    }
+
+    /**
+     * Create a RediSearch meta query from a single WP_Query meta_query block.
+     *
+     * @param array  $query    The block to create the block from.
+     * @param string $operator Possible operator of the parent array.
+     * @return string
+     */
+    private function create_meta_query( array $query, string $operator = 'AND' ) : ?string {
+        $relation = $query['relation'] ?? $operator;
+        unset( $query['relation'] );
+
+        // Determine the relation type
+        if ( $relation === 'AND' ) {
+            $queries = [];
+
+            foreach ( $query as $clause ) {
+                if ( ! empty( $clause['key'] ) ) {
+                    $query = $this->create_meta_clause( $clause );
+
+                    if ( ! $query ) {
+                        return null;
+                    }
+                    else {
+                        $queries[] = $query;
+                    }
+
+                    $this->add_search_field( $clause['key'] );
+                }
+                else {
+                    $queries[] = $this->create_meta_query( $clause, 'AND' );
+                }
+            }
+
+            return '(' . implode( ' ', $queries ) . ')';
+        }
+        elseif ( $relation === 'OR' ) {
+            $queries = [];
+
+            foreach ( $query as $clause ) {
+                if ( ! empty( $clause['key'] ) ) {
+                    $query = $this->create_meta_clause( $clause );
+
+                    if ( ! $query ) {
+                        return null;
+                    }
+                    else {
+                        $queries[] = $query;
+                    }
+
+                    $this->add_search_field( $clause['key'] );
+                }
+                else {
+                    $queries[] = $this->create_meta_query( $clause, 'OR' );
+                }
+            }
+
             return '(' . implode( '|', $queries ) . ')';
+        }
+    }
+
+    /**
+     * Create a single meta clause from an array representation.
+     *
+     * @param array $clause The array to work with.
+     * @return string|null
+     */
+    private function create_meta_clause( array $clause ) : ?string {
+        $fields = Utility::format( $this->index_info['fields'] );
+
+        // Find out the type of the field we are dealing with.
+        $field_type = array_reduce( $fields, function( $carry = null, $item = null ) use ( $clause ) {
+            if ( ! empty( $carry ) ) {
+                return $carry;
+            }
+
+            $name = $item[0];
+
+            if ( $name === $clause['key'] ) {
+                return Utility::get_value( $item, 'type' );
+            }
+
+            return null;
+        });
+
+        // If the field doesn't have a type, it doesn't exist and we want to bail out.
+        if ( ! $field_type ) {
+            return null;
+        }
+
+        $compare = $clause['compare'] ?? '=';
+        $type    = $clause['type'] ?? 'CHAR';
+
+        // We do not support some compare types, so bail early if some of them is found.
+        if ( in_array( strtoupper( $compare ), [ 'EXISTS', 'NOT EXISTS', 'REGEXP', 'NOT REGEXP', 'RLIKE' ], true ) ) {
+            return null;
+        }
+
+        // If we have a date or datetime values, convert them to unixtime.
+        switch ( $type ) {
+            case 'DATE':
+            case 'DATETIME':
+                if ( is_array( $clause['value'] ) ) {
+                    $clause['value'] = array_map( 'strtotime', $clause['value'] );
+                }
+                else {
+                    $clause['value'] = strtotime( $clause['value'] );
+                }
+        }
+
+        // Map compare types to functions
+        $compare_map = [
+            '='           => 'equal',
+            '!='          => 'not_equal',
+            '>'           => 'greater_than',
+            '>='          => 'greater_or_equal_than',
+            '>'           => 'less_than',
+            '>='          => 'less_or_equal_than',
+            'LIKE'        => 'like',
+            'NOT LIKE'    => 'not like',
+            'BETWEEN'     => 'between',
+            'NOT BETWEEN' => 'not_between',
+        ];
+
+        // Run the appropriate function if it exists
+        if ( method_exists( $this, 'meta_' . $compare_map[ strtoupper( $compare ) ] ) ) {
+            return call_user_func( [ $this, 'meta_' . $compare_map[ strtoupper( $compare ) ] ], $clause, $field_type );
+        }
+        else {
+            return null;
+        }
+    }
+
+    /**
+     * Meta clause generator for compare type =
+     *
+     * @param array  $clause     The clause to work with.
+     * @param string $field_type The field type we are working with.
+     * @return string|null
+     */
+    private function meta_equal( array $clause, string $field_type ) : ?string {
+        switch ( $field_type ) {
+            case 'TEXT':
+            case 'NUMERIC':
+                return sprintf(
+                    '(@%s:%s)',
+                    $clause['key'],
+                    $clause['value']
+                );
+            default:
+                return null;
+        }
+    }
+
+    /**
+     * Meta clause generator for compare type !=
+     *
+     * @param array  $clause     The clause to work with.
+     * @param string $field_type The field type we are working with.
+     * @return string|null
+     */
+    private function meta_not_equal( array $clause, string $field_type ) : ?string {
+        $return = $this->meta_equal( $clause, $field_type );
+
+        if ( $return ) {
+            return '-' . $return;
+        }
+        else {
+            return $return;
+        }
+    }
+
+    /**
+     * Meta clause generator for compare type >
+     *
+     * @param array  $clause     The clause to work with.
+     * @param string $field_type The field type we are working with.
+     * @return string|null
+     */
+    private function meta_greater_than( array $clause, string $field_type ) : ?string {
+        switch ( $field_type ) {
+            case 'NUMERIC':
+                return sprintf(
+                    '(@%s:[(%s +inf])',
+                    $clause['key'],
+                    $clause['value']
+                );
+            default:
+                return null;
+        }
+    }
+
+    /**
+     * Meta clause generator for compare type >=
+     *
+     * @param array  $clause     The clause to work with.
+     * @param string $field_type The field type we are working with.
+     * @return string|null
+     */
+    private function meta_greater_or_equal_than( array $clause, string $field_type ) : ?string {
+        switch ( $field_type ) {
+            case 'NUMERIC':
+                return sprintf(
+                    '(@%s:[%s +inf])',
+                    $clause['key'],
+                    $clause['value']
+                );
+            default:
+                return null;
+        }
+    }
+
+    /**
+     * Meta clause generator for compare type <
+     *
+     * @param array  $clause     The clause to work with.
+     * @param string $field_type The field type we are working with.
+     * @return string|null
+     */
+    private function meta_less_than( array $clause, string $field_type ) : ?string {
+        switch ( $field_type ) {
+            case 'NUMERIC':
+                return sprintf(
+                    '(@%s:[-inf (%s])',
+                    $clause['key'],
+                    $clause['value']
+                );
+            default:
+                return null;
+        }
+    }
+
+    /**
+     * Meta clause generator for compare type <=
+     *
+     * @param array  $clause     The clause to work with.
+     * @param string $field_type The field type we are working with.
+     * @return string|null
+     */
+    private function meta_less_or_equal_than( array $clause, string $field_type ) : ?string {
+        switch ( $field_type ) {
+            case 'NUMERIC':
+                return sprintf(
+                    '(@%s:[-inf %s])',
+                    $clause['key'],
+                    $clause['value']
+                );
+            default:
+                return null;
+        }
+    }
+
+    /**
+     * Meta clause generator for compare type BETWEEN
+     *
+     * @param array  $clause     The clause to work with.
+     * @param string $field_type The field type we are working with.
+     * @return string|null
+     */
+    private function meta_between( array $clause, string $field_type ) : ?string {
+        $value = $clause['value'];
+
+        if ( ! is_array( $value ) || count( $value ) !== 2 ) {
+            return null;
+        }
+
+        switch ( $field_type ) {
+            case 'NUMERIC':
+                return sprintf(
+                    '(@%s:[%s %s])',
+                    $clause['key'],
+                    $value[0],
+                    $value[1]
+                );
+            default:
+                return null;
+        }
+    }
+
+    /**
+     * Meta clause generator for compare type NOT BETWEEN
+     *
+     * @param array  $clause     The clause to work with.
+     * @param string $field_type The field type we are working with.
+     * @return string|null
+     */
+    private function meta_not_between( array $clause, string $field_type ) : ?string {
+        $return = $this->meta_between( $clause, $field_type );
+
+        if ( $return ) {
+            return '-' . $return;
+        }
+        else {
+            return $return;
+        }
+    }
+
+    /**
+     * Meta clause generator for compare type LIKE
+     *
+     * @param array  $clause     The clause to work with.
+     * @param string $field_type The field type we are working with.
+     * @return string|null
+     */
+    private function meta_like( array $clause, string $field_type ) : ?string {
+        $value = $clause['value'];
+        $like  = false;
+
+        if ( strpos( $value, '%' ) === strlen( $value ) - 1 ) {
+            $value = str_replace( '%', '*', $value );
+        }
+        elseif ( strpos( $value, '%' ) !== false ) {
+            return null;
+        }
+
+        switch ( $field_type ) {
+            case 'TEXT':
+                return sprintf(
+                    '(@%s:%s)',
+                    $clause['key'],
+                    $value
+                );
+            default:
+                return null;
+        }
+    }
+
+    /**
+     * Meta clause generator for compare type NOT LIKE
+     *
+     * @param array  $clause     The clause to work with.
+     * @param string $field_type The field type we are working with.
+     * @return string|null
+     */
+    private function meta_not_like( array $clause, string $field_type ) : ?string {
+        $return = $this->meta_like( $clause, $field_type );
+
+        if ( $return ) {
+            return '-' . $return;
+        }
+        else {
+            return $return;
         }
     }
 }

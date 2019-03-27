@@ -185,6 +185,9 @@ class RediPress {
                 // Initialize searching features, we have everything we need to have here.
                 new Search( $this->connection, $this->index_info );
 
+                // Also require the external API functions
+                require_once( __DIR__ . '/API.php' );
+
                 return true;
             }
         }

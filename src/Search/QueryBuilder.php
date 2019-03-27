@@ -218,7 +218,7 @@ class QueryBuilder {
      * @return string
      */
     protected function p() : string {
-        return '@post_id:[' . $this->wp_query->query_vars['p'] . ' ' . $this->wp_query->query_vars['p'] . ']';
+        return '@post_id:' . $this->wp_query->query_vars['p'];
     }
 
     /**
@@ -233,6 +233,9 @@ class QueryBuilder {
             $post_types = is_array( $post_type ) ? $post_type : [ $post_type ];
 
             return '@post_type:(' . implode( '|', $post_types ) . ')';
+        }
+        else {
+            return '';
         }
     }
 

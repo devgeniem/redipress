@@ -32,6 +32,19 @@ class Utility {
             unset( $source[0] );
         }
 
+        // If the data to handle is a list rather than a key-value object, bail early.
+        $list = array_reduce( $source, function( $carry = true, $item = null ) {
+            if ( $carry === false ) {
+                return false;
+            }
+
+            return is_array( $item );
+        });
+
+        if ( $list ) {
+            return $source;
+        }
+
         // Split the array into chunks of two
         $chunks = array_chunk( $source, 2 );
 
@@ -39,7 +52,16 @@ class Utility {
 
         // Turn the chunks into key-value pairs
         foreach ( $chunks as $chunk ) {
-            $return[ $chunk[0] ] = $chunk[1] ?? null;
+            $key = $chunk[0];
+
+            if ( is_array( $chunk[1] ) ) {
+                $value = self::format( $chunk[1] );
+            }
+            else {
+                $value = $chunk[1];
+            }
+
+            $return[ $key ] = $value ?? null;
         }
 
         return $return;
@@ -70,5 +92,22 @@ class Utility {
         return array_map( function( $field ) : ?string {
             return $field[0] ?? null;
         }, $schema );
+    }
+
+    /**
+     * Get a value from an alternating array
+     *
+     * @param array  $array The array from which to search.
+     * @param string $key   The key with which the value can be fetched.
+     * @return mixed
+     */
+    public static function get_value( array $array, string $key ) {
+        $index = array_search( $key, $array, true );
+
+        if ( $index !== false && ! empty( $array[ ++$index ] ) ) {
+            return $array[ $index ];
+        }
+
+        return null;
     }
 }

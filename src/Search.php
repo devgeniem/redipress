@@ -22,11 +22,18 @@ class Search {
     protected $client;
 
     /**
-     * Index
+     * Index name
      *
      * @var string
      */
     protected $index;
+
+    /**
+     * Index info
+     *
+     * @var array
+     */
+    protected $index_info;
 
     /**
      * Stored search results
@@ -57,10 +64,12 @@ class Search {
     /**
      * Construct the index object
      *
-     * @param Client $client Client instance.
+     * @param Client $client     Client instance.
+     * @param array  $index_info Index information.
      */
-    public function __construct( Client $client ) {
-        $this->client = $client;
+    public function __construct( Client $client, array $index_info ) {
+        $this->client     = $client;
+        $this->index_info = $index_info;
 
         // Get the index name from settings
         $this->index = Admin::get( 'index' );
@@ -86,20 +95,28 @@ class Search {
      * @return mixed Search results.
      */
     public function search( \WP_Query $query ) {
+        // Create the search query
         $search_query = $this->query_builder->get_query();
 
+        // Filter the search query as an array
         $search_query = apply_filters( 'redipress/search_query', $search_query, $query );
 
-        $search_query_string = apply_filters( 'redipress/search_query_string', implode( ' ', $search_query ) );
+        // Filter the search query as a string
+        $search_query_string = apply_filters( 'redipress/search_query_string', implode( ' ', $search_query ), $query );
 
+        // Filter the query string for the count feature
         $count_search_query_string = apply_filters( 'redipress/count_search_query_string', $search_query_string );
 
+        // Store the search query string so at in can be debugged easily via WP_Query.
         $query->search_query_string = $search_query_string;
 
+        // Filter the list of fields from which the search is conducted.
         $infields = array_unique( apply_filters( 'redipress/search_fields', $this->default_search_fields, $query ) );
 
+        // Filter the list of fields that will be returned with the query.
         $return = array_unique( apply_filters( 'redipress/return_fields', [ 'post_object', 'post_date', 'post_type', 'post_id' ], $query ) );
 
+        // Determine the limit and offset parameters.
         $limit = $query->query_vars['posts_per_page'];
 
         if ( isset( $query->query_vars['paged'] ) && $query->query_vars['paged'] > 1 ) {
@@ -112,6 +129,10 @@ class Search {
             $offset = 0;
         }
 
+        // Get the sortby parameter
+        $sortby = $this->query_builder->get_sortby();
+
+        // Run the command itself
         $results = $this->client->raw_command(
             'FT.SEARCH',
             array_merge(
@@ -119,15 +140,18 @@ class Search {
                 $infields,
                 [ 'RETURN', count( $return ) ],
                 $return,
+                $sortby,
                 [ 'LIMIT', $offset, $limit ]
             )
         );
 
+        // Run the count post types command
         $counts = $this->client->raw_command(
             'FT.AGGREGATE',
             [ $this->index, $count_search_query_string, 'GROUPBY', 1, '@post_type', 'REDUCE', 'COUNT', '0', 'AS', 'amount' ]
         );
 
+        // Return the results through a filter
         return apply_filters( 'redipress/search_results', (object) [
             'results' => $results,
             'counts'  => $counts,
@@ -144,13 +168,14 @@ class Search {
     public function posts_request( string $request, \WP_Query $query ) : string {
         global $wpdb;
 
+        // If the query is empty, we are probably dealing with the front page and we want to skip RediSearch with that.
         if ( empty( $query->query ) ) {
             $query->is_front_page = true;
-            $this->query_builder  = new Search\QueryBuilder( $query );
+            $this->query_builder  = new Search\QueryBuilder( $query, $this->index_info );
             return $request;
         }
 
-        $this->query_builder = new Search\QueryBuilder( $query );
+        $this->query_builder = new Search\QueryBuilder( $query, $this->index_info );
 
         // If we don't have explicitly defined post type query, use the public ones
         if ( empty( $query->query['post_type'] ) ) {
@@ -192,7 +217,12 @@ class Search {
                 }
             }
 
-            $this->results = apply_filters( 'redipress/formatted_search_results', $results );
+            // Filter the search results after the search has been conducted.
+            $this->results = apply_filters(
+                'redipress/formatted_search_results',
+                $results,
+                Utility::format( $raw_results->results )
+            );
 
             $query->found_posts = $count;
             $query->max_num_pages( ceil( $count / $query->query_vars['posts_per_page'] ) );

@@ -168,6 +168,9 @@ class Index {
         // Filter to add possible more fields.
         $schema_fields = apply_filters( 'redipress/schema_fields', $this->core_schema_fields );
 
+        // Remove possible duplicate fields
+        $schema_fields = array_unique( $schema_fields );
+
         $raw_schema = array_reduce( $schema_fields,
             /**
              * Convert SchemaField objects into raw arrays
@@ -339,6 +342,8 @@ class Index {
 
         $additions = array_combine( $additional_fields, $additional_values );
 
+        $additions = array_filter( $additions );
+
         $search_index = [];
         $tax          = [];
 
@@ -370,10 +375,15 @@ class Index {
                 return $term->term_id;
             }, $terms ) );
 
-            $tax[ 'taxonomy_' . $taxonomy ]    = $term_string;
-            $tax[ 'taxonomy_id_' . $taxonomy ] = $id_string;
+            if ( ! empty( $term_string ) ) {
+                $tax[ 'taxonomy_' . $taxonomy ] = $term_string;
+            }
 
-            if ( in_array( $taxonomy, $wanted_taxonomies, true ) ) {
+            if ( ! empty( $id_string ) ) {
+                $tax[ 'taxonomy_id_' . $taxonomy ] = $id_string;
+            }
+
+            if ( in_array( $taxonomy, $wanted_taxonomies, true ) && ! empty( $term_string ) ) {
                 $search_index[] = $term_string;
             }
         }

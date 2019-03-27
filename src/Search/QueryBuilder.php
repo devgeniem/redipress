@@ -420,6 +420,8 @@ class QueryBuilder {
     /**
      * Create a RediSearch taxonomy query from a single WP_Query tax_query block.
      *
+     * This function runs itself recursively if the query has multiple levels.
+     *
      * @param array  $query    The block to create the block from.
      * @param string $operator Possible operator of the parent array.
      * @return string
@@ -451,11 +453,7 @@ class QueryBuilder {
 
                             // Change slug to the term id.
                             // We are searching with the term id not with the term slug.
-                            $clause['terms'] = array_map( function( $term ) use ( $taxonomy ) {
-                                $term_obj = get_term_by( 'slug', $term, $taxonomy );
-
-                                return $term_obj->term_id;
-                            }, $clause['terms'] );
+                            $clause['terms'] = $this->slugs_to_ids( $clause['terms'], $taxonomy );
 
                             // The fallthrough is intentional: we only turn the slugs into ids.
                         case 'term_id':
@@ -473,6 +471,7 @@ class QueryBuilder {
                             return false;
                     }
                 }
+                // If we have multiple clauses in the block, run the function recursively.
                 else {
                     $queries[] = $this->create_taxonomy_query( $clause, 'AND' );
                 }
@@ -500,11 +499,7 @@ class QueryBuilder {
 
                             // Change slug to the term id.
                             // We are searching with the term id not with the term slug.
-                            $clause['terms'] = array_map( function( $term ) use ( $taxonomy ) {
-                                $term_obj = get_term_by( 'slug', $term, $taxonomy );
-
-                                return $term_obj->term_id;
-                            }, $clause['terms'] );
+                            $clause['terms'] = $this->slugs_to_ids( $clause['terms'], $taxonomy );
 
                             // The fallthrough is intentional: we only turn the slugs into ids.
                         case 'term_id':
@@ -520,6 +515,7 @@ class QueryBuilder {
                             return false;
                     }
                 }
+                // If we have multiple clauses in the block, run the function recursively.
                 else {
                     $queries[] = $this->create_taxonomy_query( $clause, 'OR' );
                 }
@@ -871,5 +867,20 @@ class QueryBuilder {
         else {
             return $return;
         }
+    }
+
+    /**
+     * Convert a list of taxonomy slugs into IDs.
+     *
+     * @param array  $terms     The slugs.
+     * @param string $taxonomy  The taxonomy with which to work.
+     * @return array List of IDs.
+     */
+    private function slugs_to_ids( array $terms, string $taxonomy ) : array {
+        return array_map( function( $term ) use ( $taxonomy ) {
+            $term_obj = get_term_by( 'slug', $term, $taxonomy );
+
+            return $term_obj->term_id;
+        }, $terms );
     }
 }

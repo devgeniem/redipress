@@ -104,7 +104,7 @@ class Utility {
     public static function get_value( array $array, string $key ) {
         $index = array_search( $key, $array, true );
 
-        if ( $index && ! empty( $array[ ++$index ] ) ) {
+        if ( $index !== false && ! empty( $array[ ++$index ] ) ) {
             return $array[ $index ];
         }
 

@@ -32,6 +32,7 @@ class Utility {
             unset( $source[0] );
         }
 
+        // If the data to handle is a list rather than a key-value object, bail early.
         $list = array_reduce( $source, function( $carry = true, $item = null ) {
             if ( $carry === false ) {
                 return false;

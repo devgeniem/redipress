@@ -64,10 +64,7 @@ class QueryBuilder {
         'posts_per_page'   => null,
         'offset'           => null,
         'post_status'      => null,
-<<<<<<< HEAD
-=======
         'meta_key'         => null,
->>>>>>> 0aa6d53e4eef77a99d5a4b9b6957a098db08d09a
     ];
 
     /**
@@ -87,10 +84,7 @@ class QueryBuilder {
             'posts_per_page',
             'offset',
             'post_status',
-<<<<<<< HEAD
-=======
             'meta_key',
->>>>>>> 0aa6d53e4eef77a99d5a4b9b6957a098db08d09a
         ] );
     }
 

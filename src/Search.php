@@ -6,10 +6,6 @@
 namespace Geniem\RediPress;
 
 use Geniem\RediPress\Admin,
-    Geniem\RediPress\Entity\SchemaField,
-    Geniem\RediPress\Entity\NumericField,
-    Geniem\RediPress\Entity\TagField,
-    Geniem\RediPress\Entity\TextField,
     Geniem\RediPress\Redis\Client,
     Geniem\RediPress\Utility;
 
@@ -108,6 +104,9 @@ class Search {
 
         if ( isset( $query->query_vars['paged'] ) && $query->query_vars['paged'] > 1 ) {
             $offset = $query->query_vars['posts_per_page'] * ( $query->query_vars['paged'] - 1 );
+        }
+        elseif ( isset( $query->query_vars['offset'] ) ) {
+            $offset = $query->query_vars['offset'];
         }
         else {
             $offset = 0;

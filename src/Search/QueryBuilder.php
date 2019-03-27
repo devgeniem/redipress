@@ -43,6 +43,10 @@ class QueryBuilder {
         'category__not_in' => 'taxonomy_id_category',
         'category__and'    => 'taxonomy_id_category',
         'category_name'    => 'taxonomy_category',
+        'tax_query'        => null,
+        'posts_per_page'   => null,
+        'offset'           => null,
+        'post_status'      => null,
     ];
 
     /**
@@ -53,7 +57,15 @@ class QueryBuilder {
     public function __construct( WP_Query $wp_query ) {
         $this->wp_query = $wp_query;
 
-        $this->ignore_query_vars = apply_filters( 'redipress/ignore_query_vars', [] );
+        $this->ignore_query_vars = apply_filters(
+            'redipress/ignore_query_vars',
+            [
+                'posts_per_page',
+                'offset',
+                'paged',
+                'post_status',
+            ]
+        );
     }
 
     /**
@@ -68,11 +80,7 @@ class QueryBuilder {
             }
 
             if ( ! empty( $this->query_vars[ $query_var ] ) ) {
-                add_filter( 'redipress/search_fields', function( $fields ) use ( $query_var ) {
-                    $fields[] = $this->query_vars[ $query_var ];
-
-                    return $fields;
-                }, 9999, 1 );
+                $this->add_search_field( $query_var );
             }
 
             if ( method_exists( $this, $query_var ) ) {
@@ -84,6 +92,20 @@ class QueryBuilder {
         }, array_keys( $this->wp_query->query ) ) );
 
         return array_merge( $return, $this->modifiers );
+    }
+
+    /**
+     * Helper function to add a filter for the search fields.
+     *
+     * @param string $field The field to add.
+     * @return void
+     */
+    private function add_search_field( string $field ) {
+        add_filter( 'redipress/search_fields', function( $fields ) use ( $field ) {
+            $fields[] = $this->query_vars[ $field ];
+
+            return $fields;
+        }, 9999, 1 );
     }
 
     /**
@@ -229,5 +251,142 @@ class QueryBuilder {
         }
 
         return implode( ' ', $return );
+    }
+
+    /**
+     * WP_Query tax_query parameter.
+     *
+     * @return string
+     */
+    protected function tax_query() : string {
+        $query = $this->wp_query->query_vars['tax_query'];
+
+        // Sanitize and validate the query through the WP_Tax_Query class
+        $tax_query = new \WP_Tax_Query( $query );
+
+        return $this->create_taxonomy_query( $tax_query->queries );
+    }
+
+    /**
+     * Create a RediSearch taxonomy query from a single WP_Query tax_query block.
+     *
+     * This function runs itself recursively if the query has multiple levels.
+     *
+     * @param array  $query    The block to create the block from.
+     * @param string $operator Possible operator of the parent array.
+     * @return string
+     */
+    private function create_taxonomy_query( array $query, string $operator = 'AND' ) : string {
+        $relation = $query['relation'] ?? $operator;
+        unset( $query['relation'] );
+
+        // Determine the relation type
+        if ( $relation === 'AND' ) {
+            $queries = [];
+
+            foreach ( $query as $clause ) {
+                if ( ! empty( $clause['taxonomy'] ) ) {
+                    switch ( $clause['field'] ) {
+                        case 'name':
+                            foreach ( $clause['terms'] as $term ) {
+                                $queries[] = sprintf(
+                                    '(@taxonomy_%s:{%s})',
+                                    $clause['taxonomy'],
+                                    $term
+                                );
+
+                                $this->add_search_field( 'taxonomy_' . $clause['taxonomy'] );
+                            }
+                            break;
+                        case 'slug':
+                            $taxonomy = $clause['taxonomy'] ?? false;
+
+                            // Change slug to the term id.
+                            // We are searching with the term id not with the term slug.
+                            $clause['terms'] = $this->slugs_to_ids( $clause['terms'], $taxonomy );
+
+                            // The fallthrough is intentional: we only turn the slugs into ids.
+                        case 'term_id':
+                            foreach ( $clause['terms'] as $term ) {
+                                $queries[] = sprintf(
+                                    '(@taxonomy_id_%s:{%s})',
+                                    $clause['taxonomy'],
+                                    $term
+                                );
+
+                                $this->add_search_field( 'taxonomy_id_' . $clause['taxonomy'] );
+                            }
+                            break;
+                        default:
+                            return false;
+                    }
+                }
+                // If we have multiple clauses in the block, run the function recursively.
+                else {
+                    $queries[] = $this->create_taxonomy_query( $clause, 'AND' );
+                }
+            }
+
+            return count( $queries ) ? '(' . implode( ' ', $queries ) . ')' : '';
+        }
+        elseif ( $relation === 'OR' ) {
+            $queries = [];
+
+            foreach ( $query as $clause ) {
+                if ( ! empty( $clause['taxonomy'] ) ) {
+                    switch ( $clause['field'] ) {
+                        case 'name':
+                            $queries[] = sprintf(
+                                '(@taxonomy_%s:{%s})',
+                                $clause['taxonomy'],
+                                implode( '|', (array) $clause['terms'] )
+                            );
+
+                            $this->add_search_field( 'taxonomy_' . $clause['taxonomy'] );
+                            break;
+                        case 'slug':
+                            $taxonomy = $clause['taxonomy'] ?? false;
+
+                            // Change slug to the term id.
+                            // We are searching with the term id not with the term slug.
+                            $clause['terms'] = $this->slugs_to_ids( $clause['terms'], $taxonomy );
+
+                            // The fallthrough is intentional: we only turn the slugs into ids.
+                        case 'term_id':
+                            $queries[] = sprintf(
+                                '(@taxonomy_id_%s:{%s})',
+                                $clause['taxonomy'],
+                                implode( '|', (array) $clause['terms'] )
+                            );
+
+                            $this->add_search_field( 'taxonomy_id_' . $clause['taxonomy'] );
+                            break;
+                        default:
+                            return false;
+                    }
+                }
+                // If we have multiple clauses in the block, run the function recursively.
+                else {
+                    $queries[] = $this->create_taxonomy_query( $clause, 'OR' );
+                }
+            }
+
+            return count( $queries ) ? '(' . implode( '|', $queries ) . ')' : '';
+        }
+    }
+
+    /**
+     * Convert a list of taxonomy slugs into IDs.
+     *
+     * @param array  $terms     The slugs.
+     * @param string $taxonomy  The taxonomy with which to work.
+     * @return array List of IDs.
+     */
+    private function slugs_to_ids( array $terms, string $taxonomy ) : array {
+        return array_map( function( $term ) use ( $taxonomy ) {
+            $term_obj = get_term_by( 'slug', $term, $taxonomy );
+
+            return $term_obj->term_id;
+        }, $terms );
     }
 }

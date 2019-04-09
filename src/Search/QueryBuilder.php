@@ -42,6 +42,13 @@ class QueryBuilder {
     protected $index_info;
 
     /**
+     * Container for stored named meta clauses
+     *
+     * @var array
+     */
+    protected $meta_clauses = [];
+
+    /**
      * Mapped query vars
      *
      * @var array
@@ -180,14 +187,14 @@ class QueryBuilder {
             return false;
         }
 
-        if ( ! $this->get_orderby() ) {
-            return false;
-        }
-
         if ( ! empty( $query_vars['meta_query'] ) ) {
             if ( ! $this->meta_query() ) {
                 return false;
             }
+        }
+
+        if ( ! $this->get_orderby() ) {
+            return false;
         }
 
         $allowed = array_merge( array_keys( $this->query_vars ), $this->ignore_query_vars );
@@ -417,21 +424,34 @@ class QueryBuilder {
 
         $order = $query['order'] ?? 'DESC';
 
+        $sortby = [
+            [
+                'order'   => $order,
+                'orderby' => null,
+            ],
+        ];
+
         // If we have a simple string as the orderby parameter.
         if (
             is_string( $query['orderby'] ) &&
             ! empty( $query['orderby'] ) &&
             strpos( $query['orderby'], ' ' ) === false
         ) {
-            $orderby = $query['orderby'];
+            $sortby[0]['orderby'] = $query['orderby'];
         }
-        // If we have an array with only one key-value pair.
+        // If we have an array with key-value pairs
         elseif (
             is_array( $query['orderby'] ) &&
-            count( $query['orderby'] ) === 1
+            ! empty( $query['orderby'] )
         ) {
-            $order   = reset( $query['orderby'] );
-            $orderby = key( $query['orderby'] );
+            $sortby = [];
+
+            foreach ( $query['orderby'] as $key => $value ) {
+                $sortby[] = [
+                    'order'   => $value,
+                    'orderby' => $key,
+                ];
+            }
         }
         elseif ( empty( $query['orderby'] ) ) {
             $this->sortby = [];
@@ -442,46 +462,66 @@ class QueryBuilder {
             return false;
         }
 
-        // Create the mappings for orderby parameter
-        switch ( $orderby ) {
-            case 'menu_order':
-            case 'meta_value':
-            case 'meta_value_num':
-                break;
-            case 'none':
-            case 'relevance':
-                return true;
-            case 'ID':
-            case 'author':
-            case 'title':
-            case 'name':
-            case 'type':
-            case 'date':
-            case 'parent':
-                $orderby = 'post_' . strtolower( $orderby );
-                break;
-            default:
-                return false;
-        }
-
-        // We may also have a meta value as the orderby.
-        if ( in_array( $orderby, [ 'meta_value', 'meta_value_num' ], true ) ) {
-            if ( is_string( $query['meta_key'] ) && ! empty( $query['meta_key'] ) ) {
-                $orderby = $query['meta_key'];
+        $sortby = array_map( function( array $clause ) use ( $query ) {
+            // Create the mappings for orderby parameter
+            switch ( $clause['orderby'] ) {
+                case 'menu_order':
+                case 'meta_value':
+                case 'meta_value_num':
+                    break;
+                case 'none':
+                case 'relevance':
+                    return true;
+                case 'ID':
+                case 'author':
+                case 'title':
+                case 'name':
+                case 'type':
+                case 'date':
+                case 'parent':
+                    $clause['orderby'] = 'post_' . strtolower( $clause['orderby'] );
+                    break;
+                default:
+                    // The value can also be a named meta clause
+                    if ( ! empty( $this->meta_clauses[ $clause['orderby'] ] ) ) {
+                        $clause['orderby'] = $this->meta_clauses[ $clause['orderby'] ];
+                    }
+                    else {
+                        return false;
+                    }
             }
-            else {
+
+            // We may also have a meta value as the orderby.
+            if ( in_array( $clause['orderby'], [ 'meta_value', 'meta_value_num' ], true ) ) {
+                if ( is_string( $query['meta_key'] ) && ! empty( $query['meta_key'] ) ) {
+                    $clause['orderby'] = $query['meta_key'];
+                }
+                else {
+                    return false;
+                }
+            }
+
+            // If we don't have the field in the schema, it's a no-go as well.
+            $fields = array_column( $this->index_info['fields'], 0 );
+
+            if ( ! in_array( $clause['orderby'], $fields, true ) ) {
+                return false;
+            }
+        }, $sortby );
+
+        // If we have a false value in the sortby array, just bail away.
+        foreach ( $sortby as $clause ) {
+            if ( ! $clause ) {
                 return false;
             }
         }
 
-        // If we don't have the field in the schema, it's a no-go as well.
-        $fields = array_column( $this->index_info['fields'], 0 );
-
-        if ( ! in_array( $orderby, $fields, true ) ) {
-            return false;
-        }
-
-        $this->sortby = [ 'SORTBY', $orderby, $order ];
+        $this->sortby = array_merge(
+            [ 'SORTBY', ( count( $sortby ) * 2 ) ],
+            array_reduce( $sortby, function( $carry, $item ) {
+                return array_merge( $carry, [ '@' . $item['orderby'], $item['order'] ] );
+            }, [] )
+        );
 
         return true;
     }
@@ -609,7 +649,7 @@ class QueryBuilder {
         if ( $relation === 'AND' ) {
             $queries = [];
 
-            foreach ( $query as $clause ) {
+            foreach ( $query as $name => $clause ) {
                 if ( ! empty( $clause['key'] ) ) {
                     $query = $this->create_meta_clause( $clause );
 
@@ -621,6 +661,10 @@ class QueryBuilder {
                     }
 
                     $this->add_search_field( $clause['key'] );
+
+                    if ( ! is_numeric( $name ) ) {
+                        $this->meta_clauses[ $name ] = $clause['key'];
+                    }
                 }
                 else {
                     $queries[] = $this->create_meta_query( $clause, 'AND' );
@@ -632,7 +676,7 @@ class QueryBuilder {
         elseif ( $relation === 'OR' ) {
             $queries = [];
 
-            foreach ( $query as $clause ) {
+            foreach ( $query as $name => $clause ) {
                 if ( ! empty( $clause['key'] ) ) {
                     $query = $this->create_meta_clause( $clause );
 
@@ -644,6 +688,10 @@ class QueryBuilder {
                     }
 
                     $this->add_search_field( $clause['key'] );
+
+                    if ( ! is_numeric( $name ) ) {
+                        $this->meta_clauses[ $name ] = $clause['key'];
+                    }
                 }
                 else {
                     $queries[] = $this->create_meta_query( $clause, 'OR' );

@@ -125,6 +125,10 @@ class Index {
                 'name'     => 'post_id',
                 'sortable' => true,
             ]),
+            new TextField([
+                'name'     => 'post_object',
+                'sortable' => true,
+            ]),
             new NumericField([
                 'name'     => 'menu_order',
                 'sortable' => true,

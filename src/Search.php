@@ -75,8 +75,7 @@ class Search {
         $this->index = Admin::get( 'index' );
 
         // Add search filters
-        add_filter( 'posts_request', [ $this, 'posts_request' ], 10, 2 );
-        add_filter( 'the_posts', [ $this, 'the_posts' ], 10, 2 );
+        add_filter( 'posts_pre_query', [ $this, 'posts_pre_query' ], 10, 2 );
     }
 
     /**
@@ -161,18 +160,17 @@ class Search {
     /**
      * Filter WordPress posts requests
      *
-     * @param string    $request The original MySQL query.
-     * @param \WP_Query $query   The WP_Query object.
-     * @return string The resulting query.
+     * @param array|null $posts An empty array of posts.
+     * @param \WP_Query  $query The WP_Query object.
+     * @return array Results or null if no results.
      */
-    public function posts_request( string $request, \WP_Query $query ) : string {
+    public function posts_pre_query( ?array $posts, \WP_Query $query ) : ?array {
         global $wpdb;
 
         // If the query is empty, we are probably dealing with the front page and we want to skip RediSearch with that.
         if ( empty( $query->query ) ) {
             $query->is_front_page = true;
-            $this->query_builder  = new Search\QueryBuilder( $query, $this->index_info );
-            return $request;
+            return null;
         }
 
         $this->query_builder = new Search\QueryBuilder( $query, $this->index_info );
@@ -198,7 +196,8 @@ class Search {
             $raw_results = $this->search( $query );
 
             if ( $raw_results->results === '0' ) {
-                return $request;
+                $query->redipress_no_results = true;
+                return null;
             }
 
             $count = $raw_results->results[0];
@@ -218,7 +217,7 @@ class Search {
             }
 
             // Filter the search results after the search has been conducted.
-            $this->results = apply_filters(
+            $results = apply_filters(
                 'redipress/formatted_search_results',
                 $results,
                 Utility::format( $raw_results->results )
@@ -229,27 +228,10 @@ class Search {
 
             $query->using_redisearch = true;
 
-            return "SELECT * FROM $wpdb->posts WHERE 1=0";
+            return $results;
         }
         else {
-            return $request;
-        }
-    }
-
-    /**
-     * Return stored search results in the the_posts filter.
-     *
-     * @param array     $posts The original posts array.
-     * @param \WP_Query $query The WP Query object.
-     * @return array
-     */
-    public function the_posts( ?array $posts, \WP_Query $query ) : ?array {
-        // Only filter front-end search queries
-        if ( $this->query_builder->enable() ) {
-            return $this->results;
-        }
-        else {
-            return $posts;
+            return null;
         }
     }
 

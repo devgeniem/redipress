@@ -58,6 +58,7 @@ class QueryBuilder {
         'category__not_in' => 'taxonomy_id_category',
         'category__and'    => 'taxonomy_id_category',
         'category_name'    => 'taxonomy_category',
+        'meta_query'       => null,
         'tax_query'        => null,
         'order'            => null,
         'orderby'          => null,
@@ -77,7 +78,7 @@ class QueryBuilder {
         $this->wp_query   = $wp_query;
         $this->index_info = $index_info;
 
-        $this->ignore_query_vars = apply_filters( 'redipress/ignore_query_vars', [
+        $this->ignore_query_vars = apply_filters( 'redipress/ignore_query_vars', array_merge( [
             'order',
             'orderby',
             'paged',
@@ -85,7 +86,7 @@ class QueryBuilder {
             'offset',
             'post_status',
             'meta_key',
-        ] );
+        ], apply_filters( 'query_vars', [] ) ) );
     }
 
     /**
@@ -103,7 +104,7 @@ class QueryBuilder {
      * @return array
      */
     public function get_query() : array {
-        $return = array_filter( array_map( function( $query_var ) : string {
+        $return = array_filter( array_map( function( string $query_var ) : string {
             if ( in_array( $query_var, $this->ignore_query_vars, true ) ) {
                 return false;
             }
@@ -112,9 +113,32 @@ class QueryBuilder {
                 $this->add_search_field( $query_var );
             }
 
+            $fields = Utility::format( $this->index_info['fields'] );
+
+            // Find out the type of the field we are dealing with.
+            $field_type = array_reduce( $fields, function( $carry = null, $item = null ) use ( $query_var ) {
+                if ( ! empty( $carry ) ) {
+                    return $carry;
+                }
+
+                $name = $item[0];
+
+                if ( $name === $query_var ) {
+                    return Utility::get_value( $item, 'type' );
+                }
+
+                return null;
+            });
+
+            // Use the designated method if it exists.
             if ( method_exists( $this, $query_var ) ) {
                 return $this->{ $query_var }();
             }
+            // Special treatment for numeric fields.
+            elseif ( $field_type === 'NUMERIC' ) {
+                return '@' . $this->query_vars[ $query_var ] . ':[' . $this->wp_query->query_vars[ $query_var ] . ' ' . $this->wp_query->query_vars[ $query_var ] . ']';
+            }
+            // Otherwise we are dealing with an ordinary text field.
             else {
                 return '@' . $this->query_vars[ $query_var ] . ':' . $this->wp_query->query_vars[ $query_var ];
             }
@@ -396,6 +420,43 @@ class QueryBuilder {
         // Anything else is a no-go.
         else {
             return false;
+        }
+
+        // Create the mappings for orderby parameter
+        switch ( $orderby ) {
+            case 'none':
+                return true;
+            case 'ID':
+                $orderby = 'post_id';
+                break;
+            case 'author':
+                $orderby = 'post_author';
+                break;
+            case 'title':
+                $orderby = 'post_title';
+                break;
+            case 'name':
+                $orderby = 'post_name';
+                break;
+            case 'type':
+                $orderby = 'post_type';
+                break;
+            case 'date':
+                $orderby = 'post_date';
+                break;
+            case 'parent':
+                $orderby = 'post_parent';
+                break;
+            case 'relevance':
+                return true;
+            case 'menu_order':
+                $orderby = 'menu_order';
+                break;
+            case 'meta_value':
+            case 'meta_value_num':
+                break;
+            default:
+                return false;
         }
 
         // We may also have a meta value as the orderby.

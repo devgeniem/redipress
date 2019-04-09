@@ -54,6 +54,7 @@ class QueryBuilder {
         'pagename'         => 'post_name',
         'post_type'        => 'post_type',
         'post_parent'      => 'post_parent',
+        'post_status'      => 'post_status',
         'category__in'     => 'taxonomy_id_category',
         'category__not_in' => 'taxonomy_id_category',
         'category__and'    => 'taxonomy_id_category',
@@ -64,7 +65,6 @@ class QueryBuilder {
         'orderby'          => null,
         'posts_per_page'   => null,
         'offset'           => null,
-        'post_status'      => null,
         'meta_key'         => null,
     ];
 
@@ -84,7 +84,6 @@ class QueryBuilder {
             'paged',
             'posts_per_page',
             'offset',
-            'post_status',
             'meta_key',
         ], apply_filters( 'query_vars', [] ) ) );
     }
@@ -264,6 +263,27 @@ class QueryBuilder {
     }
 
     /**
+     * WP_Query post_status parameter.
+     *
+     * @return ?string
+     */
+    protected function post_status() : ?string {
+        $post_status = $this->wp_query->query_vars['post_status'];
+
+        if ( $post_status === 'any' ) {
+            $post_statuses = get_post_stati( [ 'exclude_from_search' => true ] );
+        }
+        elseif ( empty( $post_status ) ) {
+            $post_statuses = [ 'publish' ];
+        }
+        else {
+            $post_statuses = is_array( $post_status ) ? $post_status : [ $post_status ];
+        }
+
+        return '@post_status:(' . implode( '|', $post_statuses ) . ')';
+    }
+
+    /**
      * WP_Query category__in parameter.
      *
      * @return string
@@ -424,36 +444,21 @@ class QueryBuilder {
 
         // Create the mappings for orderby parameter
         switch ( $orderby ) {
-            case 'none':
-                return true;
-            case 'ID':
-                $orderby = 'post_id';
-                break;
-            case 'author':
-                $orderby = 'post_author';
-                break;
-            case 'title':
-                $orderby = 'post_title';
-                break;
-            case 'name':
-                $orderby = 'post_name';
-                break;
-            case 'type':
-                $orderby = 'post_type';
-                break;
-            case 'date':
-                $orderby = 'post_date';
-                break;
-            case 'parent':
-                $orderby = 'post_parent';
-                break;
-            case 'relevance':
-                return true;
             case 'menu_order':
-                $orderby = 'menu_order';
-                break;
             case 'meta_value':
             case 'meta_value_num':
+                break;
+            case 'none':
+            case 'relevance':
+                return true;
+            case 'ID':
+            case 'author':
+            case 'title':
+            case 'name':
+            case 'type':
+            case 'date':
+            case 'parent':
+                $orderby = 'post_' . strtolower( $orderby );
                 break;
             default:
                 return false;

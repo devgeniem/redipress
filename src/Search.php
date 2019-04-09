@@ -189,6 +189,12 @@ class Search {
             $query->query_vars['post_type'] = $post_types;
         }
 
+        // If we don't have explicitly defined post status, just use publish
+        if ( empty( $query->query['post_status'] ) ) {
+            $query->query['post_status']      = 'publish';
+            $query->query_vars['post_status'] = 'publish';
+        }
+
         // Only filter front-end search queries
         if ( $this->query_builder->enable() ) {
             do_action( 'redipress/before_search', $this, $query );

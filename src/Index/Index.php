@@ -74,6 +74,7 @@ class Index {
 
         // Register indexing hooks
         add_action( 'save_post', [ $this, 'upsert' ], 10, 3 );
+        add_action( 'delete_post', [ $this, 'delete' ], 10, 1 );
 
         $this->define_core_fields();
     }
@@ -126,6 +127,10 @@ class Index {
             ]),
             new NumericField([
                 'name'     => 'menu_order',
+                'sortable' => true,
+            ]),
+            new TextField([
+                'name'     => 'post_status',
                 'sortable' => true,
             ]),
             new TextField([
@@ -202,26 +207,30 @@ class Index {
      * @return mixed
      */
     public function index_all() {
+        global $wpdb;
+
         do_action( 'redipress/before_index_all' );
 
-        $args = [
-            'posts_per_page'   => -1,
-            'post_type'        => 'any',
-            'bypass_redipress' => true,
-        ];
+        // phpcs:disable
+        $ids = $wpdb->get_results( "SELECT ID FROM $wpdb->posts" );
+        // phpcs:enable
 
-        $query = new \WP_Query( $args );
-
-        $count = count( $query->posts );
+        $count = count( $ids );
 
         if ( defined( 'WP_CLI' ) && WP_CLI ) {
+            \WP_CLI::success( 'Starting to index a total of ' . $count . ' posts.' );
+
             $progress = \WP_CLI\Utils\make_progress_bar( __( 'Indexing posts', 'redipress' ), $count );
         }
         else {
             $progress = null;
         }
 
-        $posts = apply_filters( 'redipress/custom_posts', $query->posts );
+        $posts = array_map( function( $row ) {
+            return get_post( $row->ID );
+        }, $ids );
+
+        $posts = apply_filters( 'redipress/custom_posts', $posts );
 
         $result = array_map( function( $post ) use ( $progress ) {
             $converted = $this->convert_post( $post );
@@ -233,7 +242,7 @@ class Index {
             }
         }, $posts );
 
-        do_action( 'redipress/indexed_all', $result, $query );
+        do_action( 'redipress/indexed_all', $result );
 
         $this->maybe_write_to_disk( 'indexed_all' );
 
@@ -275,15 +284,6 @@ class Index {
             return;
         }
 
-        // If post is not published, ensure it isn't in the index
-        if ( $post->post_status !== 'publish' ) {
-            $this->delete_post( $post_id );
-
-            $this->maybe_write_to_disk( 'post_deleted' );
-
-            return;
-        }
-
         $converted = $this->convert_post( $post );
 
         $result = $this->add_post( $converted, $post_id );
@@ -293,6 +293,18 @@ class Index {
         $this->maybe_write_to_disk( 'new_post_added' );
 
         return $result;
+    }
+
+    /**
+     * Delete a post from the RediSearch database
+     *
+     * @param string|int $post_id The post ID, can be real or arbitrary.
+     * @return void
+     */
+    public function delete( $post_id ) {
+        $this->delete_post( $post_id );
+
+        $this->maybe_write_to_disk( 'post_deleted' );
     }
 
     /**
@@ -406,6 +418,8 @@ class Index {
         $post_content = apply_filters( 'redipress/post_content', $post_content );
         $post_content = apply_filters( 'redipress/index_strings', $post_content );
 
+        $post_status = apply_filters( 'redipress/post_status', $post->post_status ?? 'publish' );
+
         // Get rest of the fields
         $rest = [
             'post_id'        => $post->ID,
@@ -416,6 +430,7 @@ class Index {
             'post_content'   => $post_content,
             'post_type'      => $post->post_type,
             'post_parent'    => $post->post_parent,
+            'post_status'    => $post_status,
             'post_object'    => serialize( $post_object ),
             'permalink'      => get_permalink( $post->ID ),
             'menu_order'     => absint( $post->menu_order ),

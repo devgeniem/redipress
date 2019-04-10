@@ -140,17 +140,19 @@ class Search {
             ];
         }, $return );
 
+        $command = array_merge(
+            [ $this->index, $search_query_string ],
+            [ 'LOAD', 1, '@post_object' ],
+            [ 'GROUPBY', 1, '@post_id' ],
+            array_reduce( $return_fields, 'array_merge', [] ),
+            array_reduce( $sortby, 'array_merge', [] ) ?? [],
+            [ 'LIMIT', $offset, $limit ]
+        );
+
         // Run the command itself
         $results = $this->client->raw_command(
             'FT.AGGREGATE',
-            array_merge(
-                [ $this->index, $search_query_string ],
-                [ 'LOAD', 1, '@post_object' ],
-                [ 'GROUPBY', 1, '@post_id' ],
-                array_reduce( $return_fields, 'array_merge', [] ),
-                array_reduce( $sortby, 'array_merge', [] ),
-                [ 'LIMIT', $offset, $limit ]
-            )
+            $command
         );
 
         // Clean the aggregate output to match usual key-value pairs

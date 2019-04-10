@@ -82,8 +82,14 @@ class QueryBuilder {
      * @param array    $index_info Index information.
      */
     public function __construct( WP_Query $wp_query, array $index_info ) {
+        global $wp_rewrite;
+
         $this->wp_query   = $wp_query;
         $this->index_info = $index_info;
+
+        $ignore_added_query_vars = array_map( function( $code ) {
+            return preg_replace( '/^\%(.+)\%$/', '\1', $code );
+        }, $wp_rewrite->rewritecode );
 
         $this->ignore_query_vars = apply_filters( 'redipress/ignore_query_vars', array_merge( [
             'order',
@@ -92,7 +98,7 @@ class QueryBuilder {
             'posts_per_page',
             'offset',
             'meta_key',
-        ], apply_filters( 'query_vars', [] ) ) );
+        ], $ignore_added_query_vars ) );
     }
 
     /**
@@ -149,6 +155,11 @@ class QueryBuilder {
                 return '@' . $this->query_vars[ $query_var ] . ':' . $this->wp_query->query_vars[ $query_var ];
             }
         }, array_keys( $this->wp_query->query ) ) );
+
+        // All minuses to the end of the line.
+        usort( $return, function( $a, $b ) {
+            return ( substr( $a, 0, 1 ) === '-' );
+        });
 
         return array_merge(
             $return,
@@ -507,6 +518,8 @@ class QueryBuilder {
             if ( ! in_array( $clause['orderby'], $fields, true ) ) {
                 return false;
             }
+
+            return $clause;
         }, $sortby );
 
         // If we have a false value in the sortby array, just bail away.

@@ -173,18 +173,7 @@ class Search {
         }, $results );
 
         // Store the search query string so at in can be debugged easily via WP_Query.
-        $query->search_query_string = implode(
-            ' ',
-            array_merge(
-                [ 'FT.AGGREGATE' ],
-                [ $this->index, $search_query_string ],
-                [ 'LOAD', 1, '@post_object' ],
-                [ 'GROUPBY', 1, '@post_id' ],
-                array_reduce( $return_fields, 'array_merge', [] ),
-                array_reduce( $sortby, 'array_merge', [] ) ?? [],
-                [ 'LIMIT', $offset, $limit ]
-            )
-        );
+        $query->search_query_string = 'FT.AGGREGATE ' . implode( ' ', $command );
 
         // Run the count post types command
         $counts = $this->client->raw_command(

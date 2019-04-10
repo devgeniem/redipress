@@ -62,6 +62,7 @@ class QueryBuilder {
         'post_type'        => 'post_type',
         'post_parent'      => 'post_parent',
         'post_status'      => 'post_status',
+        'post__not_in'     => 'post_id',
         'category__in'     => 'taxonomy_id_category',
         'category__not_in' => 'taxonomy_id_category',
         'category__and'    => 'taxonomy_id_category',
@@ -260,6 +261,23 @@ class QueryBuilder {
      */
     protected function p() : string {
         return '@post_id:' . $this->wp_query->query_vars['p'];
+    }
+
+    /**
+     * WP_Query post__not_in parameter.
+     *
+     * @return string Redisearch query condition.
+     */
+    protected function post__not_in() : string {
+
+        $post__not_in = $this->wp_query->query_vars['post__not_in'];
+        $clause       = '';
+
+        if ( ! empty( $post__not_in ) && is_array( $post__not_in ) ) {
+            $clause = '-@post_id:(' . implode( '|', $post__not_in ) . ')';
+        }
+
+        return $clause;
     }
 
     /**

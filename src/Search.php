@@ -127,7 +127,7 @@ class Search {
         }
 
         // Get the sortby parameter
-        $sortby = $this->query_builder->get_sortby();
+        $sortby = $this->query_builder->get_sortby() ?: [];
 
         $return_fields = array_map( function( string $field ) : array {
             return [
@@ -145,7 +145,7 @@ class Search {
             [ 'LOAD', 1, '@post_object' ],
             [ 'GROUPBY', 1, '@post_id' ],
             array_reduce( $return_fields, 'array_merge', [] ),
-            array_reduce( $sortby, 'array_merge', [] ) ?? [],
+            array_merge( $sortby ),
             [ 'LIMIT', $offset, $limit ]
         );
 

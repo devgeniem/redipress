@@ -307,7 +307,7 @@ class QueryBuilder {
         $post_status = $this->wp_query->query_vars['post_status'];
 
         if ( $post_status === 'any' ) {
-            $post_statuses = get_post_stati( [ 'exclude_from_search' => true ] );
+            $post_statuses = get_post_stati( [ 'exclude_from_search' => false ] );
         }
         elseif ( empty( $post_status ) ) {
             $post_statuses = [ 'publish' ];

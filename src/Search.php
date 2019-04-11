@@ -8,6 +8,7 @@ namespace Geniem\RediPress;
 use Geniem\RediPress\Admin,
     Geniem\RediPress\Redis\Client,
     Geniem\RediPress\Utility;
+use function GuzzleHttp\Promise\each;
 
 /**
  * RediPress search class
@@ -106,9 +107,6 @@ class Search {
         // Filter the query string for the count feature
         $count_search_query_string = apply_filters( 'redipress/count_search_query_string', $search_query_string );
 
-        // Store the search query string so at in can be debugged easily via WP_Query.
-        $query->search_query_string = $search_query_string;
-
         // Filter the list of fields from which the search is conducted.
         $infields = array_unique( apply_filters( 'redipress/search_fields', $this->default_search_fields, $query ) );
 
@@ -129,20 +127,53 @@ class Search {
         }
 
         // Get the sortby parameter
-        $sortby = $this->query_builder->get_sortby();
+        $sortby = $this->query_builder->get_sortby() ?: [];
+
+        $return_fields = array_map( function( string $field ) : array {
+            return [
+                'REDUCE',
+                'TOLIST',
+                1,
+                '@' . $field,
+                'AS',
+                $field,
+            ];
+        }, $return );
+
+        $command = array_merge(
+            [ $this->index, $search_query_string ],
+            [ 'LOAD', 1, '@post_object' ],
+            [ 'GROUPBY', 1, '@post_id' ],
+            array_reduce( $return_fields, 'array_merge', [] ),
+            array_merge( $sortby ),
+            [ 'LIMIT', $offset, $limit ]
+        );
 
         // Run the command itself
         $results = $this->client->raw_command(
-            'FT.SEARCH',
-            array_merge(
-                [ $this->index, $search_query_string, 'INFIELDS', count( $infields ) ],
-                $infields,
-                [ 'RETURN', count( $return ) ],
-                $return,
-                $sortby,
-                [ 'LIMIT', $offset, $limit ]
-            )
+            'FT.AGGREGATE',
+            $command
         );
+
+        // Clean the aggregate output to match usual key-value pairs
+        $results = array_map( function( $result ) {
+            if ( is_array( $result ) ) {
+                return array_map( function( $item ) {
+                    if ( is_array( $item ) ) {
+                        return implode( ' ', $item );
+                    }
+                    else {
+                        return $item;
+                    }
+                }, $result );
+            }
+            else {
+                return $result;
+            }
+        }, $results );
+
+        // Store the search query string so at in can be debugged easily via WP_Query.
+        $query->redisearch_query = 'FT.AGGREGATE ' . implode( ' ', $command );
 
         // Run the count post types command
         $counts = $this->client->raw_command(
@@ -189,13 +220,19 @@ class Search {
             $query->query_vars['post_type'] = $post_types;
         }
 
+        // If we don't have explicitly defined post status, just use publish
+        if ( empty( $query->query['post_status'] ) ) {
+            $query->query['post_status']      = 'publish';
+            $query->query_vars['post_status'] = 'publish';
+        }
+
         // Only filter front-end search queries
         if ( $this->query_builder->enable() ) {
             do_action( 'redipress/before_search', $this, $query );
 
             $raw_results = $this->search( $query );
 
-            if ( $raw_results->results === '0' ) {
+            if ( empty( $raw_results->results ) || $raw_results->results[0] === 0 ) {
                 $query->redipress_no_results = true;
                 return null;
             }
@@ -242,16 +279,12 @@ class Search {
      * @return array
      */
     public function format_results( array $results ) : array {
-        unset( $results[0] );
+        $results = Utility::format( $results );
 
-        $output = [];
+        return array_map( function( array $result ) : ?\WP_Post {
+            $formatted = Utility::format( $result );
 
-        foreach ( $results as $result ) {
-            if ( is_array( $result ) && count( $result ) > 1 ) {
-                $output[] = maybe_unserialize( $result[1] );
-            }
-        }
-
-        return $output;
+            return maybe_unserialize( $formatted['post_object'] );
+        }, $results );
     }
 }

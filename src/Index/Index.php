@@ -74,6 +74,7 @@ class Index {
 
         // Register indexing hooks
         add_action( 'save_post', [ $this, 'upsert' ], 10, 3 );
+        add_action( 'delete_post', [ $this, 'delete' ], 10, 1 );
 
         $this->define_core_fields();
     }
@@ -124,8 +125,16 @@ class Index {
                 'name'     => 'post_id',
                 'sortable' => true,
             ]),
+            new TextField([
+                'name'     => 'post_object',
+                'sortable' => true,
+            ]),
             new NumericField([
                 'name'     => 'menu_order',
+                'sortable' => true,
+            ]),
+            new TextField([
+                'name'     => 'post_status',
                 'sortable' => true,
             ]),
             new TextField([
@@ -202,38 +211,45 @@ class Index {
      * @return mixed
      */
     public function index_all() {
+        global $wpdb;
+
         do_action( 'redipress/before_index_all' );
 
-        $args = [
-            'posts_per_page'   => -1,
-            'post_type'        => 'any',
-            'bypass_redipress' => true,
-        ];
+        // phpcs:disable
+        $ids = $wpdb->get_results( "SELECT ID FROM $wpdb->posts" ) ?? [];
+        // phpcs:enable
 
-        $query = new \WP_Query( $args );
-
-        $count = count( $query->posts );
+        $count = count( $ids );
 
         if ( defined( 'WP_CLI' ) && WP_CLI ) {
+            \WP_CLI::success( 'Starting to index a total of ' . $count . ' posts.' );
+
             $progress = \WP_CLI\Utils\make_progress_bar( __( 'Indexing posts', 'redipress' ), $count );
         }
         else {
             $progress = null;
         }
 
-        $posts = apply_filters( 'redipress/custom_posts', $query->posts );
+        $posts = array_map( function( $row ) {
+            return get_post( $row->ID );
+        }, $ids );
+
+        $posts = apply_filters( 'redipress/custom_posts', $posts );
 
         $result = array_map( function( $post ) use ( $progress ) {
+            $language = apply_filters( 'redipress/post_language', $post->lang ?? null, $post );
+            $language = apply_filters( 'redipress/post_language/' . $post->ID, $language, $post );
+
             $converted = $this->convert_post( $post );
 
-            $return = $this->add_post( $converted, $post->ID );
+            $this->add_post( $converted, $post->ID, $language );
 
             if ( ! empty( $progress ) ) {
                 $progress->tick();
             }
         }, $posts );
 
-        do_action( 'redipress/indexed_all', $result, $query );
+        do_action( 'redipress/indexed_all', $result );
 
         $this->maybe_write_to_disk( 'indexed_all' );
 
@@ -275,15 +291,6 @@ class Index {
             return;
         }
 
-        // If post is not published, ensure it isn't in the index
-        if ( $post->post_status !== 'publish' ) {
-            $this->delete_post( $post_id );
-
-            $this->maybe_write_to_disk( 'post_deleted' );
-
-            return;
-        }
-
         $converted = $this->convert_post( $post );
 
         $result = $this->add_post( $converted, $post_id );
@@ -293,6 +300,18 @@ class Index {
         $this->maybe_write_to_disk( 'new_post_added' );
 
         return $result;
+    }
+
+    /**
+     * Delete a post from the RediSearch database
+     *
+     * @param string|int $post_id The post ID, can be real or arbitrary.
+     * @return void
+     */
+    public function delete( $post_id ) {
+        $this->delete_post( $post_id );
+
+        $this->maybe_write_to_disk( 'post_deleted' );
     }
 
     /**
@@ -391,20 +410,22 @@ class Index {
         // Gather the additional search index
         $search_index = apply_filters( 'redipress/search_index', implode( ' ', $search_index ), $post->ID, $post );
         $search_index = apply_filters( 'redipress/search_index/' . $post->ID, $search_index, $post );
-        $search_index = apply_filters( 'redipress/index_strings', $search_index );
+        $search_index = apply_filters( 'redipress/index_strings', $search_index, $post );
 
         // Filter the post object that will be added to the database serialized.
         $post_object = apply_filters( 'redipress/post_object', $post );
 
         $post_title = apply_filters( 'redipress/post_title', $post->post_title );
-        $post_title = apply_filters( 'redipress/index_strings', $post_title );
+        $post_title = apply_filters( 'redipress/index_strings', $post_title, $post );
 
         $post_excerpt = apply_filters( 'redipress/post_excerpt', $post->post_excerpt );
-        $post_excerpt = apply_filters( 'redipress/index_strings', $post_excerpt );
+        $post_excerpt = apply_filters( 'redipress/index_strings', $post_excerpt, $post );
 
         $post_content = wp_strip_all_tags( $post->post_content, true );
         $post_content = apply_filters( 'redipress/post_content', $post_content );
-        $post_content = apply_filters( 'redipress/index_strings', $post_content );
+        $post_content = apply_filters( 'redipress/index_strings', $post_content, $post );
+
+        $post_status = apply_filters( 'redipress/post_status', $post->post_status ?? 'publish' );
 
         // Get rest of the fields
         $rest = [
@@ -416,6 +437,7 @@ class Index {
             'post_content'   => $post_content,
             'post_type'      => $post->post_type,
             'post_parent'    => $post->post_parent,
+            'post_status'    => $post_status,
             'post_object'    => serialize( $post_object ),
             'permalink'      => get_permalink( $post->ID ),
             'menu_order'     => absint( $post->menu_order ),
@@ -432,10 +454,16 @@ class Index {
      *
      * @param array      $converted_post         The post in array form.
      * @param string|int $id                     The document ID for RediSearch.
+     * @param string     $language               Possible language parameter for the post.
      * @return mixed
      */
-    public function add_post( array $converted_post, $id ) {
-        $command = [ $this->index, $id, 1, 'REPLACE', 'LANGUAGE', 'finnish' ];
+    public function add_post( array $converted_post, $id, string $language = null ) {
+        $command = [ $this->index, $id, 1, 'REPLACE' ];
+
+        if ( ! empty( $language ) && $this->is_language_supported( $language ) ) {
+            $command[] = 'LANGUAGE';
+            $command[] = $language;
+        }
 
         $raw_command = array_merge( $command, [ 'FIELDS' ], $converted_post );
 
@@ -479,6 +507,34 @@ class Index {
      */
     public function write_to_disk() {
         return $this->client->raw_command( 'SAVE', [] );
+    }
+
+    /**
+     * Whether a language is supported in RediSearch or not.
+     *
+     * @param string $language The language name.
+     * @return boolean
+     */
+    protected function is_language_supported( string $language ) : bool {
+        return in_array( $language, [
+            'arabic',
+            'danish',
+            'dutch',
+            'english',
+            'finnish',
+            'french',
+            'german',
+            'hungarian',
+            'italian',
+            'norwegian',
+            'portuguese',
+            'romanian',
+            'russian',
+            'spanish',
+            'swedish',
+            'tamil',
+            'turkish',
+        ], true );
     }
 
     /**

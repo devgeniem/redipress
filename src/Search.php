@@ -173,7 +173,7 @@ class Search {
         }, $results );
 
         // Store the search query string so at in can be debugged easily via WP_Query.
-        $query->search_query_string = 'FT.AGGREGATE ' . implode( ' ', $command );
+        $query->redisearch_query = 'FT.AGGREGATE ' . implode( ' ', $command );
 
         // Run the count post types command
         $counts = $this->client->raw_command(

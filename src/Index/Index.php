@@ -216,7 +216,7 @@ class Index {
         do_action( 'redipress/before_index_all' );
 
         // phpcs:disable
-        $ids = $wpdb->get_results( "SELECT ID FROM $wpdb->posts" );
+        $ids = $wpdb->get_results( "SELECT ID FROM $wpdb->posts" ) ?? [];
         // phpcs:enable
 
         $count = count( $ids );

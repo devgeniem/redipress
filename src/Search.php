@@ -232,7 +232,7 @@ class Search {
 
             $raw_results = $this->search( $query );
 
-            if ( $raw_results->results === '0' ) {
+            if ( empty( $raw_results->results ) || $raw_results->results[0] === 0 ) {
                 $query->redipress_no_results = true;
                 return null;
             }

@@ -149,13 +149,27 @@ class QueryBuilder {
             }
             // Special treatment for numeric fields.
             elseif ( $field_type === 'NUMERIC' ) {
-                return '@' . $this->query_vars[ $query_var ] . ':[' . $this->wp_query->query_vars[ $query_var ] . ' ' . $this->wp_query->query_vars[ $query_var ] . ']';
+
+                if ( empty( $this->query_vars[ $query_var ] ) || empty( $this->wp_query->query_vars[ $query_var ] ) ) {
+                    return false;
+                }
+
+                $return = '@' . $this->query_vars[ $query_var ] . ':[' . $this->wp_query->query_vars[ $query_var ] . ' ' . $this->wp_query->query_vars[ $query_var ] . ']';
+
+                return $return;
             }
-            // Otherwise we are dealing with an ordinary text field.
+            // Otherwise we are dealing with an ordinary text fiel  d.
             else {
-                return '@' . $this->query_vars[ $query_var ] . ':' . $this->wp_query->query_vars[ $query_var ];
+
+                if ( empty( $this->wp_query->query_vars[ $query_var ] ) || empty( $this->query_vars[ $query_var ] ) ) {
+                    return false;
+                }
+
+                $return = '@' . $this->query_vars[ $query_var ] . ':' . $this->wp_query->query_vars[ $query_var ];
+
+                return $return;
             }
-        }, array_keys( $this->wp_query->query ) ) );
+        }, array_keys( $this->wp_query->query_vars ) ) );
 
         // All minuses to the end of the line.
         usort( $return, function( $a, $b ) {
@@ -260,6 +274,11 @@ class QueryBuilder {
      * @return string
      */
     protected function p() : string {
+
+        if ( empty( $this->wp_query->query_vars['p'] ) ) {
+            return false;
+        }
+
         return '@post_id:' . $this->wp_query->query_vars['p'];
     }
 
@@ -269,6 +288,10 @@ class QueryBuilder {
      * @return string Redisearch query condition.
      */
     protected function post__not_in() : string {
+
+        if ( empty( $this->wp_query->query_vars['post__not_in'] ) ) {
+            return false;
+        }
 
         $post__not_in = $this->wp_query->query_vars['post__not_in'];
         $clause       = '';
@@ -286,6 +309,11 @@ class QueryBuilder {
      * @return ?string
      */
     protected function post_type() : ?string {
+
+        if ( empty( $this->wp_query->query_vars['post_type'] ) ) {
+            return false;
+        }
+
         $post_type = $this->wp_query->query_vars['post_type'];
 
         if ( $post_type !== 'any' ) {
@@ -304,6 +332,11 @@ class QueryBuilder {
      * @return ?string
      */
     protected function post_status() : ?string {
+
+        if ( empty( $this->wp_query->query_vars['post_status'] ) ) {
+            return false;
+        }
+
         $post_status = $this->wp_query->query_vars['post_status'];
 
         if ( $post_status === 'any' ) {
@@ -325,6 +358,11 @@ class QueryBuilder {
      * @return string
      */
     protected function category__in() : string {
+
+        if ( empty( $this->wp_query->query_vars['category__in'] ) ) {
+            return false;
+        }
+
         $cats = $this->wp_query->query_vars['category__in'];
 
         $cat = is_array( $cats ) ? $cats : [ $cats ];
@@ -338,6 +376,11 @@ class QueryBuilder {
      * @return string
      */
     protected function category__not_in() : string {
+
+        if ( empty( $this->wp_query->query_vars['category__not_in'] ) ) {
+            return false;
+        }
+
         $cats = $this->wp_query->query_vars['category__not_in'];
 
         $cat = is_array( $cats ) ? $cats : [ $cats ];
@@ -351,6 +394,11 @@ class QueryBuilder {
      * @return string
      */
     protected function category__and() : string {
+
+        if ( empty( $this->wp_query->query_vars['category__and'] ) ) {
+            return false;
+        }
+
         $cats = $this->wp_query->query_vars['category__and'];
 
         $cat = is_array( $cats ) ? $cats : [ $cats ];
@@ -366,6 +414,11 @@ class QueryBuilder {
      * @return string
      */
     protected function category_name() : string {
+
+        if ( empty( $this->wp_query->query_vars['category_name'] ) ) {
+            return false;
+        }
+
         $cat = $this->wp_query->query_vars['category_name'];
 
         $all_cats = explode( '+', $cat );
@@ -376,7 +429,9 @@ class QueryBuilder {
             $some_cats = explode( ',', $all );
 
             foreach ( $some_cats as $some ) {
-                $return[] = '@taxonomy_category:{' . implode( '|', $some ) . '}';
+                if ( is_array( $some ) ) {
+                    $return[] = '@taxonomy_category:{' . implode( '|', $some ) . '}';
+                }
             }
         }
 
@@ -389,12 +444,18 @@ class QueryBuilder {
      * @return string
      */
     protected function tax_query() : string {
+
+        if ( empty( $this->wp_query->query_vars['tax_query'] ) ) {
+            return false;
+        }
+
         $query = $this->wp_query->query_vars['tax_query'];
 
         // Sanitize and validate the query through the WP_Tax_Query class
         $tax_query = new \WP_Tax_Query( $query );
+        $return = $this->create_taxonomy_query( $tax_query->queries );
 
-        return $this->create_taxonomy_query( $tax_query->queries );
+        return $return;
     }
 
     /**

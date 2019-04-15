@@ -658,15 +658,32 @@ class QueryBuilder {
 
                             // The fallthrough is intentional: we only turn the slugs into ids.
                         case 'term_id':
-                            foreach ( $clause['terms'] as $term ) {
+
+                            // We do not support some operator types, so bail early if some of them is found.
+                            if ( in_array( strtoupper( $clause['operator'] ), [ 'EXISTS', 'NOT EXISTS' ], true ) ) {
+                                return false;
+                            }
+
+                            // Form clause by operator.
+                            if ( $clause['operator'] === 'IN' ) {
+
                                 $queries[] = sprintf(
                                     '(@taxonomy_id_%s:{%s})',
                                     $clause['taxonomy'],
-                                    $term
+                                    implode( '|', (array) $clause['terms'] )
                                 );
-
-                                $this->add_search_field( 'taxonomy_id_' . $clause['taxonomy'] );
                             }
+                            elseif ( $clause['operator'] === 'NOT IN' ) {
+
+                                $queries[] = sprintf(
+                                    '-(@taxonomy_id_%s:{%s})',
+                                    $clause['taxonomy'],
+                                    implode( '|', (array) $clause['terms'] )
+                                );
+                            }
+
+                            $this->add_search_field( 'taxonomy_id_' . $clause['taxonomy'] );
+
                             break;
                         default:
                             return false;
@@ -704,13 +721,32 @@ class QueryBuilder {
 
                             // The fallthrough is intentional: we only turn the slugs into ids.
                         case 'term_id':
-                            $queries[] = sprintf(
-                                '(@taxonomy_id_%s:{%s})',
-                                $clause['taxonomy'],
-                                implode( '|', (array) $clause['terms'] )
-                            );
+
+                            // We do not support some operator types, so bail early if some of them is found.
+                            if ( in_array( strtoupper( $clause['operator'] ), [ 'EXISTS', 'NOT EXISTS' ], true ) ) {
+                                return false;
+                            }
+
+                            // Form clause by operator.
+                            if ( $clause['operator'] === 'IN' ) {
+
+                                $queries[] = sprintf(
+                                    '(@taxonomy_id_%s:{%s})',
+                                    $clause['taxonomy'],
+                                    implode( '|', (array) $clause['terms'] )
+                                );
+                            }
+                            elseif ( $clause['operator'] === 'NOT IN' ) {
+
+                                $queries[] = sprintf(
+                                    '-(@taxonomy_id_%s:{%s})',
+                                    $clause['taxonomy'],
+                                    implode( '|', (array) $clause['terms'] )
+                                );
+                            }
 
                             $this->add_search_field( 'taxonomy_id_' . $clause['taxonomy'] );
+
                             break;
                         default:
                             return false;
@@ -734,6 +770,7 @@ class QueryBuilder {
      * @return string
      */
     private function create_meta_query( array $query, string $operator = 'AND' ) : ?string {
+
         $relation = $query['relation'] ?? $operator;
         unset( $query['relation'] );
 

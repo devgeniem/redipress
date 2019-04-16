@@ -628,136 +628,94 @@ class QueryBuilder {
      * @return string
      */
     private function create_taxonomy_query( array $query, string $operator = 'AND' ) : string {
+
         $relation = $query['relation'] ?? $operator;
         unset( $query['relation'] );
 
-        // Determine the relation type
-        if ( $relation === 'AND' ) {
-            $queries = [];
+        // Operator
+        $operator_uppercase    = strtoupper( $clause['operator'] );
+        $unsupported_operators = [ 'EXISTS', 'NOT EXISTS' ];
 
-            foreach ( $query as $clause ) {
-                if ( ! empty( $clause['taxonomy'] ) ) {
-                    switch ( $clause['field'] ) {
-                        case 'name':
-                            foreach ( $clause['terms'] as $term ) {
-                                $queries[] = sprintf(
-                                    '(@taxonomy_%s:{%s})',
-                                    $clause['taxonomy'],
-                                    $term
-                                );
-
-                                $this->add_search_field( 'taxonomy_' . $clause['taxonomy'] );
-                            }
-                            break;
-                        case 'slug':
-                            $taxonomy = $clause['taxonomy'] ?? false;
-
-                            // Change slug to the term id.
-                            // We are searching with the term id not with the term slug.
-                            $clause['terms'] = $this->slugs_to_ids( $clause['terms'], $taxonomy );
-
-                            // The fallthrough is intentional: we only turn the slugs into ids.
-                        case 'term_id':
-
-                            // We do not support some operator types, so bail early if some of them is found.
-                            if ( in_array( strtoupper( $clause['operator'] ), [ 'EXISTS', 'NOT EXISTS' ], true ) ) {
-                                return false;
-                            }
-
-                            // Form clause by operator.
-                            if ( $clause['operator'] === 'IN' ) {
-
-                                $queries[] = sprintf(
-                                    '(@taxonomy_id_%s:{%s})',
-                                    $clause['taxonomy'],
-                                    implode( '|', (array) $clause['terms'] )
-                                );
-                            }
-                            elseif ( $clause['operator'] === 'NOT IN' ) {
-
-                                $queries[] = sprintf(
-                                    '-(@taxonomy_id_%s:{%s})',
-                                    $clause['taxonomy'],
-                                    implode( '|', (array) $clause['terms'] )
-                                );
-                            }
-
-                            $this->add_search_field( 'taxonomy_id_' . $clause['taxonomy'] );
-
-                            break;
-                        default:
-                            return false;
-                    }
-                }
-                // If we have multiple clauses in the block, run the function recursively.
-                else {
-                    $queries[] = $this->create_taxonomy_query( $clause, 'AND' );
-                }
-            }
-
-            return count( $queries ) ? '(' . implode( ' ', $queries ) . ')' : '';
+        // We do not support some operator types, so bail early if some of them is found.
+        if ( in_array( $operator_uppercase, $unsupported_operators, true ) ) {
+            return false;
         }
-        elseif ( $relation === 'OR' ) {
-            $queries = [];
 
-            foreach ( $query as $clause ) {
-                if ( ! empty( $clause['taxonomy'] ) ) {
-                    switch ( $clause['field'] ) {
-                        case 'name':
+        // Determine the relation type
+        $queries = [];
+
+        foreach ( $query as $clause ) {
+            if ( ! empty( $clause['taxonomy'] ) ) {
+                switch ( $clause['field'] ) {
+                    case 'name':
+
+                        // Form clause by operator.
+                        if ( $clause['operator'] === 'IN' ) {
+
                             $queries[] = sprintf(
                                 '(@taxonomy_%s:{%s})',
                                 $clause['taxonomy'],
                                 implode( '|', (array) $clause['terms'] )
                             );
+                        }
+                        elseif ( $clause['operator'] === 'NOT IN' ) {
 
-                            $this->add_search_field( 'taxonomy_' . $clause['taxonomy'] );
-                            break;
-                        case 'slug':
-                            $taxonomy = $clause['taxonomy'] ?? false;
+                            $queries[] = sprintf(
+                                '-(@taxonomy_%s:{%s})',
+                                $clause['taxonomy'],
+                                implode( '|', (array) $clause['terms'] )
+                            );
+                        }
 
-                            // Change slug to the term id.
-                            // We are searching with the term id not with the term slug.
-                            $clause['terms'] = $this->slugs_to_ids( $clause['terms'], $taxonomy );
+                        $this->add_search_field( 'taxonomy_' . $clause['taxonomy'] );
 
-                            // The fallthrough is intentional: we only turn the slugs into ids.
-                        case 'term_id':
+                        break;
+                    case 'slug':
+                        $taxonomy = $clause['taxonomy'] ?? false;
 
-                            // We do not support some operator types, so bail early if some of them is found.
-                            if ( in_array( strtoupper( $clause['operator'] ), [ 'EXISTS', 'NOT EXISTS' ], true ) ) {
-                                return false;
-                            }
+                        // Change slug to the term id.
+                        // We are searching with the term id not with the term slug.
+                        $clause['terms'] = $this->slugs_to_ids( $clause['terms'], $taxonomy );
 
-                            // Form clause by operator.
-                            if ( $clause['operator'] === 'IN' ) {
+                        // The fallthrough is intentional: we only turn the slugs into ids.
+                    case 'term_id':
 
-                                $queries[] = sprintf(
-                                    '(@taxonomy_id_%s:{%s})',
-                                    $clause['taxonomy'],
-                                    implode( '|', (array) $clause['terms'] )
-                                );
-                            }
-                            elseif ( $clause['operator'] === 'NOT IN' ) {
+                        // Form clause by operator.
+                        if ( $clause['operator'] === 'IN' ) {
 
-                                $queries[] = sprintf(
-                                    '-(@taxonomy_id_%s:{%s})',
-                                    $clause['taxonomy'],
-                                    implode( '|', (array) $clause['terms'] )
-                                );
-                            }
+                            $queries[] = sprintf(
+                                '(@taxonomy_id_%s:{%s})',
+                                $clause['taxonomy'],
+                                implode( '|', (array) $clause['terms'] )
+                            );
+                        }
+                        elseif ( $clause['operator'] === 'NOT IN' ) {
 
-                            $this->add_search_field( 'taxonomy_id_' . $clause['taxonomy'] );
+                            $queries[] = sprintf(
+                                '-(@taxonomy_id_%s:{%s})',
+                                $clause['taxonomy'],
+                                implode( '|', (array) $clause['terms'] )
+                            );
+                        }
 
-                            break;
-                        default:
-                            return false;
-                    }
-                }
-                // If we have multiple clauses in the block, run the function recursively.
-                else {
-                    $queries[] = $this->create_taxonomy_query( $clause, 'OR' );
+                        $this->add_search_field( 'taxonomy_id_' . $clause['taxonomy'] );
+
+                        break;
+                    default:
+                        return false;
                 }
             }
+            // If we have multiple clauses in the block, run the function recursively.
+            else {
+                $queries[] = $this->create_taxonomy_query( $clause, $relation );
+            }
+        }
 
+        // Compare the relation.
+        if ( $relation === 'AND' ) {
+            return count( $queries ) ? '(' . implode( ' ', $queries ) . ')' : '';
+        }
+        elseif ( $relation === 'OR' ) {
             return count( $queries ) ? '(' . implode( '|', $queries ) . ')' : '';
         }
     }

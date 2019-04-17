@@ -154,9 +154,7 @@ class QueryBuilder {
                     return false;
                 }
 
-                $return = '@' . $this->query_vars[ $query_var ] . ':[' . $this->wp_query->query_vars[ $query_var ] . ' ' . $this->wp_query->query_vars[ $query_var ] . ']';
-
-                return $return;
+                return '@' . $this->query_vars[ $query_var ] . ':[' . $this->wp_query->query_vars[ $query_var ] . ' ' . $this->wp_query->query_vars[ $query_var ] . ']';
             }
             // Otherwise we are dealing with an ordinary text fiel  d.
             else {
@@ -165,9 +163,7 @@ class QueryBuilder {
                     return false;
                 }
 
-                $return = '@' . $this->query_vars[ $query_var ] . ':' . $this->wp_query->query_vars[ $query_var ];
-
-                return $return;
+                return '@' . $this->query_vars[ $query_var ] . ':' . $this->wp_query->query_vars[ $query_var ];
             }
         }, array_keys( $this->wp_query->query_vars ) ) );
 
@@ -453,9 +449,7 @@ class QueryBuilder {
 
         // Sanitize and validate the query through the WP_Tax_Query class
         $tax_query = new \WP_Tax_Query( $query );
-        $return = $this->create_taxonomy_query( $tax_query->queries );
-
-        return $return;
+        return $this->create_taxonomy_query( $tax_query->queries );
     }
 
     /**

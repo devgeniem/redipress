@@ -130,7 +130,8 @@ class Search {
         $sortby = $this->query_builder->get_sortby() ?: [];
 
         $return_fields = array_map( function( string $field ) : array {
-            return [
+
+            $return = [
                 'REDUCE',
                 'TOLIST',
                 1,
@@ -138,6 +139,8 @@ class Search {
                 'AS',
                 $field,
             ];
+
+            return $return;
         }, $return );
 
         $command = array_merge(

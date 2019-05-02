@@ -129,54 +129,86 @@ class Search {
         // Get the sortby parameter
         $sortby = $this->query_builder->get_sortby() ?: [];
 
-        $return_fields = array_map( function( string $field ) : array {
+        if ( empty( $sortby ) && ! empty( $query->query_vars['s'] ) ) {
+            $command = array_merge(
+                [ $this->index, $search_query_string, 'INFIELDS', count( $infields ) ],
+                $infields,
+                [ 'RETURN', count( $return ) ],
+                $return,
+                $sortby,
+                [ 'LIMIT', $offset, $limit ]
+            );
 
-            $return = [
-                'REDUCE',
-                'TOLIST',
-                1,
-                '@' . $field,
-                'AS',
-                $field,
-            ];
+            // Run the command itself
+            $results = $this->client->raw_command(
+                'FT.SEARCH',
+                $command
+            );
 
-            return $return;
-        }, $return );
+            $index = 0;
 
-        $command = array_merge(
-            [ $this->index, $search_query_string ],
-            [ 'LOAD', 1, '@post_object' ],
-            [ 'GROUPBY', 1, '@post_id' ],
-            array_reduce( $return_fields, 'array_merge', [] ),
-            array_merge( $sortby ),
-            [ 'LIMIT', $offset, $limit ]
-        );
+            // Remove the intermediary docIds to make the format match the one from FT.AGGREGATE
+            $results = array_filter( $results, function( $item ) use ( &$index ) {
+                if ( $index++ > 0 && is_numeric( $item ) ) {
+                    return false;
+                }
 
-        // Run the command itself
-        $results = $this->client->raw_command(
-            'FT.AGGREGATE',
-            $command
-        );
+                return true;
+            });
 
-        // Clean the aggregate output to match usual key-value pairs
-        $results = array_map( function( $result ) {
-            if ( is_array( $result ) ) {
-                return array_map( function( $item ) {
-                    if ( is_array( $item ) ) {
-                        return implode( ' ', $item );
-                    }
-                    else {
-                        return $item;
-                    }
-                }, $result );
-            }
-            else {
-                return $result;
-            }
-        }, $results );
+            // Store the search query string so at in can be debugged easily via WP_Query.
+            $query->redisearch_query = 'FT.SEARCH ' . implode( ' ', $command );
+        }
+        else {
+            $return_fields = array_map( function( string $field ) : array {
 
-        // Store the search query string so at in can be debugged easily via WP_Query.
-        $query->redisearch_query = 'FT.AGGREGATE ' . implode( ' ', $command );
+                $return = [
+                    'REDUCE',
+                    'TOLIST',
+                    1,
+                    '@' . $field,
+                    'AS',
+                    $field,
+                ];
+
+                return $return;
+            }, $return );
+
+            $command = array_merge(
+                [ $this->index, $search_query_string ],
+                [ 'LOAD', 1, '@post_object' ],
+                [ 'GROUPBY', 1, '@post_id' ],
+                array_reduce( $return_fields, 'array_merge', [] ),
+                array_merge( $sortby ),
+                [ 'LIMIT', $offset, $limit ]
+            );
+
+            // Run the command itself
+            $results = $this->client->raw_command(
+                'FT.AGGREGATE',
+                $command
+            );
+
+            // Clean the aggregate output to match usual key-value pairs
+            $results = array_map( function( $result ) {
+                if ( is_array( $result ) ) {
+                    return array_map( function( $item ) {
+                        if ( is_array( $item ) ) {
+                            return implode( ' ', $item );
+                        }
+                        else {
+                            return $item;
+                        }
+                    }, $result );
+                }
+                else {
+                    return $result;
+                }
+            }, $results );
+
+            // Store the search query string so at in can be debugged easily via WP_Query.
+            $query->redisearch_query = 'FT.AGGREGATE ' . implode( ' ', $command );
+        }
 
         // Run the count post types command
         $counts = $this->client->raw_command(

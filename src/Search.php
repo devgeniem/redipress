@@ -130,6 +130,7 @@ class Search {
         $sortby = $this->query_builder->get_sortby() ?: [];
 
         if ( empty( $sortby ) && ! empty( $query->query_vars['s'] ) ) {
+            // Form the search query
             $command = array_merge(
                 [ $this->index, $search_query_string, 'INFIELDS', count( $infields ) ],
                 $infields,
@@ -160,6 +161,7 @@ class Search {
             $query->redisearch_query = 'FT.SEARCH ' . implode( ' ', $command );
         }
         else {
+            // Form the return field clause
             $return_fields = array_map( function( string $field ) : array {
 
                 $return = [
@@ -174,6 +176,7 @@ class Search {
                 return $return;
             }, $return );
 
+            // Form the final query
             $command = array_merge(
                 [ $this->index, $search_query_string ],
                 [ 'LOAD', 1, '@post_object' ],
@@ -193,6 +196,7 @@ class Search {
             $results = array_map( function( $result ) {
                 if ( is_array( $result ) ) {
                     return array_map( function( $item ) {
+                        // If we are dealing with an array, just turn it into a string
                         if ( is_array( $item ) ) {
                             return implode( ' ', $item );
                         }

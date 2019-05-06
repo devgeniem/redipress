@@ -149,7 +149,7 @@ class Search {
 
             // Remove the intermediary docIds to make the format match the one from FT.AGGREGATE
             $results = array_filter( $results, function( $item ) use ( &$index ) {
-                if ( $index++ > 0 && is_numeric( $item ) ) {
+                if ( $index++ > 0 && ! is_array( $item ) ) {
                     return false;
                 }
 

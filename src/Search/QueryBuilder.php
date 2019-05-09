@@ -512,9 +512,14 @@ class QueryBuilder {
 
         $query = $this->wp_query->query_vars;
 
-        // Bail early if we don't have orderby defined
+        // Handle empty orderby
         if ( empty( $query['orderby'] ) ) {
-            return true;
+            if ( empty( $query['s'] ) ) {
+                $order = 'date';
+            }
+            else {
+                return true;
+            }
         }
 
         $order = $query['order'] ?? 'DESC';

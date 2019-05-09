@@ -140,7 +140,7 @@ class Search {
                 [ 'LIMIT', $offset, $limit ]
             );
 
-            // Run the command itself
+            // Run the command itself. FT.SEARCH is used because it allows us to sort the query by relevance
             $results = $this->client->raw_command(
                 'FT.SEARCH',
                 $command
@@ -186,7 +186,7 @@ class Search {
                 [ 'LIMIT', $offset, $limit ]
             );
 
-            // Run the command itself
+            // Run the command itself. FT.AGGREGATE is used to allow multiple sortby queries
             $results = $this->client->raw_command(
                 'FT.AGGREGATE',
                 $command

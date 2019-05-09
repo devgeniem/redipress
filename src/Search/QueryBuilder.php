@@ -251,6 +251,11 @@ class QueryBuilder {
     protected function s() : string {
         $terms = apply_filters( 'redipress/search_terms', $this->wp_query->query_vars['s'] );
 
+        // Remove a list of forbidden characters based on RediSearch restrictions.
+        $forbidden_characters = str_split( ',.<>{}[]"\':;!@#$%^&*()-+=~' );
+
+        $terms = str_replace( $forbidden_characters, array_fill( 0, count( $forbidden_characters ), ' ' ), $terms );
+
         $sort = explode( ' ', $terms );
 
         $tilde = array_filter( $sort, function( $word ) {

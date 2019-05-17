@@ -28,6 +28,15 @@ class QueryBuilder {
     protected $modifiers = [];
 
     /**
+     * Group by
+     * If $sortby is defined we need to groupby sortby tags.
+     * We need to add @post_id by minimum to make sure that we have unique results.
+     *
+     * @var array
+     */
+    protected $groupby = [ '@post_id' ];
+
+    /**
      * Possible sortby command
      *
      * @var array
@@ -475,6 +484,21 @@ class QueryBuilder {
     }
 
     /**
+     * WP_Query groupby parameter.
+     * This should be called after 
+     *
+     * @return string
+     */
+    public function get_groupby() : array {
+
+        // Add groupby count as a first item in the array.
+        // example [ 2, @post_id, @post_date ].
+        array_unshift( $this->groupby, 'GROUPBY', count( $this->groupby ) );
+
+        return $this->groupby;
+    }
+
+    /**
      * WP_Query meta_query parameter.
      *
      * @return string|null
@@ -533,8 +557,8 @@ class QueryBuilder {
 
         // If we have a simple string as the orderby parameter.
         if (
-            is_string( $query['orderby'] ) &&
             ! empty( $query['orderby'] ) &&
+            is_string( $query['orderby'] ) &&
             strpos( $query['orderby'], ' ' ) === false
         ) {
             $sortby[0]['orderby'] = $query['orderby'];
@@ -621,6 +645,10 @@ class QueryBuilder {
         $this->sortby = array_merge(
             [ 'SORTBY', ( count( $sortby ) * 2 ) ],
             array_reduce( $sortby, function( $carry, $item ) {
+
+                // Store groupby these need to be in sync with sortby params.
+                $this->groupby[] = '@' . $item['orderby'];
+
                 return array_merge( $carry, [ '@' . $item['orderby'], $item['order'] ] );
             }, [] )
         );
@@ -642,19 +670,24 @@ class QueryBuilder {
         $relation = $query['relation'] ?? $operator;
         unset( $query['relation'] );
 
-        // Operator
-        $operator_uppercase    = strtoupper( $clause['operator'] );
-        $unsupported_operators = [ 'EXISTS', 'NOT EXISTS' ];
-
-        // We do not support some operator types, so bail early if some of them is found.
-        if ( in_array( $operator_uppercase, $unsupported_operators, true ) ) {
-            return false;
-        }
+        $unsupported_operators = [
+            'EXISTS',
+            'NOT EXISTS',
+        ];
 
         // Determine the relation type
         $queries = [];
 
         foreach ( $query as $clause ) {
+
+            // Operator.
+            $operator_uppercase = strtoupper( $clause['operator'] );
+
+            // We do not support some operator types, so bail early if some of them is found.
+            if ( in_array( $operator_uppercase, $unsupported_operators, true ) ) {
+                return false;
+            }
+
             if ( ! empty( $clause['taxonomy'] ) ) {
                 switch ( $clause['field'] ) {
                     case 'name':

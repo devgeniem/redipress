@@ -343,6 +343,22 @@ class QueryBuilder {
     }
 
     /**
+     * WP_Query post_parent parameter.
+     *
+     * @return ?integer
+     */
+    protected function post_parent() : ?string {
+
+        $post_parent = $this->wp_query->query_vars['post_parent'] ?? false;
+
+        if ( $post_parent ) {
+            return false;
+        }
+
+        return '@post_parent:(' . $post_parent . ')';
+    }
+
+    /**
      * WP_Query post_status parameter.
      *
      * @return ?string
@@ -565,8 +581,8 @@ class QueryBuilder {
         }
         // If we have an array with key-value pairs
         elseif (
-            is_array( $query['orderby'] ) &&
-            ! empty( $query['orderby'] )
+            ! empty( $query['orderby'] ) &&
+            is_array( $query['orderby'] )
         ) {
             $sortby = [];
 

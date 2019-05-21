@@ -351,7 +351,8 @@ class QueryBuilder {
 
         $post_parent = $this->wp_query->query_vars['post_parent'] ?? false;
 
-        if ( $post_parent ) {
+        // If post_parent is null or empty string ignore post_parent.
+        if ( ! $post_parent || $post_parent === '' ) {
             return false;
         }
 

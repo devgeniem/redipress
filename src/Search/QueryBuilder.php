@@ -370,11 +370,11 @@ class QueryBuilder {
 
         // If post_parent is null or empty string ignore post_parent.
         if ( ! $post_parent || $post_parent === '' ) {
-           return false;
-       }
+            return false;
+        }
 
         return '@post_parent:(' . $post_parent . ')';
-   }
+}
 
     /**
      * WP_Query category__in parameter.
@@ -558,8 +558,8 @@ class QueryBuilder {
         }
         // If we have an array with key-value pairs
         elseif (
-            is_array( $query['orderby'] ) &&
-            ! empty( $query['orderby'] )
+            ! empty( $query['orderby'] ) &&
+            is_array( $query['orderby'] )
         ) {
             $sortby = [];
 

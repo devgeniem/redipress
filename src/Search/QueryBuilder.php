@@ -360,6 +360,21 @@ class QueryBuilder {
     }
 
     /**
+     * WP_Query post_parent parameter.
+     *
+     * @return ?integer
+     */
+    protected function post_parent() : ?string {
+
+        $post_parent = $this->wp_query->query_vars['post_parent'] ?? false;
+
+        if ( $post_parent ) {
+           return false;
+       }
+        return '@post_parent:(' . $post_parent . ')';
+   }
+
+    /**
      * WP_Query category__in parameter.
      *
      * @return string
@@ -533,8 +548,8 @@ class QueryBuilder {
 
         // If we have a simple string as the orderby parameter.
         if (
-            is_string( $query['orderby'] ) &&
             ! empty( $query['orderby'] ) &&
+            is_string( $query['orderby'] ) &&
             strpos( $query['orderby'], ' ' ) === false
         ) {
             $sortby[0]['orderby'] = $query['orderby'];

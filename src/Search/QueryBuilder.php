@@ -659,19 +659,22 @@ class QueryBuilder {
         $relation = $query['relation'] ?? $operator;
         unset( $query['relation'] );
 
-        // Operator
-        $operator_uppercase    = strtoupper( $clause['operator'] );
+        // RediSearch doesn't support these tax query clause operators.
         $unsupported_operators = [ 'EXISTS', 'NOT EXISTS' ];
-
-        // We do not support some operator types, so bail early if some of them is found.
-        if ( in_array( $operator_uppercase, $unsupported_operators, true ) ) {
-            return false;
-        }
 
         // Determine the relation type
         $queries = [];
 
         foreach ( $query as $clause ) {
+
+            // Operator
+            $operator_uppercase = strtoupper( $clause['operator'] );
+
+            // We do not support some operator types, so bail early if some of them is found.
+            if ( in_array( $operator_uppercase, $unsupported_operators, true ) ) {
+                return false;
+            }
+
             if ( ! empty( $clause['taxonomy'] ) ) {
                 switch ( $clause['field'] ) {
                     case 'name':

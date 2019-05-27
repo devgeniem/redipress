@@ -373,7 +373,7 @@ class QueryBuilder {
             return false;
         }
 
-        return '@post_parent:(' . $post_parent . ')';
+        return '@post_parent:' . $post_parent;
     }
 
     /**

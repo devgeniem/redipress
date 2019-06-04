@@ -156,7 +156,7 @@ class QueryBuilder {
             });
 
             // If we have a callable for the query var, possibly passed via a filter
-            if ( is_callable( $this->query_vars[ $query_var ] ) ) {
+            if ( isset( $this->query_vars[ $query_var ] ) && is_callable( $this->query_vars[ $query_var ] ) ) {
                 return $this->query_vars[ $query_var ]( $this );
             }
             // Use the designated method if it exists.

@@ -192,6 +192,10 @@ class Search {
                 $command
             );
 
+            if ( ! is_array( $results ) ) {
+                $results = [];
+            }
+
             // Clean the aggregate output to match usual key-value pairs
             $results = array_map( function( $result ) {
                 if ( is_array( $result ) ) {

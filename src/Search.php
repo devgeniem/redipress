@@ -166,7 +166,7 @@ class Search {
 
                 $return = [
                     'REDUCE',
-                    'TOLIST',
+                    'FIRST_VALUE',
                     1,
                     '@' . $field,
                     'AS',

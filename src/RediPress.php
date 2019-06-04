@@ -82,6 +82,9 @@ class RediPress {
                 return;
             }
         }
+
+        // Register external functionalities
+        $this->register_external_functionalities();
     }
 
     /**
@@ -190,6 +193,19 @@ class RediPress {
 
                 return true;
             }
+        }
+    }
+
+    /**
+     * Register external plugin functionalities
+     *
+     * @return void
+     */
+    protected function register_external_functionalities() {
+
+        // Polylang
+        if ( function_exists( 'pll_languages_list' ) ) {
+            new \Geniem\RediPress\External\Polylang();
         }
     }
 

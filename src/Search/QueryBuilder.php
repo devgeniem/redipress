@@ -382,7 +382,7 @@ class QueryBuilder {
             return false;
         }
 
-        return '@post_parent:(' . $post_parent . ')';
+        return '@post_parent:' . $post_parent;
     }
 
     /**
@@ -687,6 +687,7 @@ class QueryBuilder {
         $relation = $query['relation'] ?? $operator;
         unset( $query['relation'] );
 
+        // RediSearch doesn't support these tax query clause operators.
         $unsupported_operators = [
             'EXISTS',
             'NOT EXISTS',
@@ -697,7 +698,7 @@ class QueryBuilder {
 
         foreach ( $query as $clause ) {
 
-            // Operator.
+            // Operator
             $operator_uppercase = strtoupper( $clause['operator'] );
 
             // We do not support some operator types, so bail early if some of them is found.

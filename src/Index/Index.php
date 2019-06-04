@@ -144,8 +144,9 @@ class Index {
                 'name'     => 'post_date',
                 'sortable' => true,
             ]),
-            new NumericField([
-                'name' => 'post_parent',
+            new TextField([
+                'name'     => 'post_parent',
+                'sortable' => true,
             ]),
             new TextField([
                 'name' => 'search_index',

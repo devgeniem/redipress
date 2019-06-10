@@ -28,7 +28,7 @@ class Polylang {
         $query_vars['lang'] = function ( \Geniem\RediPress\Search\QueryBuilder $query_builder ) : string {
             $query = $query_builder->get_wp_query();
 
-            $slug = $query->query_vars['lang'];
+            $slug = $query->query['lang'];
 
             $term_clause = [
                 [

@@ -181,7 +181,7 @@ class QueryBuilder {
 
                 return '@' . $this->query_vars[ $query_var ] . ':' . $this->wp_query->query_vars[ $query_var ];
             }
-        }, array_keys( $this->wp_query->query_vars ) ) );
+        }, array_keys( $this->wp_query->query ) ) );
 
         // All minuses to the end of the line.
         usort( $return, function( $a, $b ) {

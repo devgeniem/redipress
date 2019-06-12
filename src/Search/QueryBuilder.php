@@ -28,6 +28,15 @@ class QueryBuilder {
     protected $modifiers = [];
 
     /**
+     * Group by
+     * If $sortby is defined we need to groupby sortby tags.
+     * We need to add @post_id by minimum to make sure that we have unique results.
+     *
+     * @var array
+     */
+    protected $groupby = [ '@post_id' ];
+
+    /**
      * Possible sortby command
      *
      * @var array
@@ -77,6 +86,15 @@ class QueryBuilder {
     ];
 
     /**
+     * Get WP Query instance.
+     *
+     * @return WP_Query
+     */
+    public function get_wp_query() : WP_Query {
+        return $this->wp_query;
+    }
+
+    /**
      * Query builder constructor
      *
      * @param WP_Query $wp_query   WP Query object.
@@ -100,6 +118,9 @@ class QueryBuilder {
             'offset',
             'meta_key',
         ], $ignore_added_query_vars ) );
+
+        // Allow adding support for query vars via a filter
+        $this->query_vars = apply_filters( 'redipress/query_vars', $this->query_vars );
     }
 
     /**
@@ -122,7 +143,7 @@ class QueryBuilder {
                 return false;
             }
 
-            if ( ! empty( $this->query_vars[ $query_var ] ) ) {
+            if ( ! empty( $this->query_vars[ $query_var ] ) && is_string( $this->query_vars[ $query_var ] ) ) {
                 $this->add_search_field( $query_var );
             }
 
@@ -143,8 +164,12 @@ class QueryBuilder {
                 return null;
             });
 
+            // If we have a callable for the query var, possibly passed via a filter
+            if ( is_callable( $this->query_vars[ $query_var ] ) ) {
+                return $this->query_vars[ $query_var ]( $this );
+            }
             // Use the designated method if it exists.
-            if ( method_exists( $this, $query_var ) ) {
+            elseif ( method_exists( $this, $query_var ) ) {
                 return $this->{ $query_var }();
             }
             // Special treatment for numeric fields.
@@ -492,6 +517,21 @@ class QueryBuilder {
     }
 
     /**
+     * WP_Query groupby parameter.
+     * This should be called after 
+     *
+     * @return string
+     */
+    public function get_groupby() : array {
+
+        // Add groupby count as a first item in the array.
+        // example [ 2, @post_id, @post_date ].
+        array_unshift( $this->groupby, 'GROUPBY', count( $this->groupby ) );
+
+        return $this->groupby;
+    }
+
+    /**
      * WP_Query meta_query parameter.
      *
      * @return string|null
@@ -638,6 +678,10 @@ class QueryBuilder {
         $this->sortby = array_merge(
             [ 'SORTBY', ( count( $sortby ) * 2 ) ],
             array_reduce( $sortby, function( $carry, $item ) {
+
+                // Store groupby these need to be in sync with sortby params.
+                $this->groupby[] = '@' . $item['orderby'];
+
                 return array_merge( $carry, [ '@' . $item['orderby'], $item['order'] ] );
             }, [] )
         );
@@ -654,13 +698,16 @@ class QueryBuilder {
      * @param string $operator Possible operator of the parent array.
      * @return string
      */
-    private function create_taxonomy_query( array $query, string $operator = 'AND' ) : string {
+    public function create_taxonomy_query( array $query, string $operator = 'AND' ) : string {
 
         $relation = $query['relation'] ?? $operator;
         unset( $query['relation'] );
 
         // RediSearch doesn't support these tax query clause operators.
-        $unsupported_operators = [ 'EXISTS', 'NOT EXISTS' ];
+        $unsupported_operators = [
+            'EXISTS',
+            'NOT EXISTS',
+        ];
 
         // Determine the relation type
         $queries = [];

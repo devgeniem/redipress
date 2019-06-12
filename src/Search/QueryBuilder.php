@@ -28,6 +28,15 @@ class QueryBuilder {
     protected $modifiers = [];
 
     /**
+     * Group by
+     * If $sortby is defined we need to groupby sortby tags.
+     * We need to add @post_id by minimum to make sure that we have unique results.
+     *
+     * @var array
+     */
+    protected $groupby = [ '@post_id' ];
+
+    /**
      * Possible sortby command
      *
      * @var array
@@ -508,6 +517,21 @@ class QueryBuilder {
     }
 
     /**
+     * WP_Query groupby parameter.
+     * This should be called after 
+     *
+     * @return string
+     */
+    public function get_groupby() : array {
+
+        // Add groupby count as a first item in the array.
+        // example [ 2, @post_id, @post_date ].
+        array_unshift( $this->groupby, 'GROUPBY', count( $this->groupby ) );
+
+        return $this->groupby;
+    }
+
+    /**
      * WP_Query meta_query parameter.
      *
      * @return string|null
@@ -654,6 +678,10 @@ class QueryBuilder {
         $this->sortby = array_merge(
             [ 'SORTBY', ( count( $sortby ) * 2 ) ],
             array_reduce( $sortby, function( $carry, $item ) {
+
+                // Store groupby these need to be in sync with sortby params.
+                $this->groupby[] = '@' . $item['orderby'];
+
                 return array_merge( $carry, [ '@' . $item['orderby'], $item['order'] ] );
             }, [] )
         );
@@ -676,7 +704,10 @@ class QueryBuilder {
         unset( $query['relation'] );
 
         // RediSearch doesn't support these tax query clause operators.
-        $unsupported_operators = [ 'EXISTS', 'NOT EXISTS' ];
+        $unsupported_operators = [
+            'EXISTS',
+            'NOT EXISTS',
+        ];
 
         // Determine the relation type
         $queries = [];

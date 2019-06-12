@@ -180,7 +180,7 @@ class Search {
             $command = array_merge(
                 [ $this->index, $search_query_string ],
                 [ 'LOAD', 1, '@post_object' ],
-                [ 'GROUPBY', 1, '@post_id' ],
+                $this->query_builder->get_groupby(),
                 array_reduce( $return_fields, 'array_merge', [] ),
                 array_merge( $sortby ),
                 [ 'LIMIT', $offset, $limit ]

@@ -69,6 +69,7 @@ function update_value( $doc_id, $field, $value, $score = 1 ) {
         ]
     );
 
+    // Returns possible debugging data
     return [
         $result_add,
         $result_add_hash,

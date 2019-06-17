@@ -277,7 +277,7 @@ class Search {
 
             if ( empty( $raw_results->results ) || $raw_results->results[0] === 0 ) {
                 $query->redipress_no_results = true;
-                return null;
+                return apply_filters( 'redipress/no_results', null, $query );
             }
 
             $count = $raw_results->results[0];

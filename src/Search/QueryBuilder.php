@@ -169,7 +169,7 @@ class QueryBuilder {
                 return $this->query_vars[ $query_var ]( $this );
             }
             // Use the designated method if it exists.
-            if ( method_exists( $this, $query_var ) ) {
+            elseif ( method_exists( $this, $query_var ) ) {
                 return $this->{ $query_var }();
             }
             // Special treatment for numeric fields.

@@ -169,7 +169,7 @@ class QueryBuilder {
                 return $this->query_vars[ $query_var ]( $this );
             }
             // Use the designated method if it exists.
-            elseif ( method_exists( $this, $query_var ) ) {
+            if ( method_exists( $this, $query_var ) ) {
                 return $this->{ $query_var }();
             }
             // Special treatment for numeric fields.
@@ -518,7 +518,7 @@ class QueryBuilder {
 
     /**
      * WP_Query groupby parameter.
-     * This should be called after 
+     * This should be called after.
      *
      * @return string
      */

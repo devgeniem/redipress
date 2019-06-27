@@ -127,7 +127,7 @@ class Index {
             ]),
             new TextField([
                 'name'     => 'post_object',
-                'sortable' => true,
+                'sortable' => false,
             ]),
             new NumericField([
                 'name'     => 'menu_order',

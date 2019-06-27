@@ -241,6 +241,11 @@ class Search {
     public function posts_pre_query( ?array $posts, \WP_Query $query ) : ?array {
         global $wpdb;
 
+        // We don't want to mess with the main query, it can cause problems.
+        if ( is_main_query() ) {
+            return null;
+        }
+
         // If the query is empty, we are probably dealing with the front page and we want to skip RediSearch with that.
         if ( empty( $query->query ) ) {
             $query->is_front_page = true;

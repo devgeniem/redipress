@@ -290,6 +290,12 @@ class QueryBuilder {
         // Add a filter for the search terms
         $terms = apply_filters( 'redipress/search_terms', $terms );
 
+        // Escape dashes
+        $terms = str_replace( '-', '\\-', $terms );
+
+        // Filter for escaped search terms
+        $terms = apply_filters( 'redipress/search_terms/escaped', $terms );
+
         $sort = explode( ' ', $terms );
 
         $tilde = array_filter( $sort, function( $word ) {

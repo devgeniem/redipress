@@ -308,7 +308,7 @@ class Search {
 
             $query->using_redisearch = true;
 
-            return $results;
+            return array_values( $results );
         }
         else {
             return null;

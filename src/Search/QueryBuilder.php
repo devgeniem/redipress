@@ -938,6 +938,9 @@ class QueryBuilder {
             'NOT BETWEEN' => 'not_between',
         ];
 
+        // Escape dashes from the values
+        $clause['value'] = str_replace( '-', '\\-', $clause['value'] );
+
         // Run the appropriate function if it exists
         if ( method_exists( $this, 'meta_' . $compare_map[ strtoupper( $compare ) ] ) ) {
             return call_user_func( [ $this, 'meta_' . $compare_map[ strtoupper( $compare ) ] ], $clause, $field_type );

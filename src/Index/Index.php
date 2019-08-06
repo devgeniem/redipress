@@ -410,6 +410,11 @@ class Index {
             }
         }
 
+        // Escape dashes
+        add_filter( 'redipress/index_strings', function( $string ) {
+            return str_replace( '-', '\\-', $string );
+        }, ( PHP_INT_MAX - 1000 ), 1 );
+
         // Gather the additional search index
         $search_index = apply_filters( 'redipress/search_index', implode( ' ', $search_index ), $post->ID, $post );
         $search_index = apply_filters( 'redipress/search_index/' . $post->ID, $search_index, $post );

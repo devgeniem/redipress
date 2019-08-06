@@ -518,7 +518,7 @@ class QueryBuilder {
 
     /**
      * WP_Query groupby parameter.
-     * This should be called after 
+     * This should be called after.
      *
      * @return string
      */

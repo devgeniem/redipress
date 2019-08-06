@@ -362,7 +362,9 @@ class Index {
 
         $additions = array_combine( $additional_fields, $additional_values );
 
-        $additions = array_filter( $additions );
+        $additions = array_filter( $additions, function( $item ) {
+            return ! is_null( $item );
+        });
 
         $search_index = [];
         $tax          = [];

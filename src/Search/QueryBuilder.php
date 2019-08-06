@@ -280,12 +280,21 @@ class QueryBuilder {
         $terms = apply_filters( 'redipress/search_terms/raw', $terms );
 
         // Remove a list of forbidden characters based on RediSearch restrictions.
-        $forbidden_characters = str_split( ',.<>{}[]"\':;!@#$%^&*()-+=~' );
+        $forbidden_characters = str_split( ',.<>{}[]"\':;!@#$%^&*()+=~' );
 
         $terms = str_replace( $forbidden_characters, array_fill( 0, count( $forbidden_characters ), ' ' ), $terms );
 
+        // Special handling for minus signs preceded by space, otherwise dashes are fine.
+        $terms = str_replace( ' -', ' ', $terms );
+
         // Add a filter for the search terms
         $terms = apply_filters( 'redipress/search_terms', $terms );
+
+        // Escape dashes
+        $terms = str_replace( '-', '\\-', $terms );
+
+        // Filter for escaped search terms
+        $terms = apply_filters( 'redipress/search_terms/escaped', $terms );
 
         $sort = explode( ' ', $terms );
 
@@ -928,6 +937,9 @@ class QueryBuilder {
             'BETWEEN'     => 'between',
             'NOT BETWEEN' => 'not_between',
         ];
+
+        // Escape dashes from the values
+        $clause['value'] = str_replace( '-', '\\-', $clause['value'] );
 
         // Run the appropriate function if it exists
         if ( method_exists( $this, 'meta_' . $compare_map[ strtoupper( $compare ) ] ) ) {

@@ -47,7 +47,7 @@ class RediPress {
         $this->plugin = $plugin;
 
         // Initialize plugin functionalities in proper hook
-        add_action( 'init', [ $this, 'init' ], 1 );
+        add_action( 'init', [ $this, 'init' ], 1000 );
 
         // Add DustPress partials directory
         add_filter( 'dustpress/partials', function( $partials ) {

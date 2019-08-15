@@ -9,7 +9,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 
 - This changelog adhering to the 'keep a changelog' standard.
+- Nonscalar fields are serialized before storing them to the index.
 
 ### Changed
 
 - The index creation is now run on the `init` hook with a priority of *1000*. This allow various dependencies to execute before RediPress indexing.
+
+### Fixed
+
+- String escaping fixed for post data indexing.

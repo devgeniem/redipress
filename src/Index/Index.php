@@ -366,6 +366,8 @@ class Index {
             return ! is_null( $item );
         });
 
+        $additions = array_map( 'maybe_serialize', $additions );
+
         $search_index = [];
         $tax          = [];
 

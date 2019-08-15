@@ -154,7 +154,9 @@ class RediPress {
         }
         else {
             // Initialize indexing features, we have everything we need to have here.
-            new Index( $this->connection );
+            add_action( 'init', function() {
+                new Index( $this->connection );
+            }, 1000 );
 
             return true;
         }

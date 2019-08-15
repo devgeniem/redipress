@@ -411,27 +411,27 @@ class Index {
         }
 
         // Escape dashes
-        add_filter( 'redipress/index_strings', function( $string ) {
+        $escape_dashes = function( $string ) {
             return str_replace( '-', '\\-', $string );
-        }, ( PHP_INT_MAX - 1000 ), 1 );
+        };
 
         // Gather the additional search index
         $search_index = apply_filters( 'redipress/search_index', implode( ' ', $search_index ), $post->ID, $post );
         $search_index = apply_filters( 'redipress/search_index/' . $post->ID, $search_index, $post );
-        $search_index = apply_filters( 'redipress/index_strings', $search_index, $post );
+        $search_index = $escape_dashes( $search_index );
 
         // Filter the post object that will be added to the database serialized.
         $post_object = apply_filters( 'redipress/post_object', $post );
 
         $post_title = apply_filters( 'redipress/post_title', $post->post_title );
-        $post_title = apply_filters( 'redipress/index_strings', $post_title, $post );
+        $post_title = $escape_dashes( $post_title );
 
         $post_excerpt = apply_filters( 'redipress/post_excerpt', $post->post_excerpt );
-        $post_excerpt = apply_filters( 'redipress/index_strings', $post_excerpt, $post );
+        $post_excerpt = $escape_dashes( $post_excerpt );
 
         $post_content = wp_strip_all_tags( $post->post_content, true );
         $post_content = apply_filters( 'redipress/post_content', $post_content );
-        $post_content = apply_filters( 'redipress/index_strings', $post_content, $post );
+        $post_content = $escape_dashes( $post_content );
 
         $post_status = apply_filters( 'redipress/post_status', $post->post_status ?? 'publish' );
 

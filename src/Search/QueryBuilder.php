@@ -83,6 +83,7 @@ class QueryBuilder {
         'posts_per_page'   => null,
         'offset'           => null,
         'meta_key'         => null,
+        'weight'           => null,
     ];
 
     /**
@@ -183,7 +184,7 @@ class QueryBuilder {
 
                 return '@' . $this->query_vars[ $query_var ] . ':[' . $this->wp_query->query_vars[ $query_var ] . ' ' . $this->wp_query->query_vars[ $query_var ] . ']';
             }
-            // Otherwise we are dealing with an ordinary text fiel  d.
+            // Otherwise we are dealing with an ordinary text field.
             else {
 
                 if ( empty( $this->wp_query->query_vars[ $query_var ] ) || empty( $this->query_vars[ $query_var ] ) ) {
@@ -309,6 +310,107 @@ class QueryBuilder {
         $this->modifiers = $tilde;
 
         return implode( ' ', $rest );
+    }
+
+    /**
+     * Custom weights for certain parameters.
+     *
+     * @return string
+     */
+    protected function weight() : string {
+
+        if ( empty( $this->wp_query->query_vars['weight'] ) ) {
+            return '';
+        }
+
+        $return = [];
+
+        $weight = $this->wp_query->query_vars['weight'];
+
+        // Create weight clauses for post types
+        if ( ! empty( $weight['post_type'] ) ) {
+            $return = array_map(
+                function( $weight, $post_type ) : string {
+                    return sprintf(
+                        '(~@post_type:%s => {$weight: %s})',
+                        $post_type,
+                        $weight
+                    );
+                },
+                $weight['post_type'],
+                array_keys( $weight['post_type'] )
+            );
+        }
+
+        // Create weight clauses for authors
+        if ( ! empty( $weight['author'] ) ) {
+            $return = array_merge(
+                $return,
+                array_map(
+                    function( $weight, $author ) : string {
+                        return sprintf(
+                            '(~@post_author:%s => {$weight: %s})',
+                            $author,
+                            $weight
+                        );
+                    },
+                    $weight['author'],
+                    array_keys( $weight['author'] )
+                )
+            );
+        }
+
+        // Create weight clauses for taxonomy terms
+        if ( ! empty( $weight['taxonomy'] ) ) {
+            foreach ( $weight['taxonomy'] as $taxonomy => $terms ) {
+                $return = array_merge(
+                    $return,
+                    array_map(
+                        function( $weight, $term ) use ( $taxonomy ) : string {
+                            return sprintf(
+                                '(~@taxonomy_id_%s:%s => {$weight: %s})',
+                                $taxonomy,
+                                $term,
+                                $weight
+                            );
+                        },
+                        $terms,
+                        array_keys( $terms )
+                    )
+                );
+            }
+        }
+
+        // Create weight clauses for meta values
+        if ( ! empty( $weight['meta'] ) ) {
+            foreach ( $weight['meta'] as $meta_key => $values ) {
+                $return = array_merge(
+                    $return,
+                    array_filter( array_map(
+                        function( $weight, $meta_value ) use ( $meta_key ) : ?string {
+                            $field_type = $this->get_field_type( $meta_key );
+
+                            if ( ! $field_type ) {
+                                return null;
+                            }
+
+                            $this->add_search_field( $meta_key );
+
+                            return sprintf(
+                                '(~@%s:%s => {$weight: %s})',
+                                $meta_key,
+                                $meta_value,
+                                $weight
+                            );
+                        },
+                        $values,
+                        array_keys( $values )
+                    ) )
+                );
+            }
+        }
+
+        return implode( ' ', $return );
     }
 
     /**
@@ -884,22 +986,8 @@ class QueryBuilder {
      * @return string|null
      */
     private function create_meta_clause( array $clause ) : ?string {
-        $fields = Utility::format( $this->index_info['fields'] );
-
         // Find out the type of the field we are dealing with.
-        $field_type = array_reduce( $fields, function( $carry = null, $item = null ) use ( $clause ) {
-            if ( ! empty( $carry ) ) {
-                return $carry;
-            }
-
-            $name = $item[0];
-
-            if ( $name === $clause['key'] ) {
-                return Utility::get_value( $item, 'type' );
-            }
-
-            return null;
-        });
+        $field_type = $this->get_field_type( $clause['key'] );
 
         // If the field doesn't have a type, it doesn't exist and we want to bail out.
         if ( ! $field_type ) {
@@ -950,6 +1038,32 @@ class QueryBuilder {
         else {
             return null;
         }
+    }
+
+    /**
+     * Get RediSearch field type for a field
+     *
+     * @param string $key The key for which to fetch the field type.
+     * @return string|null
+     */
+    private function get_field_type( string $key ) : ?string {
+        $fields = Utility::format( $this->index_info['fields'] );
+
+        $field_type = array_reduce( $fields, function( $carry = null, $item = null ) use ( $key ) {
+            if ( ! empty( $carry ) ) {
+                return $carry;
+            }
+
+            $name = $item[0];
+
+            if ( $name === $key ) {
+                return Utility::get_value( $item, 'type' );
+            }
+
+            return null;
+        });
+
+        return $field_type;
     }
 
     /**

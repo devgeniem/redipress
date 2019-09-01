@@ -125,10 +125,6 @@ class Index {
                 'name'     => 'post_id',
                 'sortable' => true,
             ]),
-            new TextField([
-                'name'     => 'post_object',
-                'sortable' => false,
-            ]),
             new NumericField([
                 'name'     => 'menu_order',
                 'sortable' => true,
@@ -136,9 +132,6 @@ class Index {
             new TextField([
                 'name'     => 'post_status',
                 'sortable' => true,
-            ]),
-            new TextField([
-                'name' => 'permalink',
             ]),
             new NumericField([
                 'name'     => 'post_date',

@@ -12,7 +12,8 @@ use Geniem\RediPress\Admin,
     Geniem\RediPress\Entity\TextField,
     Geniem\RediPress\Redis\Client,
     Geniem\RediPress\Utility,
-    Smalot\PdfParser\Parser as PdfParser;
+    Smalot\PdfParser\Parser as PdfParser,
+    PhpOffice\PhpWord\IOFactory;
 
 /**
  * RediPress index class
@@ -474,13 +475,31 @@ class Index {
 
         switch ( $post->post_type ) { // Handle post content by post type
             case 'attachment':
-                switch ( $post->post_mime_type ) { // Handle attachment content by mime type
-                    case 'application/pdf':
+                switch ( $post->post_mime_type ) { // Different content retrieval function depending on mime type
+                    case 'application/pdf': // pdf
+                    case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': // docx
                         $file_content = $this->get_uploaded_media_content( $post );
+
+                        // Different content parsing depending on mime type
                         if ( ! empty( $file_content ) ) {
-                            $parser       = new PdfParser();
-                            $pdf          = $parser->parseContent( $file_content );
-                            $post_content = $pdf->getText();
+                            switch ( $post->post_mime_type ) {
+                                case 'application/pdf': // pdf
+                                    $parser       = new PdfParser();
+                                    $pdf          = $parser->parseContent( $file_content );
+                                    $post_content = $pdf->getText();
+                                    break;
+                                case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': // docx
+                                    $tmpfile = \wp_tempnam();
+                                    \file_put_contents( $tmpfile, $file_content ); // phpcs:ignore -- We need to write to disk temporarily
+                                    $phpword = IOFactory::load( $tmpfile, 'Word2007' );
+                                    \unlink( $tmpfile ); // phpcs:ignore -- We should remove the temporary file after it has been parsed
+
+                                    $post_content = $this->io_factory_get_text( $phpword );
+                                    break;
+                                default:
+                                    // There already is default post content
+                                    break;
+                            }
                         }
                         break;
                     default:
@@ -497,6 +516,31 @@ class Index {
         $post_content = \wp_strip_all_tags( $post_content, true );
         $post_content = \apply_filters( 'redipress/post_content', $post_content, $post );
         $post_content = $this->escape_dashes( $post_content );
+
+        return $post_content;
+    }
+
+    /**
+     * Get text recursively from IOFactory::load result
+     *
+     * @param  mixed $current Current item to check for text.
+     * @return string         Text content.
+     */
+    public function io_factory_get_text( $current ) : string {
+        $post_content = '';
+        if ( \method_exists( $current, 'getText' ) ) {
+            $post_content .= $current->getText() . "\n";
+        }
+        elseif ( \method_exists( $current, 'getSections' ) ) {
+            foreach ( $current->getSections() as $section ) {
+                $post_content .= $this->io_factory_get_text( $section );
+            }
+        }
+        elseif ( \method_exists( $current, 'getElements' ) ) {
+            foreach ( $current->getElements() as $element ) {
+                $post_content .= $this->io_factory_get_text( $element );
+            }
+        }
 
         return $post_content;
     }

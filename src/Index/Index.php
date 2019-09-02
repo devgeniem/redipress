@@ -11,7 +11,8 @@ use Geniem\RediPress\Admin,
     Geniem\RediPress\Entity\TagField,
     Geniem\RediPress\Entity\TextField,
     Geniem\RediPress\Redis\Client,
-    Geniem\RediPress\Utility;
+    Geniem\RediPress\Utility,
+    Smalot\PdfParser\Parser as PdfParser;
 
 /**
  * RediPress index class
@@ -411,28 +412,21 @@ class Index {
             }
         }
 
-        // Escape dashes
-        $escape_dashes = function( $string ) {
-            return str_replace( '-', '\\-', $string );
-        };
-
         // Gather the additional search index
         $search_index = apply_filters( 'redipress/search_index', implode( ' ', $search_index ), $post->ID, $post );
         $search_index = apply_filters( 'redipress/search_index/' . $post->ID, $search_index, $post );
-        $search_index = $escape_dashes( $search_index );
+        $search_index = $this->escape_dashes( $search_index );
 
         // Filter the post object that will be added to the database serialized.
         $post_object = apply_filters( 'redipress/post_object', $post );
 
         $post_title = apply_filters( 'redipress/post_title', $post->post_title );
-        $post_title = $escape_dashes( $post_title );
+        $post_title = $this->escape_dashes( $post_title );
 
         $post_excerpt = apply_filters( 'redipress/post_excerpt', $post->post_excerpt );
-        $post_excerpt = $escape_dashes( $post_excerpt );
+        $post_excerpt = $this->escape_dashes( $post_excerpt );
 
-        $post_content = wp_strip_all_tags( $post->post_content, true );
-        $post_content = apply_filters( 'redipress/post_content', $post_content );
-        $post_content = $escape_dashes( $post_content );
+        $post_content = $this->get_post_content( $post );
 
         $post_status = apply_filters( 'redipress/post_status', $post->post_status ?? 'publish' );
 
@@ -456,6 +450,80 @@ class Index {
         do_action( 'redipress/indexed_post', $post );
 
         return $this->client->convert_associative( array_merge( $args, $rest, $tax, $additions ) );
+    }
+
+    /**
+     * Escape dashes from string
+     *
+     * @param  string $string Unescaped string.
+     * @return string         Escaped $string.
+     */
+    public function escape_dashes( string $string ) : string {
+        $string = \str_replace( '-', '\\-', $string );
+        return $string;
+    }
+
+    /**
+     * Function to handle retrieving post content
+     *
+     * @param  \WP_Post $post Post object.
+     * @return string         Post content.
+     */
+    public function get_post_content( \WP_Post $post ) : string {
+        $post_content = $post->post_content;
+
+        switch ( $post->post_type ) { // Handle post content by post type
+            case 'attachment':
+                switch ( $post->post_mime_type ) { // Handle attachment content by mime type
+                    case 'application/pdf':
+                        $file_content = $this->get_uploaded_media_content( $post );
+                        if ( ! empty( $file_content ) ) {
+                            $parser       = new PdfParser();
+                            $pdf          = $parser->parseContent( $file_content );
+                            $post_content = $pdf->getText();
+                        }
+                        break;
+                    default:
+                        // There already is default post content
+                        break;
+                }
+                break;
+            default:
+                // There already is default post content
+                break;
+        }
+
+        // Handle the post content
+        $post_content = \wp_strip_all_tags( $post_content, true );
+        $post_content = \apply_filters( 'redipress/post_content', $post_content, $post );
+        $post_content = $this->escape_dashes( $post_content );
+
+        return $post_content;
+    }
+
+    /**
+     * Get the content of a file uploaded to the media gallery
+     *
+     * @param  \WP_Post $post Attachment post object.
+     * @return string|null    File content or null if couldn't retrieve.
+     */
+    public function get_uploaded_media_content( \WP_Post $post ) : ?string {
+        $content   = null;
+        $file_path = \get_attached_file( $post->ID );
+
+        // File doesn't exist locally (wp stateless or similiar)
+        if ( ! \file_exists( $file_path ) ) {
+            $args    = \apply_filters( 'redipress/get_uploaded_media_content/wp_remote_get', [] );
+            $request = \wp_remote_get( $post->guid, $args );
+            if ( ! \is_wp_error( $request ) ) {
+                $content = \wp_remote_retrieve_body( $request );
+            }
+        }
+        else {
+            $content = \file_get_contents( $file_path );
+        }
+
+        return $content;
     }
 
     /**

@@ -178,7 +178,8 @@ class Search {
 
             // Form the final query
             $command = array_merge(
-                [ $this->index, $search_query_string ],
+                [ $this->index, $search_query_string, 'INFIELDS', count( $infields ) ],
+                $infields,
                 [ 'LOAD', 1, '@post_object' ],
                 $this->query_builder->get_groupby(),
                 array_reduce( $return_fields, 'array_merge', [] ),

@@ -322,7 +322,6 @@ class Index {
      * @return array
      */
     public function convert_post( \WP_Post $post ) : array {
-
         do_action( 'redipress/before_index_post', $post );
 
         $args = [];
@@ -374,7 +373,7 @@ class Index {
         // Handle the taxonomies
         $taxonomies = get_taxonomies();
 
-        $wanted_taxonomies = Admin::get( 'taxonomies' );
+        $wanted_taxonomies = Admin::get( 'taxonomies' ) ?? [];
 
         foreach ( $taxonomies as $taxonomy ) {
             $terms = get_the_terms( $post->ID, $taxonomy ) ?: [];

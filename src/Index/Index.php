@@ -478,6 +478,9 @@ class Index {
                 switch ( $post->post_mime_type ) { // Different content retrieval function depending on mime type
                     case 'application/pdf': // pdf
                     case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': // docx
+                    case 'application/msword': // doc
+                    case 'application/rtf': // rtf
+                    case 'application/vnd.oasis.opendocument.text': // odt
                         $file_content = $this->get_uploaded_media_content( $post );
 
                         // Different content parsing depending on mime type
@@ -489,9 +492,20 @@ class Index {
                                     $post_content = $pdf->getText();
                                     break;
                                 case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': // docx
+                                case 'application/msword': // doc
+                                case 'application/rtf': // rtf
+                                case 'application/vnd.oasis.opendocument.text': // odt
+                                    $mime_type_reader = [
+                                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'Word2007',
+                                        'application/msword'                                                      => 'MsDoc',
+                                        'application/rtf'                                                         => 'RTF',
+                                        'application/vnd.oasis.opendocument.text'                                 => 'ODText',
+                                    ];
+
+                                    // We need to create a temporary file to read from as PhpOffice\PhpWord can't read from string
                                     $tmpfile = \wp_tempnam();
                                     \file_put_contents( $tmpfile, $file_content ); // phpcs:ignore -- We need to write to disk temporarily
-                                    $phpword = IOFactory::load( $tmpfile, 'Word2007' );
+                                    $phpword = IOFactory::load( $tmpfile, $mime_type_reader[ $post->post_mime_type ] );
                                     \unlink( $tmpfile ); // phpcs:ignore -- We should remove the temporary file after it has been parsed
 
                                     $post_content = $this->io_factory_get_text( $phpword );

@@ -10,7 +10,7 @@ RediPress also provides advanced searching features that are lacking from the or
 RediPress is also built with extensive amount of hooks and filters to customize its functionalities to suit the needs of the developer. In addition to just optimizing the queries, RediPress also brings some completely new features to the table with the ability to include non-WordPress-posts in the search results or adding and querying location data within the index.
 
 ## Requirements
-- Redis + [RediSearch](https://oss.redislabs.com/redisearch/index.html) module. At least version 1.4.0 of RediSearch is required. The plugin is tested up to version 1.4.2.
+- Redis + [RediSearch](https://oss.redislabs.com/redisearch/index.html) module. At least version 1.6.0 of RediSearch is required. The plugin is tested up to version 1.6.1.
 - WordPress version 5.0.0 or later. The plugin could work with earlier versions as well, but it has not been tested.
 
 ## Installation and initialization

@@ -5,7 +5,7 @@
 
 namespace Geniem\RediPress;
 
-use Geniem\RediPress\Admin,
+use Geniem\RediPress\Settings,
     Geniem\RediPress\Redis\Client,
     Geniem\RediPress\Utility;
 use function GuzzleHttp\Promise\each;
@@ -73,7 +73,7 @@ class Search {
         $this->index_info = $index_info;
 
         // Get the index name from settings
-        $this->index = Admin::get( 'index' );
+        $this->index = Settings::get( 'index' );
 
         // Add search filters
         add_filter( 'posts_pre_query', [ $this, 'posts_pre_query' ], 10, 2 );

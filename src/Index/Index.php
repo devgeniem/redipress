@@ -5,7 +5,7 @@
 
 namespace Geniem\RediPress\Index;
 
-use Geniem\RediPress\Admin,
+use Geniem\RediPress\Settings,
     Geniem\RediPress\Entity\SchemaField,
     Geniem\RediPress\Entity\NumericField,
     Geniem\RediPress\Entity\TagField,
@@ -55,7 +55,7 @@ class Index {
         $this->client = $client;
 
         // Get the index name from settings
-        $this->index = Admin::get( 'index' );
+        $this->index = Settings::get( 'index' );
 
         // Register AJAX functions
         dustpress()->register_ajax_function( 'redipress_create_index', [ $this, 'create' ] );
@@ -374,7 +374,7 @@ class Index {
         // Handle the taxonomies
         $taxonomies = get_taxonomies();
 
-        $wanted_taxonomies = Admin::get( 'taxonomies' );
+        $wanted_taxonomies = Settings::get( 'taxonomies' );
 
         foreach ( $taxonomies as $taxonomy ) {
             $terms = get_the_terms( $post->ID, $taxonomy ) ?: [];
@@ -505,7 +505,7 @@ class Index {
         // Allow overriding the setting via a filter
         $filter_writing = apply_filters( 'redipress/write_to_disk', null, $args );
 
-        if ( $filter_writing ?? Admin::get( 'persist_index' ) ) {
+        if ( $filter_writing ?? Settings::get( 'persist_index' ) ) {
             return $this->write_to_disk();
         }
     }

@@ -14,7 +14,7 @@ namespace Geniem\RediPress;
 function get_post( $post_id ) : ?\WP_Post {
     $client = apply_filters( 'redipress/client', null );
 
-    $index = Admin::get( 'index' );
+    $index = Settings::get( 'index' );
 
     $result = $client->raw_command( 'FT.GET', [ $index, $post_id ] );
 
@@ -43,7 +43,7 @@ function get_post( $post_id ) : ?\WP_Post {
 function update_value( $doc_id, $field, $value, $score = 1 ) {
     $client = apply_filters( 'redipress/client', null );
 
-    $index = Admin::get( 'index' );
+    $index = Settings::get( 'index' );
 
     $result_add = $client->raw_command(
         'FT.ADD',

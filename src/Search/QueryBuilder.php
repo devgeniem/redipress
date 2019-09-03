@@ -84,6 +84,7 @@ class QueryBuilder {
         'offset'           => null,
         'meta_key'         => null,
         'weight'           => null,
+        'fuzzy'            => null,
     ];
 
     /**
@@ -308,6 +309,17 @@ class QueryBuilder {
         $rest = array_diff( $sort, $tilde );
 
         $this->modifiers = $tilde;
+
+        if ( ! empty( $this->wp_query->query_vars['fuzzy'] ) ) {
+            $fuzzy = $this->wp_query->query_vars['fuzzy'];
+
+            if ( $fuzzy > 0 && $fuzzy <= 3 ) {
+                $rest = array_map( function( $term ) use ( $fuzzy ) {
+                    $str = str_repeat( '%', $fuzzy );
+                    return $str . $term . $str;
+                }, $rest );
+            }
+        }
 
         return implode( ' ', $rest );
     }

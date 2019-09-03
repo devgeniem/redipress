@@ -388,6 +388,11 @@ class Index {
             }, $terms ) );
 
             // Add the terms
+            $search_term_string = implode( ' ', array_map( function( $term ) {
+                return $term->name;
+            }, $terms ) );
+
+            // Add the terms
             $id_string = implode( $this->get_tag_separator(), array_map( function( $term ) {
                 return $term->term_id;
             }, $terms ) );
@@ -401,13 +406,13 @@ class Index {
             }
 
             if ( in_array( $taxonomy, $wanted_taxonomies, true ) && ! empty( $term_string ) ) {
-                $search_index[] = $term_string;
+                $search_index[] = $search_term_string;
             }
         }
 
         // Escape dashes
         $escape_dashes = function( $string ) {
-            return str_replace( '-', '\\-', $string );
+            return str_replace( '-', '\-', $string );
         };
 
         // Gather the additional search index

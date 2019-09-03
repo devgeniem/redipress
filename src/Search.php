@@ -158,7 +158,14 @@ class Search {
             });
 
             // Store the search query string so at in can be debugged easily via WP_Query.
-            $query->redisearch_query = 'FT.SEARCH ' . implode( ' ', $command );
+            $query->redisearch_query = 'FT.SEARCH ' . implode( ' ', array_map( function( $comm ) {
+                if ( \strpos( $comm, ' ' ) !== false ) {
+                    return '"' . $comm . '"';
+                }
+                else {
+                    return $comm;
+                }
+            }, $command ) );
         }
         else {
             // Form the return field clause

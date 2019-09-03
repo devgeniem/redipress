@@ -5,7 +5,7 @@
 
 namespace Geniem\RediPress\Index;
 
-use Geniem\RediPress\Admin,
+use Geniem\RediPress\Settings,
     Geniem\RediPress\Entity\SchemaField,
     Geniem\RediPress\Entity\NumericField,
     Geniem\RediPress\Entity\TagField,
@@ -52,10 +52,11 @@ class Index {
      * @param Client $client Client instance.
      */
     public function __construct( Client $client ) {
+        $settings = new Settings();
         $this->client = $client;
 
         // Get the index name from settings
-        $this->index = Admin::get( 'index' );
+        $this->index = $settings->get( 'index' );
 
         // Register AJAX functions
         dustpress()->register_ajax_function( 'redipress_create_index', [ $this, 'create' ] );
@@ -322,7 +323,7 @@ class Index {
      * @return array
      */
     public function convert_post( \WP_Post $post ) : array {
-
+        $settings = new Settings();
         do_action( 'redipress/before_index_post', $post );
 
         $args = [];
@@ -374,7 +375,7 @@ class Index {
         // Handle the taxonomies
         $taxonomies = get_taxonomies();
 
-        $wanted_taxonomies = Admin::get( 'taxonomies' );
+        $wanted_taxonomies = $settings->get( 'taxonomies' );
 
         foreach ( $taxonomies as $taxonomy ) {
             $terms = get_the_terms( $post->ID, $taxonomy ) ?: [];
@@ -502,10 +503,12 @@ class Index {
      * @return mixed
      */
     public function maybe_write_to_disk( $args = null ) {
+        $settings = new Settings();
+
         // Allow overriding the setting via a filter
         $filter_writing = apply_filters( 'redipress/write_to_disk', null, $args );
 
-        if ( $filter_writing ?? Admin::get( 'persist_index' ) ) {
+        if ( $filter_writing ?? $settings->get( 'persist_index' ) ) {
             return $this->write_to_disk();
         }
     }

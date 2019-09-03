@@ -6,7 +6,7 @@
 namespace Geniem\RediPress;
 
 use Geniem\RediPressPlugin,
-    Geniem\RediPress\Admin,
+    Geniem\RediPress\Settings,
     Geniem\RediPress\Index\Index,
     Geniem\RediPress\Redis\Client,
     Geniem\RediPress\Utility;
@@ -49,12 +49,7 @@ class RediPress {
         // Initialize plugin functionalities in proper hook
         add_action( 'init', [ $this, 'init' ], 1 );
 
-        // Add DustPress partials directory
-        add_filter( 'dustpress/partials', function( $partials ) {
-            $partials[] = $this->plugin->path . '/partials';
-
-            return $partials;
-        });
+        add_action( 'admin_menu', [ $this, 'add_settings_page' ] );
 
         // Register the CLI commands if WP CLI is available
         if ( defined( 'WP_CLI' ) && WP_CLI ) {
@@ -70,7 +65,6 @@ class RediPress {
     public function init() {
         // List of check methods.
         $checks = [
-            'check_acf',
             'connect',
             'check_redisearch',
             'check_index',
@@ -88,39 +82,20 @@ class RediPress {
     }
 
     /**
-     * Check if ACF is active and create the options page if it is.
-     *
-     * @return boolean Whether ACF is active or not.
-     */
-    protected function check_acf() : bool {
-        $acf = class_exists( 'acf' );
-
-        if ( $acf ) {
-            // Create the admin page
-            new Admin( $this );
-
-            return true;
-        }
-        else {
-            $this->plugin->show_admin_error( __( 'Advanced Custom Fields is not active. It is required for RediPress to run.', 'redipress' ) );
-            return false;
-        }
-    }
-
-    /**
      * Connect to Redis.
      *
      * @return boolean Whether the connection succeeded or not.
      */
     protected function connect() : bool {
-        $client = new Client();
+        $client   = new Client();
+        $settings = new Settings();
 
         try {
             $this->connection = $client->connect(
-                Admin::get( 'hostname' ) ?? '127.0.0.1',
-                Admin::get( 'port' ) ?? 6379,
+                $settings->get( 'hostname' ) ?? '127.0.0.1',
+                $settings->get( 'port' ) ?? 6379,
                 0,
-                Admin::get( 'password' ) ?: null
+                $settings->get( 'password' ) ?: null
             );
 
             return true;
@@ -168,7 +143,8 @@ class RediPress {
      * @return boolean Whether the Redisearch index exists or not.
      */
     protected function check_index() : bool {
-        $index_name = Admin::get( 'index' );
+        $settings   = new Settings();
+        $index_name = $settings->get( 'index' );
 
         $index = $this->connection->raw_command( 'FT.INFO', [ $index_name ] );
 
@@ -196,6 +172,24 @@ class RediPress {
                 return true;
             }
         }
+    }
+
+    /**
+     * Add settings page
+     *
+     * @return void
+     */
+    public function add_settings_page() {
+        $settings = new Settings();
+
+        \add_submenu_page(
+            $settings->get_parent_slug(),
+            $settings->get_page_title(),
+            $settings->get_menu_title(),
+            $settings->get_capability(),
+            $settings->get_slug(),
+            [ $settings, 'render_page' ]
+        );
     }
 
     /**

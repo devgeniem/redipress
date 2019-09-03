@@ -215,8 +215,15 @@ class Search {
                 }
             }, $results );
 
-            // Store the search query string so at in can be debugged easily via WP_Query.
-            $query->redisearch_query = 'FT.AGGREGATE ' . implode( ' ', $command );
+            // Store the search query string so that in can be debugged easily via WP_Query.
+            $query->redisearch_query = 'FT.AGGREGATE ' . implode( ' ', array_map( function( $comm ) {
+                if ( \strpos( $comm, ' ' ) !== false ) {
+                    return '"' . $comm . '"';
+                }
+                else {
+                    return $comm;
+                }
+            }, $command ) );
         }
 
         // Run the count post types command

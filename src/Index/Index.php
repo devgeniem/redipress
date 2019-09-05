@@ -11,7 +11,9 @@ use Geniem\RediPress\Settings,
     Geniem\RediPress\Entity\TagField,
     Geniem\RediPress\Entity\TextField,
     Geniem\RediPress\Redis\Client,
-    Geniem\RediPress\Utility;
+    Geniem\RediPress\Utility,
+    Smalot\PdfParser\Parser as PdfParser,
+    PhpOffice\PhpWord\IOFactory;
 
 /**
  * RediPress index class
@@ -324,6 +326,7 @@ class Index {
      */
     public function convert_post( \WP_Post $post ) : array {
         $settings = new Settings();
+
         do_action( 'redipress/before_index_post', $post );
 
         $args = [];
@@ -375,7 +378,7 @@ class Index {
         // Handle the taxonomies
         $taxonomies = get_taxonomies();
 
-        $wanted_taxonomies = $settings->get( 'taxonomies' );
+        $wanted_taxonomies = $settings->get( 'taxonomies' ) ?? [];
 
         foreach ( $taxonomies as $taxonomy ) {
             $terms = get_the_terms( $post->ID, $taxonomy ) ?: [];
@@ -413,28 +416,21 @@ class Index {
             }
         }
 
-        // Escape dashes
-        $escape_dashes = function( $string ) {
-            return str_replace( '-', '\\-', $string );
-        };
-
         // Gather the additional search index
         $search_index = apply_filters( 'redipress/search_index', implode( ' ', $search_index ), $post->ID, $post );
         $search_index = apply_filters( 'redipress/search_index/' . $post->ID, $search_index, $post );
-        $search_index = $escape_dashes( $search_index );
+        $search_index = $this->escape_dashes( $search_index );
 
         // Filter the post object that will be added to the database serialized.
         $post_object = apply_filters( 'redipress/post_object', $post );
 
         $post_title = apply_filters( 'redipress/post_title', $post->post_title );
-        $post_title = $escape_dashes( $post_title );
+        $post_title = $this->escape_dashes( $post_title );
 
         $post_excerpt = apply_filters( 'redipress/post_excerpt', $post->post_excerpt );
-        $post_excerpt = $escape_dashes( $post_excerpt );
+        $post_excerpt = $this->escape_dashes( $post_excerpt );
 
-        $post_content = wp_strip_all_tags( $post->post_content, true );
-        $post_content = apply_filters( 'redipress/post_content', $post_content );
-        $post_content = $escape_dashes( $post_content );
+        $post_content = $this->get_post_content( $post );
 
         $post_status = apply_filters( 'redipress/post_status', $post->post_status ?? 'publish' );
 
@@ -458,6 +454,137 @@ class Index {
         do_action( 'redipress/indexed_post', $post );
 
         return $this->client->convert_associative( array_merge( $args, $rest, $tax, $additions ) );
+    }
+
+    /**
+     * Escape dashes from string
+     *
+     * @param  string $string Unescaped string.
+     * @return string         Escaped $string.
+     */
+    public function escape_dashes( string $string ) : string {
+        $string = \str_replace( '-', '\\-', $string );
+        return $string;
+    }
+
+    /**
+     * Function to handle retrieving post content
+     *
+     * @param  \WP_Post $post Post object.
+     * @return string         Post content.
+     */
+    public function get_post_content( \WP_Post $post ) : string {
+        $post_content = $post->post_content;
+
+        switch ( $post->post_type ) { // Handle post content by post type
+            case 'attachment':
+                switch ( $post->post_mime_type ) { // Different content retrieval function depending on mime type
+                    case 'application/pdf': // pdf
+                    case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': // docx
+                    case 'application/msword': // doc
+                    case 'application/rtf': // rtf
+                    case 'application/vnd.oasis.opendocument.text': // odt
+                        $file_content = $this->get_uploaded_media_content( $post );
+
+                        // Different content parsing depending on mime type
+                        if ( ! empty( $file_content ) ) {
+                            switch ( $post->post_mime_type ) {
+                                case 'application/pdf': // pdf
+                                    $parser       = new PdfParser();
+                                    $pdf          = $parser->parseContent( $file_content );
+                                    $post_content = $pdf->getText();
+                                    break;
+                                case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': // docx
+                                case 'application/msword': // doc
+                                case 'application/rtf': // rtf
+                                case 'application/vnd.oasis.opendocument.text': // odt
+                                    $mime_type_reader = [
+                                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'Word2007',
+                                        'application/msword'                                                      => 'MsDoc',
+                                        'application/rtf'                                                         => 'RTF',
+                                        'application/vnd.oasis.opendocument.text'                                 => 'ODText',
+                                    ];
+
+                                    // We need to create a temporary file to read from as PhpOffice\PhpWord can't read from string
+                                    $tmpfile = \wp_tempnam();
+                                    \file_put_contents( $tmpfile, $file_content ); // phpcs:ignore -- We need to write to disk temporarily
+                                    $phpword = IOFactory::load( $tmpfile, $mime_type_reader[ $post->post_mime_type ] );
+                                    \unlink( $tmpfile ); // phpcs:ignore -- We should remove the temporary file after it has been parsed
+
+                                    $post_content = $this->io_factory_get_text( $phpword );
+                                    break;
+                                default:
+                                    // There already is default post content
+                                    break;
+                            }
+                        }
+                        break;
+                    default:
+                        // There already is default post content
+                        break;
+                }
+                break;
+            default:
+                // There already is default post content
+                break;
+        }
+
+        // Handle the post content
+        $post_content = \wp_strip_all_tags( $post_content, true );
+        $post_content = \apply_filters( 'redipress/post_content', $post_content, $post );
+        $post_content = $this->escape_dashes( $post_content );
+
+        return $post_content;
+    }
+
+    /**
+     * Get text recursively from IOFactory::load result
+     *
+     * @param  mixed $current Current item to check for text.
+     * @return string         Text content.
+     */
+    public function io_factory_get_text( $current ) : string {
+        $post_content = '';
+        if ( \method_exists( $current, 'getText' ) ) {
+            $post_content .= $current->getText() . "\n";
+        }
+        elseif ( \method_exists( $current, 'getSections' ) ) {
+            foreach ( $current->getSections() as $section ) {
+                $post_content .= $this->io_factory_get_text( $section );
+            }
+        }
+        elseif ( \method_exists( $current, 'getElements' ) ) {
+            foreach ( $current->getElements() as $element ) {
+                $post_content .= $this->io_factory_get_text( $element );
+            }
+        }
+
+        return $post_content;
+    }
+
+    /**
+     * Get the content of a file uploaded to the media gallery
+     *
+     * @param  \WP_Post $post Attachment post object.
+     * @return string|null    File content or null if couldn't retrieve.
+     */
+    public function get_uploaded_media_content( \WP_Post $post ) : ?string {
+        $content   = null;
+        $file_path = \get_attached_file( $post->ID );
+
+        // File doesn't exist locally (wp stateless or similiar)
+        if ( ! \file_exists( $file_path ) ) {
+            $args    = \apply_filters( 'redipress/get_uploaded_media_content/wp_remote_get', [] );
+            $request = \wp_remote_get( $post->guid, $args );
+            if ( ! \is_wp_error( $request ) ) {
+                $content = \wp_remote_retrieve_body( $request );
+            }
+        }
+        else {
+            $content = \file_get_contents( $file_path );
+        }
+
+        return $content;
     }
 
     /**

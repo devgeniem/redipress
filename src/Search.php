@@ -147,6 +147,10 @@ class Search {
                 $command
             );
 
+            if ( ! is_array( $results ) ) {
+                $results = [];
+            }
+
             $index = 0;
 
             // Remove the intermediary docIds to make the format match the one from FT.AGGREGATE

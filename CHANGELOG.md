@@ -7,14 +7,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
-
 - This changelog adhering to the 'keep a changelog' standard.
 - Nonscalar fields are serialized before storing them to the index.
+- A support for `update_post_meta_cache` and `update_post_term_cache`.
+- doc, rtf, odt, pdf & docx support
 
 ### Changed
-
 - The index creation is now run on the `init` hook with a priority of *1000*. This allow various dependencies to execute before RediPress indexing.
 
 ### Fixed
-
 - String escaping fixed for post data indexing.

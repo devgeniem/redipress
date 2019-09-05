@@ -117,6 +117,8 @@ class QueryBuilder {
             'posts_per_page',
             'offset',
             'meta_key',
+            'update_post_meta_cache',
+            'update_post_term_cache',
         ], $ignore_added_query_vars ) );
 
         // Allow adding support for query vars via a filter

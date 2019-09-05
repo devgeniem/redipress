@@ -13,7 +13,8 @@ use Geniem\RediPress\Settings,
     Geniem\RediPress\Redis\Client,
     Geniem\RediPress\Utility,
     Smalot\PdfParser\Parser as PdfParser,
-    PhpOffice\PhpWord\IOFactory;
+    PhpOffice\PhpWord\IOFactory,
+    Geniem\RediPress\Rest;
 
 /**
  * RediPress index class
@@ -61,9 +62,21 @@ class Index {
         $this->index = $settings->get( 'index' );
 
         // Register AJAX functions
-        dustpress()->register_ajax_function( 'redipress_create_index', [ $this, 'create' ] );
-        dustpress()->register_ajax_function( 'redipress_drop_index', [ $this, 'drop' ] );
-        dustpress()->register_ajax_function( 'redipress_index_all', [ $this, 'index_all' ] );
+        Rest::register_api_call( '/create_index', [ $this, 'create' ], 'POST' );
+        Rest::register_api_call( '/drop_index', [ $this, 'drop' ], 'DELETE' );
+        Rest::register_api_call( '/index_all', [ $this, 'index_all' ], 'POST', [
+            'limit'     => [
+                'description' => 'How many items to index at a time.',
+                'type'        => 'integer',
+                'required'    => true,
+            ],
+            'offset'    => [
+                'description' => 'Offset to start indexing items from',
+                'type'        => 'integer',
+                'required'    => false,
+                'default'     => 0,
+            ],
+        ]);
 
         // Register CLI bindings
         add_action( 'redipress/cli/index_all', [ $this, 'index_all' ], 50, 0 );
@@ -80,6 +93,17 @@ class Index {
         add_action( 'delete_post', [ $this, 'delete' ], 10, 1 );
 
         $this->define_core_fields();
+    }
+
+    /**
+     * Get total amount of posts to index
+     *
+     * @return int
+     */
+    public static function index_total() : int {
+        global $wpdb;
+        $ids = intval( $wpdb->get_row( "SELECT count(*) as count FROM $wpdb->posts" )->count ); // phpcs:ignore
+        return $ids;
     }
 
     /**
@@ -212,15 +236,24 @@ class Index {
     /**
      * Index all posts to the RediSearch database
      *
-     * @return mixed
+     * @param  \WP_REST_Request|null $request Rest request details or null if not rest api request.
+     * @return int                            Amount of items indexed.
      */
-    public function index_all() {
+    public function index_all( \WP_REST_Request $request = null ) : int {
         global $wpdb;
 
-        do_action( 'redipress/before_index_all' );
+        \do_action( 'redipress/before_index_all', $request );
 
         // phpcs:disable
-        $ids = $wpdb->get_results( "SELECT ID FROM $wpdb->posts" ) ?? [];
+        if ( $request instanceof \WP_REST_Request ) {
+            $limit  = $request->get_param( 'limit' );
+            $offset = $request->get_param( 'offset' );
+            $query  = $wpdb->prepare( "SELECT ID FROM $wpdb->posts LIMIT %d OFFSET %d", $limit, $offset );
+        }
+        else {
+            $query  = "SELECT ID FROM $wpdb->posts";
+        }
+        $ids = $wpdb->get_results( $query ) ?? [];
         // phpcs:enable
 
         $count = count( $ids );
@@ -253,7 +286,7 @@ class Index {
             }
         }, $posts );
 
-        do_action( 'redipress/indexed_all', $result );
+        \do_action( 'redipress/indexed_all', $result, $request );
 
         $this->maybe_write_to_disk( 'indexed_all' );
 

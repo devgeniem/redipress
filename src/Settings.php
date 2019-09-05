@@ -5,6 +5,8 @@
 
 namespace Geniem\RediPress;
 
+use Geniem\RediPress\Index\Index;
+
 /**
  * RediPress settings class
  */
@@ -16,9 +18,19 @@ class Settings {
     public const PREFIX = 'redipress_';
 
     /**
-     * Run appropriate functionalities.
+     * Index info
+     *
+     * @var array
      */
-    public function __construct() {
+    protected $index_info;
+
+    /**
+     * Run appropriate functionalities.
+     *
+     * @param array|null $index_info Index information.
+     */
+    public function __construct( array $index_info = null ) {
+        $this->index_info = $index_info;
         \add_action( 'admin_init', [ $this, 'configure' ] );
     }
 
@@ -54,6 +66,15 @@ class Settings {
             [
                 'label_for' => self::PREFIX . 'persist_index',
             ]
+        );
+
+        // Index management buttons
+        \add_settings_field(
+            $this->get_slug() . '-index-buttons',
+            __( 'Index', 'redipress' ),
+            [ $this, 'render_index_management' ],
+            $this->get_slug(),
+            $this->get_slug() . '-general-settings-section'
         );
 
         // Redis settings section
@@ -312,6 +333,31 @@ class Settings {
     }
 
     /**
+     * Renders the index manipulation buttons.
+     */
+    public function render_index_management() {
+        $current_index = $this->index_info['num_docs'] ?? 0 + $this->index_info['num_terms'] ?? 0;
+        $max_index     = Index::index_total();
+        ?>
+            <div>
+                <p id="redipress_index_info"></p>
+                <progress value="<?php echo \intval( $current_index ); ?>" max="<?php echo \intval( $max_index ); ?>" id="redipress_index_progress"></progress>
+            </div>
+            <div>
+                <p>
+                    <?php \esc_html_e( 'Items in index:', 'redipress' ); ?>
+                    <span id="redipress_current_index"><?php echo \intval( $current_index ); ?></span>
+                    <span id="redipress_index_count_delimeter">/</span>
+                    <span id="redipress_max_index"><?php echo \intval( $max_index ); ?></span>
+                </p>
+            </div>
+        <?php
+        \submit_button( \__( 'Index all' ),    'primary',   'redipress_index_all',  false );
+        \submit_button( \__( 'Create index' ), 'secondary', 'redipress_index',      false );
+        \submit_button( \__( 'Delete index' ), 'delete',    'redipress_drop_index', false );
+    }
+
+    /**
      * Renders the redis settings section.
      */
     public function render_redis_settings_section() {
@@ -466,7 +512,7 @@ class Settings {
      */
     public function get( string $option ) {
         $key = self::PREFIX . $option;
-        return defined( strtoupper( $key ) ) ? constant( strtoupper( $key ) ) : \get_option( $key );
+        return defined( strtoupper( $key ) ) ? constant( strtoupper( $key ) ) : ( \get_option( $key ) ?: null );
     }
 
 }

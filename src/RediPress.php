@@ -9,7 +9,8 @@ use Geniem\RediPressPlugin,
     Geniem\RediPress\Settings,
     Geniem\RediPress\Index\Index,
     Geniem\RediPress\Redis\Client,
-    Geniem\RediPress\Utility;
+    Geniem\RediPress\Utility,
+    Geniem\RediPress\Rest;
 
 /**
  * RediPress main class
@@ -50,6 +51,8 @@ class RediPress {
         add_action( 'init', [ $this, 'init' ], 1 );
 
         add_action( 'admin_menu', [ $this, 'add_settings_page' ] );
+
+        add_action( 'rest_api_init', [ Rest::class, 'rest_api_init' ] );
 
         // Register the CLI commands if WP CLI is available
         if ( defined( 'WP_CLI' ) && WP_CLI ) {
@@ -180,7 +183,7 @@ class RediPress {
      * @return void
      */
     public function add_settings_page() {
-        $settings = new Settings();
+        $settings = new Settings( $this->get_index_info() );
 
         \add_submenu_page(
             $settings->get_parent_slug(),

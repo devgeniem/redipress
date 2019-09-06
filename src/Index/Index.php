@@ -21,6 +21,19 @@ use Geniem\RediPress\Admin,
 class Index {
 
     /**
+     * Which mime types are supported for parsing
+     *
+     * @var array An associative array with file extensions as keys and mime types as values.
+     */
+    const SUPPORTED_MIME_TYPES = [
+        'pdf'  => 'application/pdf',
+        'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'doc'  => 'application/msword',
+        'rtf'  => 'application/rtf',
+        'odt'  => 'application/vnd.oasis.opendocument.text',
+    ];
+
+    /**
      * RediPress wrapper for the Predis client
      *
      * @var Client
@@ -475,31 +488,33 @@ class Index {
 
         switch ( $post->post_type ) { // Handle post content by post type
             case 'attachment':
-                switch ( $post->post_mime_type ) { // Different content retrieval function depending on mime type
-                    case 'application/pdf': // pdf
-                    case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': // docx
-                    case 'application/msword': // doc
-                    case 'application/rtf': // rtf
-                    case 'application/vnd.oasis.opendocument.text': // odt
+                // Check if mime type is supported
+                if ( \in_array( $post->post_mime_type, static::SUPPORTED_MIME_TYPES, true ) ) {
+
+                    // Check if mime type is enabled
+                    $enabled_mime_types = Admin::get( 'mime_types' ) ?? \array_values( static::SUPPORTED_MIME_TYPES );
+                    if ( \in_array( $post->post_mime_type, $enabled_mime_types, true ) ) {
+
+                        // Get file content
                         $file_content = $this->get_uploaded_media_content( $post );
 
                         // Different content parsing depending on mime type
                         if ( ! empty( $file_content ) ) {
                             switch ( $post->post_mime_type ) {
-                                case 'application/pdf': // pdf
+                                case static::SUPPORTED_MIME_TYPES['pdf']:
                                     $parser       = new PdfParser();
                                     $pdf          = $parser->parseContent( $file_content );
                                     $post_content = $pdf->getText();
                                     break;
-                                case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': // docx
-                                case 'application/msword': // doc
-                                case 'application/rtf': // rtf
-                                case 'application/vnd.oasis.opendocument.text': // odt
+                                case static::SUPPORTED_MIME_TYPES['docx']:
+                                case static::SUPPORTED_MIME_TYPES['doc']:
+                                case static::SUPPORTED_MIME_TYPES['rtf']:
+                                case static::SUPPORTED_MIME_TYPES['odt']:
                                     $mime_type_reader = [
-                                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'Word2007',
-                                        'application/msword'                                                      => 'MsDoc',
-                                        'application/rtf'                                                         => 'RTF',
-                                        'application/vnd.oasis.opendocument.text'                                 => 'ODText',
+                                        static::SUPPORTED_MIME_TYPES['docx'] => 'Word2007',
+                                        static::SUPPORTED_MIME_TYPES['doc']  => 'MsDoc',
+                                        static::SUPPORTED_MIME_TYPES['rtf']  => 'RTF',
+                                        static::SUPPORTED_MIME_TYPES['odt']  => 'ODText',
                                     ];
 
                                     // We need to create a temporary file to read from as PhpOffice\PhpWord can't read from string
@@ -515,10 +530,7 @@ class Index {
                                     break;
                             }
                         }
-                        break;
-                    default:
-                        // There already is default post content
-                        break;
+                    }
                 }
                 break;
             default:

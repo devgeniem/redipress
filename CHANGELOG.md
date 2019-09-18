@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Nonscalar fields are serialized before storing them to the index.
 - Support for `update_post_meta_cache` and `update_post_term_cache`.
 - Support for giving own weights for post types, post authors, taxonomy terms and meta values.
+- A support for `update_post_meta_cache` and `update_post_term_cache`.
+- doc, rtf, odt, pdf & docx support
+- Index management in admin
 
 ### Changed
 - The index creation is now run on the `init` hook with a priority of *1000*. This allow various dependencies to execute before RediPress indexing.

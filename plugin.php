@@ -78,7 +78,9 @@ class RediPressPlugin {
             wp_register_script( 'RediPress', $this->url . 'assets/dist/admin.js', [ 'wp-i18n' ] );
 
             wp_localize_script( 'RediPress', 'RediPress', [
-                'homeUrl' => home_url(),
+                'homeUrl'      => \home_url(),
+                'restUrl'      => \rest_url( RediPress\Rest::NAMESPACE ),
+                'restApiNonce' => \wp_create_nonce( 'wp_rest' ),
             ]);
 
             wp_set_script_translations( 'RediPress', 'redipress' );

@@ -5,18 +5,34 @@
 
 namespace Geniem\RediPress\Index;
 
-use Geniem\RediPress\Admin,
+use Geniem\RediPress\Settings,
     Geniem\RediPress\Entity\SchemaField,
     Geniem\RediPress\Entity\NumericField,
     Geniem\RediPress\Entity\TagField,
     Geniem\RediPress\Entity\TextField,
     Geniem\RediPress\Redis\Client,
-    Geniem\RediPress\Utility;
+    Geniem\RediPress\Utility,
+    Smalot\PdfParser\Parser as PdfParser,
+    PhpOffice\PhpWord\IOFactory,
+    Geniem\RediPress\Rest;
 
 /**
  * RediPress index class
  */
 class Index {
+
+    /**
+     * Which mime types are supported for parsing
+     *
+     * @var array An associative array with file extensions as keys and mime types as values.
+     */
+    const SUPPORTED_MIME_TYPES = [
+        'pdf'  => 'application/pdf',
+        'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'doc'  => 'application/msword',
+        'rtf'  => 'application/rtf',
+        'odt'  => 'application/vnd.oasis.opendocument.text',
+    ];
 
     /**
      * RediPress wrapper for the Predis client
@@ -52,15 +68,28 @@ class Index {
      * @param Client $client Client instance.
      */
     public function __construct( Client $client ) {
+        $settings = new Settings();
         $this->client = $client;
 
         // Get the index name from settings
-        $this->index = Admin::get( 'index' );
+        $this->index = $settings->get( 'index' );
 
         // Register AJAX functions
-        dustpress()->register_ajax_function( 'redipress_create_index', [ $this, 'create' ] );
-        dustpress()->register_ajax_function( 'redipress_drop_index', [ $this, 'drop' ] );
-        dustpress()->register_ajax_function( 'redipress_index_all', [ $this, 'index_all' ] );
+        Rest::register_api_call( '/create_index', [ $this, 'create' ], 'POST' );
+        Rest::register_api_call( '/drop_index', [ $this, 'drop' ], 'DELETE' );
+        Rest::register_api_call( '/index_all', [ $this, 'index_all' ], 'POST', [
+            'limit'     => [
+                'description' => 'How many items to index at a time.',
+                'type'        => 'integer',
+                'required'    => true,
+            ],
+            'offset'    => [
+                'description' => 'Offset to start indexing items from',
+                'type'        => 'integer',
+                'required'    => false,
+                'default'     => 0,
+            ],
+        ]);
 
         // Register CLI bindings
         add_action( 'redipress/cli/index_all', [ $this, 'index_all' ], 50, 0 );
@@ -77,6 +106,17 @@ class Index {
         add_action( 'delete_post', [ $this, 'delete' ], 10, 1 );
 
         $this->define_core_fields();
+    }
+
+    /**
+     * Get total amount of posts to index
+     *
+     * @return int
+     */
+    public static function index_total() : int {
+        global $wpdb;
+        $ids = intval( $wpdb->get_row( "SELECT count(*) as count FROM $wpdb->posts" )->count ); // phpcs:ignore
+        return $ids;
     }
 
     /**
@@ -202,15 +242,24 @@ class Index {
     /**
      * Index all posts to the RediSearch database
      *
-     * @return mixed
+     * @param  \WP_REST_Request|null $request Rest request details or null if not rest api request.
+     * @return int                            Amount of items indexed.
      */
-    public function index_all() {
+    public function index_all( \WP_REST_Request $request = null ) : int {
         global $wpdb;
 
-        do_action( 'redipress/before_index_all' );
+        \do_action( 'redipress/before_index_all', $request );
 
         // phpcs:disable
-        $ids = $wpdb->get_results( "SELECT ID FROM $wpdb->posts" ) ?? [];
+        if ( $request instanceof \WP_REST_Request ) {
+            $limit  = $request->get_param( 'limit' );
+            $offset = $request->get_param( 'offset' );
+            $query  = $wpdb->prepare( "SELECT ID FROM $wpdb->posts LIMIT %d OFFSET %d", $limit, $offset );
+        }
+        else {
+            $query  = "SELECT ID FROM $wpdb->posts";
+        }
+        $ids = $wpdb->get_results( $query ) ?? [];
         // phpcs:enable
 
         $count = count( $ids );
@@ -243,7 +292,7 @@ class Index {
             }
         }, $posts );
 
-        do_action( 'redipress/indexed_all', $result );
+        \do_action( 'redipress/indexed_all', $result, $request );
 
         $this->maybe_write_to_disk( 'indexed_all' );
 
@@ -315,6 +364,7 @@ class Index {
      * @return array
      */
     public function convert_post( \WP_Post $post ) : array {
+        $settings = new Settings();
 
         do_action( 'redipress/before_index_post', $post );
 
@@ -367,7 +417,7 @@ class Index {
         // Handle the taxonomies
         $taxonomies = get_taxonomies();
 
-        $wanted_taxonomies = Admin::get( 'taxonomies' );
+        $wanted_taxonomies = $settings->get( 'taxonomies' ) ?? [];
 
         foreach ( $taxonomies as $taxonomy ) {
             $terms = get_the_terms( $post->ID, $taxonomy ) ?: [];
@@ -410,28 +460,21 @@ class Index {
             }
         }
 
-        // Escape dashes
-        $escape_dashes = function( $string ) {
-            return str_replace( '-', '\-', $string );
-        };
-
         // Gather the additional search index
         $search_index = apply_filters( 'redipress/search_index', implode( ' ', $search_index ), $post->ID, $post );
         $search_index = apply_filters( 'redipress/search_index/' . $post->ID, $search_index, $post );
-        $search_index = $escape_dashes( $search_index );
+        $search_index = $this->escape_dashes( $search_index );
 
         // Filter the post object that will be added to the database serialized.
         $post_object = apply_filters( 'redipress/post_object', $post );
 
         $post_title = apply_filters( 'redipress/post_title', $post->post_title );
-        $post_title = $escape_dashes( $post_title );
+        $post_title = $this->escape_dashes( $post_title );
 
         $post_excerpt = apply_filters( 'redipress/post_excerpt', $post->post_excerpt );
-        $post_excerpt = $escape_dashes( $post_excerpt );
+        $post_excerpt = $this->escape_dashes( $post_excerpt );
 
-        $post_content = wp_strip_all_tags( $post->post_content, true );
-        $post_content = apply_filters( 'redipress/post_content', $post_content );
-        $post_content = $escape_dashes( $post_content );
+        $post_content = $this->get_post_content( $post );
 
         $post_status = apply_filters( 'redipress/post_status', $post->post_status ?? 'publish' );
 
@@ -455,6 +498,137 @@ class Index {
         do_action( 'redipress/indexed_post', $post );
 
         return $this->client->convert_associative( array_merge( $args, $rest, $tax, $additions ) );
+    }
+
+    /**
+     * Escape dashes from string
+     *
+     * @param  string $string Unescaped string.
+     * @return string         Escaped $string.
+     */
+    public function escape_dashes( string $string ) : string {
+        $string = \str_replace( '-', '\\-', $string );
+        return $string;
+    }
+
+    /**
+     * Function to handle retrieving post content
+     *
+     * @param  \WP_Post $post Post object.
+     * @return string         Post content.
+     */
+    public function get_post_content( \WP_Post $post ) : string {
+        $post_content = $post->post_content;
+
+        switch ( $post->post_type ) { // Handle post content by post type
+            case 'attachment':
+                // Check if mime type is supported
+                if ( \in_array( $post->post_mime_type, static::SUPPORTED_MIME_TYPES, true ) ) {
+                    $settings = new Settings();
+
+                    // Check if mime type is enabled
+                    $enabled_mime_types = $settings->get( 'mime_types' ) ?? \array_values( static::SUPPORTED_MIME_TYPES );
+                    if ( \in_array( $post->post_mime_type, $enabled_mime_types, true ) ) {
+
+                        // Get file content
+                        $file_content = $this->get_uploaded_media_content( $post );
+
+                        // Different content parsing depending on mime type
+                        if ( ! empty( $file_content ) ) {
+                            switch ( $post->post_mime_type ) {
+                                case static::SUPPORTED_MIME_TYPES['pdf']:
+                                    $parser       = new PdfParser();
+                                    $pdf          = $parser->parseContent( $file_content );
+                                    $post_content = $pdf->getText();
+                                    break;
+                                case static::SUPPORTED_MIME_TYPES['docx']:
+                                case static::SUPPORTED_MIME_TYPES['doc']:
+                                case static::SUPPORTED_MIME_TYPES['rtf']:
+                                case static::SUPPORTED_MIME_TYPES['odt']:
+                                    $mime_type_reader = [
+                                        static::SUPPORTED_MIME_TYPES['docx'] => 'Word2007',
+                                        static::SUPPORTED_MIME_TYPES['doc']  => 'MsDoc',
+                                        static::SUPPORTED_MIME_TYPES['rtf']  => 'RTF',
+                                        static::SUPPORTED_MIME_TYPES['odt']  => 'ODText',
+                                    ];
+
+                                    // We need to create a temporary file to read from as PhpOffice\PhpWord can't read from string
+                                    $tmpfile = \wp_tempnam();
+                                    \file_put_contents( $tmpfile, $file_content ); // phpcs:ignore -- We need to write to disk temporarily
+                                    $phpword = IOFactory::load( $tmpfile, $mime_type_reader[ $post->post_mime_type ] );
+                                    \unlink( $tmpfile ); // phpcs:ignore -- We should remove the temporary file after it has been parsed
+
+                                    $post_content = $this->io_factory_get_text( $phpword );
+                                    break;
+                                default:
+                                    // There already is default post content
+                                    break;
+                            }
+                        }
+                    }
+                }
+                break;
+            default:
+                // There already is default post content
+                break;
+        }
+
+        // Handle the post content
+        $post_content = \wp_strip_all_tags( $post_content, true );
+        $post_content = \apply_filters( 'redipress/post_content', $post_content, $post );
+        $post_content = $this->escape_dashes( $post_content );
+
+        return $post_content;
+    }
+
+    /**
+     * Get text recursively from IOFactory::load result
+     *
+     * @param  mixed $current Current item to check for text.
+     * @return string         Text content.
+     */
+    public function io_factory_get_text( $current ) : string {
+        $post_content = '';
+        if ( \method_exists( $current, 'getText' ) ) {
+            $post_content .= $current->getText() . "\n";
+        }
+        elseif ( \method_exists( $current, 'getSections' ) ) {
+            foreach ( $current->getSections() as $section ) {
+                $post_content .= $this->io_factory_get_text( $section );
+            }
+        }
+        elseif ( \method_exists( $current, 'getElements' ) ) {
+            foreach ( $current->getElements() as $element ) {
+                $post_content .= $this->io_factory_get_text( $element );
+            }
+        }
+
+        return $post_content;
+    }
+
+    /**
+     * Get the content of a file uploaded to the media gallery
+     *
+     * @param  \WP_Post $post Attachment post object.
+     * @return string|null    File content or null if couldn't retrieve.
+     */
+    public function get_uploaded_media_content( \WP_Post $post ) : ?string {
+        $content   = null;
+        $file_path = \get_attached_file( $post->ID );
+
+        // File doesn't exist locally (wp stateless or similiar)
+        if ( ! \file_exists( $file_path ) ) {
+            $args    = \apply_filters( 'redipress/get_uploaded_media_content/wp_remote_get', [] );
+            $request = \wp_remote_get( $post->guid, $args );
+            if ( ! \is_wp_error( $request ) ) {
+                $content = \wp_remote_retrieve_body( $request );
+            }
+        }
+        else {
+            $content = \file_get_contents( $file_path );
+        }
+
+        return $content;
     }
 
     /**
@@ -500,10 +674,12 @@ class Index {
      * @return mixed
      */
     public function maybe_write_to_disk( $args = null ) {
+        $settings = new Settings();
+
         // Allow overriding the setting via a filter
         $filter_writing = apply_filters( 'redipress/write_to_disk', null, $args );
 
-        if ( $filter_writing ?? Admin::get( 'persist_index' ) ) {
+        if ( $filter_writing ?? $settings->get( 'persist_index' ) ) {
             return $this->write_to_disk();
         }
     }

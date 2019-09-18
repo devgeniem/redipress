@@ -11,7 +11,9 @@
         }
     ],
     "keywords": [
-        "wordpress", "redis", "redisearch"
+        "wordpress",
+        "redis",
+        "redisearch"
     ],
     "license": "GPL-3.0-or-later",
     "minimum-stability": "dev",
@@ -22,9 +24,15 @@
         }
     ],
     "require": {
-        "predis/predis": "^1.1"
+        "predis/predis": "^1.1",
+        "johnpbloch/wordpress": "^5.0",
+        "php": "^7.1",
+        "smalot/pdfparser": "^0.14",
+        "phpoffice/phpword": "^0.16"
     },
     "autoload": {
-        "psr-4": {"Geniem\\RediPress\\": "src/"}
+        "psr-4": {
+            "Geniem\\RediPress\\": "src/"
+        }
     }
 }

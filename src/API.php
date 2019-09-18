@@ -12,9 +12,10 @@ namespace Geniem\RediPress;
  * @return WP_Post|null The post to fetch or null if not found.
  */
 function get_post( $post_id ) : ?\WP_Post {
+    $settings = new Settings();
     $client = apply_filters( 'redipress/client', null );
 
-    $index = Admin::get( 'index' );
+    $index = $settings->get( 'index' );
 
     $result = $client->raw_command( 'FT.GET', [ $index, $post_id ] );
 
@@ -41,9 +42,10 @@ function get_post( $post_id ) : ?\WP_Post {
  * @return array
  */
 function update_value( $doc_id, $field, $value, $score = 1 ) {
+    $settings = new Settings();
     $client = apply_filters( 'redipress/client', null );
 
-    $index = Admin::get( 'index' );
+    $index = $settings->get( 'index' );
 
     $result_add = $client->raw_command(
         'FT.ADD',

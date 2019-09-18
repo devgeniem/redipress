@@ -15,7 +15,7 @@ function get_post( $post_id ) : ?\WP_Post {
     $settings = new Settings();
     $client = apply_filters( 'redipress/client', null );
 
-    $index = $settings->get( 'index' );
+    $index = Settings::get( 'index' );
 
     $result = $client->raw_command( 'FT.GET', [ $index, $post_id ] );
 
@@ -45,7 +45,7 @@ function update_value( $doc_id, $field, $value, $score = 1 ) {
     $settings = new Settings();
     $client = apply_filters( 'redipress/client', null );
 
-    $index = $settings->get( 'index' );
+    $index = Settings::get( 'index' );
 
     $result_add = $client->raw_command(
         'FT.ADD',

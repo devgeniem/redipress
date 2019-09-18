@@ -91,14 +91,13 @@ class RediPress {
      */
     protected function connect() : bool {
         $client   = new Client();
-        $settings = new Settings();
 
         try {
             $this->connection = $client->connect(
-                $settings->get( 'hostname' ) ?? '127.0.0.1',
-                $settings->get( 'port' ) ?? 6379,
+                Settings::get( 'hostname' ) ?? '127.0.0.1',
+                Settings::get( 'port' ) ?? 6379,
                 0,
-                $settings->get( 'password' ) ?: null
+                Settings::get( 'password' ) ?: null
             );
 
             return true;
@@ -146,8 +145,7 @@ class RediPress {
      * @return boolean Whether the Redisearch index exists or not.
      */
     protected function check_index() : bool {
-        $settings   = new Settings();
-        $index_name = $settings->get( 'index' );
+        $index_name = Settings::get( 'index' );
 
         $index = $this->connection->raw_command( 'FT.INFO', [ $index_name ] );
 

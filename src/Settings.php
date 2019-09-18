@@ -142,7 +142,7 @@ class Settings {
         );
 
         // Post types option
-        $post_types_option = $this->get( 'post_types' );
+        $post_types_option = self::get( 'post_types' );
         if ( ! empty( $post_types_option ) ) {
             $post_types_value = $post_types_option;
         }
@@ -174,7 +174,7 @@ class Settings {
         );
 
         // Taxonomies option
-        $taxonomies_option = $this->get( 'taxonomies' );
+        $taxonomies_option = self::get( 'taxonomies' );
         if ( ! empty( $taxonomies_option ) ) {
             $taxonomies_value = $taxonomies_option;
         }
@@ -320,7 +320,7 @@ class Settings {
      */
     public function render_persist_index_field() {
         $name   = 'persist_index';
-        $option = $this->get( $name );
+        $option = self::get( $name );
         ?>
             <input type="hidden" name="redipress_persist_index" value="0" />
             <input type="checkbox" name="redipress_persist_index" id="redipress_persist_index" value="1" <?php \checked( 1, $option ) . $this->disabled( $name ); ?>>
@@ -371,7 +371,7 @@ class Settings {
      */
     public function render_hostname_field() {
         $name   = 'hostname';
-        $option = $this->get( $name );
+        $option = self::get( $name );
         ?>
             <input type="text" name="redipress_hostname" id="redipress_hostname" value="<?php echo \esc_attr( $option ); ?>" <?php $this->disabled( $name ); ?>>
             <p class="description" id="hostname-description">
@@ -385,7 +385,7 @@ class Settings {
      */
     public function render_port_field() {
         $name   = 'port';
-        $option = $this->get( $name );
+        $option = self::get( $name );
         ?>
             <input type="number" name="redipress_port" id="redipress_port" value="<?php echo \esc_attr( $option ); ?>" <?php $this->disabled( $name ); ?>>
             <p class="description" id="port-description">
@@ -399,9 +399,9 @@ class Settings {
      */
     public function render_password_field() {
         $name   = 'password';
-        $option = $this->get( $name );
+        $option = self::get( $name );
         ?>
-            <input type="text" name="redipress_password" id="redipress_password" value="<?php echo \esc_attr( $option ); ?>" <?php $this->disabled( $name ); ?>>
+            <input type="password" name="redipress_password" id="redipress_password" value="<?php echo \esc_attr( $option ); ?>" <?php $this->disabled( $name ); ?>>
             <p class="description" id="password-description">
                 <?php \esc_html_e( 'If your Redis server is not password protected, leave this field empty.', 'redipress' ); ?>
             </p>
@@ -413,7 +413,7 @@ class Settings {
      */
     public function render_index_name_field() {
         $name   = 'index';
-        $option = $this->get( $name );
+        $option = self::get( $name );
         ?>
             <input type="text" name="redipress_index" id="redipress_index" value="<?php echo \esc_attr( $option ); ?>" <?php $this->disabled( $name ); ?>>
             <p class="description" id="index-name-description">
@@ -510,9 +510,9 @@ class Settings {
      * @param string $option The option name.
      * @return mixed
      */
-    public function get( string $option ) {
+    public static function get( string $option ) {
         $key = self::PREFIX . $option;
-        return defined( strtoupper( $key ) ) ? constant( strtoupper( $key ) ) : ( \get_option( $key ) ?: null );
+        return defined( strtoupper( $key ) ) ? constant( strtoupper( $key ) ) : \get_option( $key );
     }
 
 }

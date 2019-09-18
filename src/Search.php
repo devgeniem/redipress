@@ -74,7 +74,7 @@ class Search {
         $this->index_info = $index_info;
 
         // Get the index name from settings
-        $this->index = $settings->get( 'index' );
+        $this->index = Settings::get( 'index' );
 
         // Add search filters
         add_filter( 'posts_pre_query', [ $this, 'posts_pre_query' ], 10, 2 );
@@ -234,7 +234,11 @@ class Search {
         // Run the count post types command
         $counts = $this->client->raw_command(
             'FT.AGGREGATE',
-            [ $this->index, $count_search_query_string, 'GROUPBY', 1, '@post_type', 'REDUCE', 'COUNT', '0', 'AS', 'amount' ]
+            array_merge(
+                [ $this->index, $search_query_string, 'INFIELDS', count( $infields ) ],
+                $infields,
+                [ 'GROUPBY', 1, '@post_type', 'REDUCE', 'COUNT', '0', 'AS', 'amount' ]
+            )
         );
 
         // Return the results through a filter

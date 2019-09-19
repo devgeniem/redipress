@@ -26,14 +26,16 @@ class Index implements Command {
             return true;
         }
         elseif ( count( $args ) === 1 ) {
-            if ( ! is_numeric( $args[0] ) ) {
-                WP_CLI::error( 'RediPress: second parameter of index must be an integer (post ID).' );
-                return false;
-            }
-            else {
+            if ( is_numeric( $args[0] ) ) {
                 do_action( 'redipress/cli/index_single', $args[0] );
 
                 WP_CLI::success( 'Post by ID ' . $args[0] . ' indexed successfully!' );
+                return true;
+            }
+            else {
+                $result = apply_filters( 'redipress/cli/index_missing', 0 );
+
+                WP_CLI::success( $result . ' posts indexed successfully!' );
                 return true;
             }
         }

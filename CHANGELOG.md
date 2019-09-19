@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - A support for `update_post_meta_cache` and `update_post_term_cache`.
 - doc, rtf, odt, pdf & docx support
 - Index management in admin
+- `wp redipress index missing` command for indexing only posts that do not exist in the search index already.
 
 ### Changed
 - The index creation is now run on the `init` hook with a priority of *1000*. This allow various dependencies to execute before RediPress indexing.

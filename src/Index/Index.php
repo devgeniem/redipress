@@ -93,6 +93,7 @@ class Index {
 
         // Register CLI bindings
         add_action( 'redipress/cli/index_all', [ $this, 'index_all' ], 50, 0 );
+        add_action( 'redipress/cli/index_missing', [ $this, 'index_missing' ], 50, 0 );
         add_action( 'redipress/cli/index_single', [ $this, 'index_single' ], 50, 1 );
         add_filter( 'redipress/create_index', [ $this, 'create' ], 50, 1 );
         add_filter( 'redipress/drop_index', [ $this, 'drop' ], 50, 1 );
@@ -295,6 +296,90 @@ class Index {
         \do_action( 'redipress/indexed_all', $result, $request );
 
         $this->maybe_write_to_disk( 'indexed_all' );
+
+        if ( ! empty( $progress ) ) {
+            $progress->finish();
+        }
+
+        return $count;
+    }
+
+    /**
+     * Index all missing posts to the RediSearch database
+     *
+     * @param  \WP_REST_Request|null $request Rest request details or null if not rest api request.
+     * @return int                            Amount of items indexed.
+     */
+    public function index_missing( \WP_REST_Request $request = null ) : int {
+        global $wpdb;
+
+        \do_action( 'redipress/before_index_missing', $request );
+
+        // phpcs:disable
+        if ( $request instanceof \WP_REST_Request ) {
+            $limit  = $request->get_param( 'limit' );
+            $offset = $request->get_param( 'offset' );
+            $query  = $wpdb->prepare( "SELECT ID FROM $wpdb->posts LIMIT %d OFFSET %d", $limit, $offset );
+        }
+        else {
+            $query  = "SELECT ID FROM $wpdb->posts";
+        }
+        $ids = $wpdb->get_results( $query ) ?? [];
+        // phpcs:enable
+
+        $count = count( $ids );
+
+        $posts = array_filter( $ids, function( $row ) {
+            $present = \Geniem\RediPress\get_post( $row->ID );
+
+            return empty( $present );
+        });
+
+        $posts = array_map( function( $id ) {
+            return \get_post( $id );
+        }, $posts );
+
+        $custom_posts = [];
+
+        $custom_posts = apply_filters( 'redipress/custom_posts', $custom_posts );
+
+        $count += count( $custom_posts );
+
+        $custom_posts = array_filter( $custom_posts, function( $row ) {
+            $present = \Geniem\RediPress\get_post( $row->ID );
+
+            return empty( $present );
+        });
+
+        $posts = array_merge( $posts, $custom_posts );
+
+        $new_count = count( $posts );
+
+        if ( defined( 'WP_CLI' ) && WP_CLI ) {
+            \WP_CLI::success( 'Starting to index a total of ' . $new_count . ' posts. Skipped already existing ' . ( $count - $new_count ) . ' posts.' );
+
+            $progress = \WP_CLI\Utils\make_progress_bar( __( 'Indexing posts', 'redipress' ), $new_count );
+        }
+        else {
+            $progress = null;
+        }
+
+        $result = array_map( function( $post ) use ( $progress ) {
+            $language = apply_filters( 'redipress/post_language', $post->lang ?? null, $post );
+            $language = apply_filters( 'redipress/post_language/' . $post->ID, $language, $post );
+
+            $converted = $this->convert_post( $post );
+
+            $this->add_post( $converted, $post->ID, $language );
+
+            if ( ! empty( $progress ) ) {
+                $progress->tick();
+            }
+        }, $posts );
+
+        \do_action( 'redipress/indexed_missing', $result, $request );
+
+        $this->maybe_write_to_disk( 'indexed_missing' );
 
         if ( ! empty( $progress ) ) {
             $progress->finish();
@@ -530,8 +615,8 @@ class Index {
                 if ( \in_array( $post->post_mime_type, static::SUPPORTED_MIME_TYPES, true ) ) {
                     $settings = new Settings();
 
-                    // Check if mime type is enabled
-                    $enabled_mime_types = $settings->get( 'mime_types' ) ?? \array_values( static::SUPPORTED_MIME_TYPES );
+                    // Check if mime type is enabled @TODO: throws a warning
+                    $enabled_mime_types = $settings->get( 'mime_types' ) ?: \array_values( static::SUPPORTED_MIME_TYPES );
                     if ( \in_array( $post->post_mime_type, $enabled_mime_types, true ) ) {
 
                         // Get file content

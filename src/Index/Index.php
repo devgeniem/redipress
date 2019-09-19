@@ -506,7 +506,11 @@ class Index {
      * @param  string $string Unescaped string.
      * @return string         Escaped $string.
      */
-    public function escape_dashes( string $string ) : string {
+    public function escape_dashes( ?string $string = '' ) : string {
+        if ( ! $string ) {
+            $string = '';
+        }
+
         $string = \str_replace( '-', '\\-', $string );
         return $string;
     }

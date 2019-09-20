@@ -235,7 +235,7 @@ class Search {
         $counts = $this->client->raw_command(
             'FT.AGGREGATE',
             array_merge(
-                [ $this->index, $search_query_string, 'INFIELDS', count( $infields ) ],
+                [ $this->index, $count_search_query_string, 'INFIELDS', count( $infields ) ],
                 $infields,
                 [ 'GROUPBY', 1, '@post_type', 'REDUCE', 'COUNT', '0', 'AS', 'amount' ]
             )
@@ -292,14 +292,7 @@ class Search {
 
             $raw_results = $this->search( $query );
 
-            if ( empty( $raw_results->results ) || $raw_results->results[0] === 0 ) {
-                $query->redipress_no_results = true;
-                return apply_filters( 'redipress/no_results', null, $query );
-            }
-
             $count = $raw_results->results[0];
-
-            $results = $this->format_results( $raw_results->results );
 
             $query->post_type_counts = [];
 
@@ -312,6 +305,13 @@ class Search {
                     $query->post_type_counts[ $formatted['post_type'] ] = $formatted['amount'];
                 }
             }
+
+            if ( empty( $raw_results->results ) || $raw_results->results[0] === 0 ) {
+                $query->redipress_no_results = true;
+                return apply_filters( 'redipress/no_results', null, $query );
+            }
+
+            $results = $this->format_results( $raw_results->results );
 
             // Filter the search results after the search has been conducted.
             $results = apply_filters(

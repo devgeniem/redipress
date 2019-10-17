@@ -626,9 +626,14 @@ class Index {
                         if ( ! empty( $file_content ) ) {
                             switch ( $post->post_mime_type ) {
                                 case static::SUPPORTED_MIME_TYPES['pdf']:
-                                    $parser       = new PdfParser();
-                                    $pdf          = $parser->parseContent( $file_content );
-                                    $post_content = $pdf->getText();
+                                    try {
+                                        $parser       = new PdfParser();
+                                        $pdf          = $parser->parseContent( $file_content );
+                                        $post_content = $pdf->getText();
+                                    }
+                                    catch( \Exception $e ) {
+                                        error_log( 'RediPress PDF indexing error: ' . $e->getMessage() );
+                                    }
                                     break;
                                 case static::SUPPORTED_MIME_TYPES['docx']:
                                 case static::SUPPORTED_MIME_TYPES['doc']:
@@ -641,13 +646,18 @@ class Index {
                                         static::SUPPORTED_MIME_TYPES['odt']  => 'ODText',
                                     ];
 
-                                    // We need to create a temporary file to read from as PhpOffice\PhpWord can't read from string
-                                    $tmpfile = \wp_tempnam();
-                                    \file_put_contents( $tmpfile, $file_content ); // phpcs:ignore -- We need to write to disk temporarily
-                                    $phpword = IOFactory::load( $tmpfile, $mime_type_reader[ $post->post_mime_type ] );
-                                    \unlink( $tmpfile ); // phpcs:ignore -- We should remove the temporary file after it has been parsed
+                                    try {
+                                        // We need to create a temporary file to read from as PhpOffice\PhpWord can't read from string
+                                        $tmpfile = \wp_tempnam();
+                                        \file_put_contents( $tmpfile, $file_content ); // phpcs:ignore -- We need to write to disk temporarily
+                                        $phpword = IOFactory::load( $tmpfile, $mime_type_reader[ $post->post_mime_type ] );
+                                        \unlink( $tmpfile ); // phpcs:ignore -- We should remove the temporary file after it has been parsed
 
-                                    $post_content = $this->io_factory_get_text( $phpword );
+                                        $post_content = $this->io_factory_get_text( $phpword );
+                                    }
+                                    catch( \Exception $e ) {
+                                        error_log( 'RediPress Office indexing error: ' . $e->getMessage() );
+                                    }
                                     break;
                                 default:
                                     // There already is default post content

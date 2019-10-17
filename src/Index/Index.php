@@ -453,7 +453,8 @@ class Index {
 
         do_action( 'redipress/before_index_post', $post );
 
-        $args = [];
+        $args         = [];
+        $search_index = [];
 
         // Get the author data
         $author_field = apply_filters( 'redipress/post_author_field', 'display_name', $post->ID, $post );
@@ -467,6 +468,8 @@ class Index {
         }
 
         $args['post_author'] = apply_filters( 'redipress/post_author', $post_author, $post->ID, $post );
+
+        $search_index[] = $args['post_author'];
 
         // Get the post date
         $args['post_date'] = strtotime( $post->post_date ) ?: null;
@@ -496,7 +499,6 @@ class Index {
 
         $additions = array_map( 'maybe_serialize', $additions );
 
-        $search_index = [];
         $tax          = [];
 
         // Handle the taxonomies
@@ -548,15 +550,18 @@ class Index {
         // Gather the additional search index
         $search_index = apply_filters( 'redipress/search_index', implode( ' ', $search_index ), $post->ID, $post );
         $search_index = apply_filters( 'redipress/search_index/' . $post->ID, $search_index, $post );
+        $search_index = apply_filters( 'redipress/index_strings', $search_index, $post );
         $search_index = $this->escape_dashes( $search_index );
 
         // Filter the post object that will be added to the database serialized.
         $post_object = apply_filters( 'redipress/post_object', $post );
 
         $post_title = apply_filters( 'redipress/post_title', $post->post_title );
+        $post_title = apply_filters( 'redipress/index_strings', $post_title, $post );
         $post_title = $this->escape_dashes( $post_title );
 
         $post_excerpt = apply_filters( 'redipress/post_excerpt', $post->post_excerpt );
+        $post_excerpt = apply_filters( 'redipress/index_strings', $post_excerpt, $post );
         $post_excerpt = $this->escape_dashes( $post_excerpt );
 
         $post_content = $this->get_post_content( $post );
@@ -675,6 +680,7 @@ class Index {
         // Handle the post content
         $post_content = \wp_strip_all_tags( $post_content, true );
         $post_content = \apply_filters( 'redipress/post_content', $post_content, $post );
+        $post_content = apply_filters( 'redipress/index_strings', $post_content, $post );
         $post_content = $this->escape_dashes( $post_content );
 
         return $post_content;

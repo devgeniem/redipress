@@ -264,6 +264,12 @@ class Search {
             return null;
         }
 
+        // If we are on a multisite and have not explicitly defined that
+        // we want to do stuff with other sites, use the current site
+        if ( empty( $query->query['blog_id'] ) ) {
+            $query->query['blog_id'] = [ \get_current_blog_id() ];
+        }
+
         $this->query_builder = new Search\QueryBuilder( $query, $this->index_info );
 
         // If we don't have explicitly defined post type query, use the public ones

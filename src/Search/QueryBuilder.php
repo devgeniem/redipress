@@ -65,12 +65,14 @@ class QueryBuilder {
     protected $query_vars = [
         'paged'            => null,
         's'                => null,
+        'blog_id'          => 'blog_id',
         'p'                => 'post_id',
         'name'             => 'post_name',
         'pagename'         => 'post_name',
         'post_type'        => 'post_type',
         'post_parent'      => 'post_parent',
         'post_status'      => 'post_status',
+        'post__in'         => 'post_id',
         'post__not_in'     => 'post_id',
         'category__in'     => 'taxonomy_id_category',
         'category__not_in' => 'taxonomy_id_category',
@@ -425,6 +427,52 @@ class QueryBuilder {
         }
 
         return '@post_id:' . $this->wp_query->query_vars['p'];
+    }
+
+    /**
+     * WP_Query blog_id parameter.
+     *
+     * @return string Redisearch query condition.
+     */
+    protected function blog_id() : string {
+
+        if ( empty( $this->wp_query->query_vars['blog_id'] ) ) {
+            $blog_id = \get_current_blog_id();
+        }
+        else {
+            $blog_id = $this->wp_query->query_vars['blog_id'];
+        }
+
+        $clause = '';
+
+        if ( ! is_array( $blog_id ) ) {
+            $blog_id = [ $blog_id ];
+        }
+
+        $clause = '@blog_id:(' . implode( '|', $blog_id ) . ')';
+
+        return $clause;
+    }
+
+    /**
+     * WP_Query post__in parameter.
+     *
+     * @return string Redisearch query condition.
+     */
+    protected function post__in() : string {
+
+        if ( empty( $this->wp_query->query_vars['post__in'] ) ) {
+            return false;
+        }
+
+        $post__in = $this->wp_query->query_vars['post__in'];
+        $clause   = '';
+
+        if ( ! empty( $post__in ) && is_array( $post__in ) ) {
+            $clause = '@post_id:(' . implode( '|', $post__in ) . ')';
+        }
+
+        return $clause;
     }
 
     /**

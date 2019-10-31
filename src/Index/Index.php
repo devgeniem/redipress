@@ -187,6 +187,15 @@ class Index {
             ]),
         ];
 
+        if ( \is_multisite() ) {
+            \array_unshift(
+                $this->core_schema_fields,
+                new NumericField([
+                    'name' => 'blog_id',
+                ]),
+            );
+        }
+
         // Add taxonomies to core fields
         $taxonomies = get_taxonomies();
 
@@ -286,7 +295,7 @@ class Index {
 
             $converted = $this->convert_post( $post );
 
-            $this->add_post( $converted, $post->ID, $language );
+            $this->add_post( $converted, $this->get_document_id( $post ), $language );
 
             if ( ! empty( $progress ) ) {
                 $progress->tick();
@@ -302,6 +311,21 @@ class Index {
         }
 
         return $count;
+    }
+
+    /**
+     * Get a RediPress document ID for a post.
+     *
+     * @param \WP_Post $post The post to deal with.
+     * @return string
+     */
+    public function get_document_id( \WP_Post $post ) : string {
+        if ( ! \is_multisite() ) {
+            return $post->ID;
+        }
+        else {
+            return ( $post->blog_id ?? \get_current_blog_id() ) . '_' . $post->ID;
+        }
     }
 
     /**
@@ -370,7 +394,7 @@ class Index {
 
             $converted = $this->convert_post( $post );
 
-            $this->add_post( $converted, $post->ID, $language );
+            $this->add_post( $converted, $this->get_document_id( $post ), $language );
 
             if ( ! empty( $progress ) ) {
                 $progress->tick();
@@ -399,7 +423,7 @@ class Index {
 
         $converted = $this->convert_post( $post );
 
-        return $this->add_post( $converted, $post_id );
+        return $this->add_post( $converted, $this->get_document_id( $post ) );
     }
 
     /**
@@ -421,7 +445,7 @@ class Index {
 
         $converted = $this->convert_post( $post );
 
-        $result = $this->add_post( $converted, $post_id );
+        $result = $this->add_post( $converted, $this->get_document_id( $post ) );
 
         do_action( 'redipress/new_post_added', $result, $post );
 
@@ -451,7 +475,7 @@ class Index {
     public function convert_post( \WP_Post $post ) : array {
         $settings = new Settings();
 
-        do_action( 'redipress/before_index_post', $post );
+        \do_action( 'redipress/before_index_post', $post );
 
         $args         = [];
         $search_index = [];
@@ -459,6 +483,7 @@ class Index {
         // Get the author data
         $author_field = apply_filters( 'redipress/post_author_field', 'display_name', $post->ID, $post );
         $user_object  = get_userdata( $post->post_author );
+
 
         if ( $user_object instanceof \WP_User ) {
             $post_author = $user_object->{ $author_field };
@@ -473,6 +498,7 @@ class Index {
 
         // Get the post date
         $args['post_date'] = strtotime( $post->post_date ) ?: null;
+
 
         // Get the RediSearch schema for possible additional fields
         $schema = $this->client->raw_command( 'FT.INFO', [ $this->index ] );
@@ -499,7 +525,7 @@ class Index {
 
         $additions = array_map( 'maybe_serialize', $additions );
 
-        $tax          = [];
+        $tax = [];
 
         // Handle the taxonomies
         $taxonomies = get_taxonomies();
@@ -584,6 +610,10 @@ class Index {
             'menu_order'     => absint( $post->menu_order ),
             'search_index'   => $search_index,
         ];
+
+        if ( \is_multisite() ) {
+            $rest['blog_id'] = $post->blog_id ?? \get_current_blog_id();
+        }
 
         do_action( 'redipress/indexed_post', $post );
 

@@ -413,11 +413,11 @@ class UserIndex {
             $blogs = \get_blogs_of_user( $user->ID, true );
 
             $args['blogs'] = implode( $this->get_tag_separator(), array_map( function( $blog ) {
-                return $blog->site_id;
+                return $blog->userblog_id;
             }, $blogs ) );
 
             $args['roles'] = implode( $this->get_tag_separator(), array_map( function( $blog ) use ( $user ) {
-                return $this->get_user_roles_for_site( $user->ID, $blog->site_id );
+                return $this->get_user_roles_for_site( $user->ID, $blog->userblog_id );
             }, $blogs ) );
         }
         else {
@@ -448,14 +448,14 @@ class UserIndex {
      * Get user roles for site
      *
      * @param int $user_id User.
-     * @param int $site_id Blog ID.
+     * @param int $userblog_id Blog ID.
      * @return string
      */
-    public function get_user_roles_for_site( int $user_id, int $site_id ) : string {
-        $obj = new \WP_User( $user_id, '', $site_id );
+    public function get_user_roles_for_site( int $user_id, int $userblog_id ) : string {
+        $obj = new \WP_User( $user_id, '', $userblog_id );
 
-        $roles = array_map( function( $role ) use ( $site_id ) {
-            return $site_id . '_' . $role;
+        $roles = array_map( function( $role ) use ( $userblog_id ) {
+            return $userblog_id . '_' . $role;
         }, $obj->roles );
 
         return implode( $this->get_tag_separator(), $roles );

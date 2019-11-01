@@ -20,23 +20,47 @@ class Create implements Command {
      */
     public function run( array $args = [] ) : bool {
         if ( count( $args ) === 0 ) {
-            $return = apply_filters( 'redipress/create_index', null );
-
-            switch ( $return ) {
-                case true:
-                    WP_CLI::success( 'Index created.' );
-                    return true;
-                case 'Index already exists. Drop it first!':
-                    WP_CLI::error( 'Index already exists.' );
-                    return false;
-                default:
-                    WP_CLI::error( 'Unprecetended response: ' . $return );
-                    return false;
-            }
+            return $this->create_index( 'posts' );
         }
         elseif ( count( $args ) === 1 ) {
-            WP_CLI::error( 'RediPress: "create" command does not take any additional parameters.' );
+            return $this->create_index( $args[0] );
+        }
+        elseif ( count( $args ) > 1 ) {
+            WP_CLI::error( 'RediPress: "create" command does accept more than one parameter.' );
             return false;
+        }
+    }
+
+    /**
+     * Create posts index
+     *
+     * @param string $index The index to create.
+     * @throws \Exception When the index type is not supported.
+     * @return bool
+     */
+    public function create_index( string $index ) {
+        switch ( $index ) {
+            case 'posts':
+                $return = apply_filters( 'redipress/create_index', null );
+                break;
+            case 'users':
+                $return = apply_filters( 'redipress/create_user_index', null );
+                break;
+            default:
+                throw new \Exception( 'Index type ' . $index . ' is not supported.' );
+                break;
+        }
+
+        switch ( $return ) {
+            case true:
+                WP_CLI::success( 'Index created.' );
+                return true;
+            case 'Index already exists. Drop it first!':
+                WP_CLI::error( 'Index already exists.' );
+                return false;
+            default:
+                WP_CLI::error( 'Unprecetended response: ' . $return );
+                return false;
         }
     }
 
@@ -55,6 +79,6 @@ class Create implements Command {
      * @return integer
      */
     public static function get_max_parameters() : int {
-        return 0;
+        return 1;
     }
 }

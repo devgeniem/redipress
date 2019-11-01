@@ -45,6 +45,8 @@ class Settings {
         \register_setting( $this->get_slug(), self::PREFIX . 'port' );
         \register_setting( $this->get_slug(), self::PREFIX . 'password' );
         \register_setting( $this->get_slug(), self::PREFIX . 'index' );
+        \register_setting( $this->get_slug(), self::PREFIX . 'use_user_query' );
+        \register_setting( $this->get_slug(), self::PREFIX . 'user_index' );
         \register_setting( $this->get_slug(), self::PREFIX . 'post_types' );
         \register_setting( $this->get_slug(), self::PREFIX . 'taxonomies' );
 
@@ -130,6 +132,30 @@ class Settings {
             $this->get_slug() . '-redis-settings-section',
             [
                 'label_for' => self::PREFIX . 'index',
+            ]
+        );
+
+        // Use user query field
+        \add_settings_field(
+            $this->get_slug() . '-use-user-query',
+            __( 'Use user query', 'redipress' ),
+            [ $this, 'render_use_user_query_field' ],
+            $this->get_slug(),
+            $this->get_slug() . '-redis-settings-section',
+            [
+                'label_for' => self::PREFIX . 'use_user_query',
+            ]
+        );
+
+        // User index name field
+        \add_settings_field(
+            $this->get_slug() . '-user-index-name',
+            __( 'User index name', 'redipress' ),
+            [ $this, 'render_user_index_name_field' ],
+            $this->get_slug(),
+            $this->get_slug() . '-redis-settings-section',
+            [
+                'label_for' => self::PREFIX . 'user_index',
             ]
         );
 
@@ -415,9 +441,40 @@ class Settings {
         $name   = 'index';
         $option = self::get( $name );
         ?>
-            <input type="text" name="redipress_index" id="redipress_index" value="<?php echo \esc_attr( $option ); ?>" <?php $this->disabled( $name ); ?>>
+            <input type="text" name="redipress_index" id="redipress_index" value="<?php echo \esc_attr( $option ) ?: 'posts'; ?>" <?php $this->disabled( $name ); ?>>
             <p class="description" id="index-name-description">
                 <?php \esc_html_e( 'RediSearch index name, must be unique within the database.', 'redipress' ); ?>
+            </p>
+        <?php
+    }
+
+    /**
+     * Renders the use user query field.
+     */
+    public function render_use_user_query_field() {
+        $name   = 'use_user_query';
+        $option = self::get( $name );
+        ?>
+            <input type="hidden" name="redipress_use_user_query" value="0" />
+            <input type="checkbox" name="redipress_use_user_query" id="redipress_use_user_query" value="1" <?php \checked( 1, $option ) . $this->disabled( $name ); ?>>
+            <p class="description" id="use-user-query-description">
+                <?php
+                \esc_html_e( 'Whether the user database is in use or not.', 'redipress' );
+                ?>
+            </p>
+        <?php
+    }
+
+    /**
+     * Renders the user index name field.
+     */
+    public function render_user_index_name_field() {
+        $name   = 'user_index';
+        $option = self::get( $name );
+        ?>
+            <input type="text" name="redipress_user_index" id="redipress_user_index" value="<?php echo \esc_attr( $option ) ?: 'users'; ?>" <?php $this->disabled( $name ); ?>>
+            <p class="description" id="user-index-name-description">
+                <?php \esc_html_e( 'RediSearch user index name, must be unique within the database.', 'redipress' ); ?>
             </p>
         <?php
     }

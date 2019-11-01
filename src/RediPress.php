@@ -8,6 +8,7 @@ namespace Geniem\RediPress;
 use Geniem\RediPressPlugin,
     Geniem\RediPress\Settings,
     Geniem\RediPress\Index\Index,
+    Geniem\RediPress\Index\UserIndex,
     Geniem\RediPress\Redis\Client,
     Geniem\RediPress\Utility,
     Geniem\RediPress\Rest;
@@ -73,6 +74,10 @@ class RediPress {
             'check_index',
         ];
 
+        if ( Settings::get( 'use_user_query' ) ) {
+            $checks[] = 'check_user_index';
+        }
+
         // Run through various checks and quit the run if anyone fails.
         foreach ( $checks as $check ) {
             if ( ! $this->{ $check }() ) {
@@ -90,7 +95,7 @@ class RediPress {
      * @return boolean Whether the connection succeeded or not.
      */
     protected function connect() : bool {
-        $client   = new Client();
+        $client = new Client();
 
         try {
             $this->connection = $client->connect(
@@ -133,6 +138,7 @@ class RediPress {
             // Initialize indexing features, we have everything we need to have here.
             add_action( 'init', function() {
                 new Index( $this->connection );
+                new UserIndex( $this->connection );
             }, 1000 );
 
             return true;
@@ -169,6 +175,39 @@ class RediPress {
 
                 // Also require the external API functions
                 require_once( __DIR__ . '/API.php' );
+
+                return true;
+            }
+        }
+    }
+
+    /**
+     * Check if the user index exists in Redisearch.
+     *
+     * @return boolean Whether the Redisearch user index exists or not.
+     */
+    protected function check_user_index() : bool {
+        $index_name = Settings::get( 'user_index' );
+
+        $index = $this->connection->raw_command( 'FT.INFO', [ $index_name ] );
+
+        if ( $index === 'Unknown Index name' ) {
+            $this->plugin->show_admin_error( __( 'Redisearch user index is not created.', 'redipress' ) );
+            return false;
+        }
+        else {
+            $info = Utility::format( $index );
+
+            if ( (int) $info['num_docs'] === 0 ) {
+                $this->plugin->show_admin_error( __( 'Redisearch user index is empty.', 'redipress' ) );
+                return false;
+            }
+            else {
+                // Store the index information
+                $this->user_index_info = $info;
+
+                // Initialize searching features, we have everything we need to have here.
+                new UserQuery( $this->connection, $this->user_index_info );
 
                 return true;
             }

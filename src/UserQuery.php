@@ -1,6 +1,6 @@
 <?php
 /**
- * RediPress search class file
+ * RediPress UserQuery class file
  */
 
 namespace Geniem\RediPress;
@@ -11,9 +11,9 @@ use Geniem\RediPress\Settings,
 use function GuzzleHttp\Promise\each;
 
 /**
- * RediPress search class
+ * RediPress UserQuery class
  */
-class Search {
+class UserQuery {
 
     /**
      * RediPress wrapper for the Predis client
@@ -44,23 +44,11 @@ class Search {
     protected $results = [];
 
     /**
-     * QueryBuilder instance
+     * UserQueryBuilder instance
      *
-     * @var Search\QueryBuilder
+     * @var Search\UserQueryBuilder
      */
     protected $query_builder = null;
-
-    /**
-     * List of fields to include in search queries by default
-     *
-     * @var array
-     */
-    protected $default_search_fields = [
-        'post_title',
-        'post_excerpt',
-        'post_content',
-        'search_index',
-    ];
 
     /**
      * Construct the index object
@@ -74,10 +62,10 @@ class Search {
         $this->index_info = $index_info;
 
         // Get the index name from settings
-        $this->index = Settings::get( 'index' );
+        $this->index = Settings::get( 'user_index' );
 
         // Add search filters
-        add_filter( 'posts_pre_query', [ $this, 'posts_pre_query' ], 10, 2 );
+        add_filter( 'users_pre_query', [ $this, 'users_pre_query' ], 10, 2 );
     }
 
     /**
@@ -249,20 +237,14 @@ class Search {
     }
 
     /**
-     * Filter WordPress posts requests
+     * Filter WordPress users requests
      *
-     * @param array|null $posts An empty array of posts.
-     * @param \WP_Query  $query The WP_Query object.
+     * @param array|null $users An empty array of posts.
+     * @param \WP_User_Query  $query The WP_User_Query object.
      * @return array Results or null if no results.
      */
-    public function posts_pre_query( ?array $posts, \WP_Query $query ) : ?array {
+    public function users_pre_query( ?array $users, \WP_User_Query $query ) : ?array {
         global $wpdb;
-
-        // If the query is empty, we are probably dealing with the front page and we want to skip RediSearch with that.
-        if ( empty( $query->query ) ) {
-            $query->is_front_page = true;
-            return null;
-        }
 
         // If we are on a multisite and have not explicitly defined that
         // we want to do stuff with other sites, use the current site

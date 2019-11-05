@@ -248,7 +248,8 @@ abstract class QueryBuilder {
         }
 
         if ( ! empty( $query_vars['meta_query'] ) ) {
-            if ( ! $this->meta_query() ) {
+            $meta_query = $this->meta_query();
+            if ( ! $meta_query && $meta_query !== '' ) {
                 return false;
             }
         }
@@ -466,6 +467,10 @@ abstract class QueryBuilder {
 
         // Sanitize and validate the query through the WP_Meta_Query class
         $meta_query = new \WP_Meta_Query( $query );
+
+        if ( empty( $meta_query->queries ) ) {
+            return '';
+        }
 
         $query = $this->create_meta_query( $meta_query->queries );
 

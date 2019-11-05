@@ -106,11 +106,15 @@ class UserQuery {
         // Filter the search query as a string
         $search_query_string = apply_filters( 'redipress/search_query_string', implode( ' ', $search_query ), $query );
 
-        // Filter the query string for the count feature
-        $count_search_query_string = apply_filters( 'redipress/count_search_query_string', $search_query_string );
+        if ( ! $this->query_builder->use_only_defined_search_fields() ) {
+            $search_fields = array_unique( array_merge( $this->query_builder->get_search_fields(), $this->default_search_fields ) );
+        }
+        else {
+            $search_fields = $this->query_builder->get_must_use_search_fields();
+        }
 
         // Filter the list of fields from which the search is conducted.
-        $infields = array_unique( apply_filters( 'redipress/search_fields', $this->default_search_fields, $query ) );
+        $infields = array_unique( apply_filters( 'redipress/search_fields', $search_fields, $query ) );
 
         // Filter the list of fields that will be returned with the query.
         $return = array_unique( apply_filters( 'redipress/return_fields', [ 'user_id', 'user_object' ], $query ) );
@@ -164,7 +168,7 @@ class UserQuery {
             });
 
             // Store the search query string so at in can be debugged easily via WP_Query.
-            $query->redisearch_query = 'FT.SEARCH ' . implode( ' ', $command );
+            $query->request = 'FT.SEARCH ' . implode( ' ', $command );
         }
         else {
             // Form the return field clause
@@ -222,7 +226,7 @@ class UserQuery {
             }, $results );
 
             // Store the search query string so that in can be debugged easily via WP_Query.
-            $query->redisearch_query = 'FT.AGGREGATE ' . implode( ' ', array_map( function( $comm ) {
+            $query->request = 'FT.AGGREGATE ' . implode( ' ', array_map( function( $comm ) {
                 if ( \strpos( $comm, ' ' ) !== false ) {
                     return '"' . $comm . '"';
                 }

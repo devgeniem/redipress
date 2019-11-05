@@ -51,17 +51,49 @@ class UserQueryBuilder extends QueryBuilder {
         'login__not_in'       => 'user_login',
         'include'             => 'user_id',
         'exclude'             => 'user_id',
-        'search_columns'      => null,
         'count_total'         => null,
         'fields'              => null,
         'who'                 => null,
         'has_published_posts' => null,
+        'search_columns'      => null,
     ];
+
+    /**
+     * Must use search fields
+     *
+     * @var array
+     */
+    protected $must_use_search_fields = [];
+
+    /**
+     * Whether we want to use only the defined search fields or not.
+     *
+     * @var boolean
+     */
+    protected $use_only_defined = false;
 
     /**
      * Whether the builder is for posts or for users
      */
     const TYPE = 'user';
+
+    /**
+     * Returns a boolean whether we want to use only the defined search fields.
+     *
+     * @return boolean
+     */
+    public function use_only_defined_search_fields() : bool {
+        return $this->use_only_defined;
+    }
+
+    /**
+     * Returns a list of must use search fields added within this class.
+     *
+     * @return array
+     */
+    public function get_must_use_search_fields() : array {
+        return $this->must_use_search_fields;
+    }
 
     /**
      * WP_User_Query s parameter.
@@ -353,6 +385,33 @@ class UserQueryBuilder extends QueryBuilder {
         }
 
         return $clause;
+    }
+
+    /**
+     * WP_User_Query search_columns parameter.
+     *
+     * @return string Empty string.
+     */
+    protected function search_columns() : string {
+        if ( ! empty( $this->query->query_vars['search_columns'] ) ) {
+            $this->must_use_search_fields = $this->query->query_vars['search_columns'];
+
+            foreach ( $this->must_use_search_fields as &$column ) {
+                $field_type = $this->get_field_type( $column );
+
+                if ( ! $field_type ) {
+                    return false;
+                }
+
+                if ( $column === 'ID' ) {
+                    $column = 'user_id';
+                }
+            }
+
+            $this->use_only_defined = true;
+        }
+
+        return '';
     }
 
     /**

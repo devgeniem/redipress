@@ -11,14 +11,14 @@ use Geniem\RediPress\Utility;
 /**
  * RediPress search query builder class
  */
-class QueryBuilder {
+abstract class QueryBuilder {
 
     /**
-     * WP Query object.
+     * WP Query or WP User Query object.
      *
-     * @var WP_Query
+     * @var WP_Query|WP_User_query
      */
-    protected $wp_query = null;
+    protected $query = null;
 
     /**
      * Possible preferred modifiers
@@ -26,15 +26,6 @@ class QueryBuilder {
      * @var array
      */
     protected $modifiers = [];
-
-    /**
-     * Group by
-     * If $sortby is defined we need to groupby sortby tags.
-     * We need to add @post_id by minimum to make sure that we have unique results.
-     *
-     * @var array
-     */
-    protected $groupby = [ '@post_id' ];
 
     /**
      * Possible sortby command
@@ -89,24 +80,31 @@ class QueryBuilder {
     ];
 
     /**
-     * Get WP Query instance.
+     * From which fields the search is conducted.
      *
-     * @return WP_Query
+     * @var array
      */
-    public function get_wp_query() : WP_Query {
-        return $this->wp_query;
+    protected $search_fields = [];
+
+    /**
+     * Get query instance.
+     *
+     * @return WP_Query|WP_User_Query
+     */
+    public function get_query_instance() {
+        return $this->query;
     }
 
     /**
      * Query builder constructor
      *
-     * @param WP_Query $wp_query   WP Query object.
-     * @param array    $index_info Index information.
+     * @param WP_Query|WP_User_query $query   WP Query or WP User Query object.
+     * @param array                  $index_info Index information.
      */
-    public function __construct( WP_Query $wp_query, array $index_info ) {
+    public function __construct( $query, array $index_info ) {
         global $wp_rewrite;
 
-        $this->wp_query   = $wp_query;
+        $this->query      = $query;
         $this->index_info = $index_info;
 
         $ignore_added_query_vars = array_map( function( $code ) {
@@ -124,8 +122,11 @@ class QueryBuilder {
             'update_post_term_cache',
         ], $ignore_added_query_vars ) );
 
+        $this->ignore_query_vars = apply_filters( 'redipress/ignore_query_vars/' . static::TYPE, $this->ignore_query_vars );
+
         // Allow adding support for query vars via a filter
         $this->query_vars = apply_filters( 'redipress/query_vars', $this->query_vars );
+        $this->query_vars = apply_filters( 'redipress/query_vars/' . static::TYPE, $this->query_vars );
     }
 
     /**
@@ -138,7 +139,7 @@ class QueryBuilder {
     }
 
     /**
-     * Get the RediSearch query based on the WP_Query
+     * Get the RediSearch query based on the original query
      *
      * @return array
      */
@@ -180,22 +181,22 @@ class QueryBuilder {
             // Special treatment for numeric fields.
             elseif ( $field_type === 'NUMERIC' ) {
 
-                if ( empty( $this->query_vars[ $query_var ] ) || empty( $this->wp_query->query_vars[ $query_var ] ) ) {
+                if ( empty( $this->query_vars[ $query_var ] ) || empty( $this->query->query_vars[ $query_var ] ) ) {
                     return false;
                 }
 
-                return '@' . $this->query_vars[ $query_var ] . ':[' . $this->wp_query->query_vars[ $query_var ] . ' ' . $this->wp_query->query_vars[ $query_var ] . ']';
+                return '@' . $this->query_vars[ $query_var ] . ':[' . $this->query->query_vars[ $query_var ] . ' ' . $this->query->query_vars[ $query_var ] . ']';
             }
             // Otherwise we are dealing with an ordinary text field.
             else {
 
-                if ( empty( $this->wp_query->query_vars[ $query_var ] ) || empty( $this->query_vars[ $query_var ] ) ) {
+                if ( empty( $this->query->query_vars[ $query_var ] ) || empty( $this->query_vars[ $query_var ] ) ) {
                     return false;
                 }
 
-                return '@' . $this->query_vars[ $query_var ] . ':' . $this->wp_query->query_vars[ $query_var ];
+                return '@' . $this->query_vars[ $query_var ] . ':' . $this->query->query_vars[ $query_var ];
             }
-        }, array_keys( $this->wp_query->query ) ) );
+        }, array_keys( $this->query->query_vars ) ) );
 
         // All minuses to the end of the line.
         usort( $return, function( $a, $b ) {
@@ -214,12 +215,19 @@ class QueryBuilder {
      * @param string $field The field to add.
      * @return void
      */
-    private function add_search_field( string $field ) {
-        add_filter( 'redipress/search_fields', function( $fields ) use ( $field ) {
-            $fields[] = $this->query_vars[ $field ] ?? $field;
+    protected function add_search_field( string $field ) {
+        $this->search_fields[] = $this->query_vars[ $field ] ?? $field;
 
-            return $fields;
-        }, 9999, 1 );
+        $this->search_fields = \array_unique( $this->search_fields );
+    }
+
+    /**
+     * Returns a list of search fields added within this class.
+     *
+     * @return array
+     */
+    public function get_search_fields() : array {
+        return $this->search_fields;
     }
 
     /**
@@ -233,9 +241,9 @@ class QueryBuilder {
             return false;
         }
 
-        $query_vars = $this->wp_query->query;
+        $query_vars = $this->query->query_vars;
 
-        if ( $this->wp_query->is_front_page ) {
+        if ( $this->query->is_front_page ) {
             return false;
         }
 
@@ -274,15 +282,16 @@ class QueryBuilder {
     }
 
     /**
-     * WP_Query s parameter.
+     * Search parameter.
      *
      * @return string
      */
-    protected function s() : string {
-        $terms = $this->wp_query->query_vars['s'];
+    protected function conduct_search() : string {
+        $terms = $this->query->query_vars['s'];
 
         // Add a filter for the raw search terms
         $terms = apply_filters( 'redipress/search_terms/raw', $terms );
+        $terms = apply_filters( 'redipress/search_terms/raw/' . static::TYPE, $terms );
 
         // Remove a list of forbidden characters based on RediSearch restrictions.
         $forbidden_characters = str_split( ',.<>{}[]"\':;!@#$%^&*()+=~' );
@@ -294,12 +303,14 @@ class QueryBuilder {
 
         // Add a filter for the search terms
         $terms = apply_filters( 'redipress/search_terms', $terms );
+        $terms = apply_filters( 'redipress/search_terms/' . static::TYPE, $terms );
 
         // Escape dashes
         $terms = str_replace( '-', '\\-', $terms );
 
         // Filter for escaped search terms
         $terms = apply_filters( 'redipress/search_terms/escaped', $terms );
+        $terms = apply_filters( 'redipress/search_terms/escaped/' . static::TYPE, $terms );
 
         $sort = explode( ' ', $terms );
 
@@ -321,13 +332,13 @@ class QueryBuilder {
      */
     protected function weight() : string {
 
-        if ( empty( $this->wp_query->query_vars['weight'] ) ) {
+        if ( empty( $this->query->query_vars['weight'] ) ) {
             return '';
         }
 
         $return = [];
 
-        $weight = $this->wp_query->query_vars['weight'];
+        $weight = $this->query->query_vars['weight'];
 
         // Create weight clauses for post types
         if ( ! empty( $weight['post_type'] ) ) {
@@ -416,257 +427,6 @@ class QueryBuilder {
     }
 
     /**
-     * WP_Query p parameter.
-     *
-     * @return string
-     */
-    protected function p() : string {
-
-        if ( empty( $this->wp_query->query_vars['p'] ) ) {
-            return false;
-        }
-
-        return '@post_id:' . $this->wp_query->query_vars['p'];
-    }
-
-    /**
-     * WP_Query blog_id parameter.
-     *
-     * @return string Redisearch query condition.
-     */
-    protected function blog_id() : string {
-
-        if ( empty( $this->wp_query->query_vars['blog_id'] ) ) {
-            $blog_id = \get_current_blog_id();
-        }
-        else {
-            $blog_id = $this->wp_query->query_vars['blog_id'];
-        }
-
-        $clause = '';
-
-        if ( ! is_array( $blog_id ) ) {
-            $blog_id = [ $blog_id ];
-        }
-
-        $clause = '@blog_id:(' . implode( '|', $blog_id ) . ')';
-
-        return $clause;
-    }
-
-    /**
-     * WP_Query post__in parameter.
-     *
-     * @return string Redisearch query condition.
-     */
-    protected function post__in() : string {
-
-        if ( empty( $this->wp_query->query_vars['post__in'] ) ) {
-            return false;
-        }
-
-        $post__in = $this->wp_query->query_vars['post__in'];
-        $clause   = '';
-
-        if ( ! empty( $post__in ) && is_array( $post__in ) ) {
-            $clause = '@post_id:(' . implode( '|', $post__in ) . ')';
-        }
-
-        return $clause;
-    }
-
-    /**
-     * WP_Query post__not_in parameter.
-     *
-     * @return string Redisearch query condition.
-     */
-    protected function post__not_in() : string {
-
-        if ( empty( $this->wp_query->query_vars['post__not_in'] ) ) {
-            return false;
-        }
-
-        $post__not_in = $this->wp_query->query_vars['post__not_in'];
-        $clause       = '';
-
-        if ( ! empty( $post__not_in ) && is_array( $post__not_in ) ) {
-            $clause = '-@post_id:(' . implode( '|', $post__not_in ) . ')';
-        }
-
-        return $clause;
-    }
-
-    /**
-     * WP_Query post_type parameter.
-     *
-     * @return ?string
-     */
-    protected function post_type() : ?string {
-
-        if ( empty( $this->wp_query->query_vars['post_type'] ) ) {
-            return false;
-        }
-
-        $post_type = $this->wp_query->query_vars['post_type'];
-
-        if ( $post_type !== 'any' ) {
-            $post_types = is_array( $post_type ) ? $post_type : [ $post_type ];
-
-            return '@post_type:(' . implode( '|', $post_types ) . ')';
-        }
-        else {
-            return '';
-        }
-    }
-
-    /**
-     * WP_Query post_status parameter.
-     *
-     * @return ?string
-     */
-    protected function post_status() : ?string {
-
-        if ( empty( $this->wp_query->query_vars['post_status'] ) ) {
-            return false;
-        }
-
-        $post_status = $this->wp_query->query_vars['post_status'];
-
-        if ( $post_status === 'any' ) {
-            $post_statuses = get_post_stati( [ 'exclude_from_search' => false ] );
-        }
-        elseif ( empty( $post_status ) ) {
-            $post_statuses = [ 'publish' ];
-        }
-        else {
-            $post_statuses = is_array( $post_status ) ? $post_status : [ $post_status ];
-        }
-
-        return '@post_status:(' . implode( '|', $post_statuses ) . ')';
-    }
-
-    /**
-     * WP_Query post_parent parameter.
-     *
-     * @return ?string
-     */
-    protected function post_parent() : ?string {
-
-        $post_parent = $this->wp_query->query_vars['post_parent'] ?? false;
-
-        // If post_parent is null or empty string ignore post_parent.
-        if ( $post_parent === false || $post_parent === '' ) {
-            return false;
-        }
-
-        return '@post_parent:' . $post_parent;
-    }
-
-    /**
-     * WP_Query category__in parameter.
-     *
-     * @return string
-     */
-    protected function category__in() : string {
-
-        if ( empty( $this->wp_query->query_vars['category__in'] ) ) {
-            return false;
-        }
-
-        $cats = $this->wp_query->query_vars['category__in'];
-
-        $cat = is_array( $cats ) ? $cats : [ $cats ];
-
-        return '@taxonomy_id_category:{' . implode( '|', $cat ) . '}';
-    }
-
-    /**
-     * WP_Query category__not_in parameter.
-     *
-     * @return string
-     */
-    protected function category__not_in() : string {
-
-        if ( empty( $this->wp_query->query_vars['category__not_in'] ) ) {
-            return false;
-        }
-
-        $cats = $this->wp_query->query_vars['category__not_in'];
-
-        $cat = is_array( $cats ) ? $cats : [ $cats ];
-
-        return '-@taxonomy_id_category:{' . implode( '|', $cat ) . '}';
-    }
-
-    /**
-     * WP_Query category__and parameter.
-     *
-     * @return string
-     */
-    protected function category__and() : string {
-
-        if ( empty( $this->wp_query->query_vars['category__and'] ) ) {
-            return false;
-        }
-
-        $cats = $this->wp_query->query_vars['category__and'];
-
-        $cat = is_array( $cats ) ? $cats : [ $cats ];
-
-        return implode( ' ', array_map( function( $cat ) {
-            return '@taxonomy_id_category:{' . $cat . '}';
-        }, $cat ));
-    }
-
-    /**
-     * WP_Query category_name parameter.
-     *
-     * @return string
-     */
-    protected function category_name() : string {
-
-        if ( empty( $this->wp_query->query_vars['category_name'] ) ) {
-            return false;
-        }
-
-        $cat = $this->wp_query->query_vars['category_name'];
-
-        $all_cats = explode( '+', $cat );
-
-        $return = [];
-
-        foreach ( $all_cats as $all ) {
-            $some_cats = explode( ',', $all );
-
-            foreach ( $some_cats as $some ) {
-                if ( is_array( $some ) ) {
-                    $return[] = '@taxonomy_category:{' . implode( '|', $some ) . '}';
-                }
-            }
-        }
-
-        return implode( ' ', $return );
-    }
-
-    /**
-     * WP_Query tax_query parameter.
-     *
-     * @return string
-     */
-    protected function tax_query() : string {
-
-        if ( empty( $this->wp_query->query_vars['tax_query'] ) ) {
-            return false;
-        }
-
-        $query = $this->wp_query->query_vars['tax_query'];
-
-        // Sanitize and validate the query through the WP_Tax_Query class
-        $tax_query = new \WP_Tax_Query( $query );
-        return $this->create_taxonomy_query( $tax_query->queries );
-    }
-
-    /**
      * WP_Query orderby parameter.
      *
      * @return string
@@ -702,7 +462,7 @@ class QueryBuilder {
             return $this->meta_query;
         }
 
-        $query = $this->wp_query->query_vars['meta_query'];
+        $query = $this->query->query_vars['meta_query'];
 
         // Sanitize and validate the query through the WP_Meta_Query class
         $meta_query = new \WP_Meta_Query( $query );
@@ -719,147 +479,16 @@ class QueryBuilder {
     }
 
     /**
-     * Determine sortby query values.
-     *
-     * @return boolean Whether we have a qualified orderby or not.
-     */
-    private function get_orderby() : bool {
-        if ( ! empty( $this->sortby ) ) {
-            return true;
-        }
-
-        $query = $this->wp_query->query_vars;
-
-        // Handle empty orderby
-        if ( empty( $query['orderby'] ) ) {
-            if ( empty( $query['s'] ) ) {
-                $order = 'date';
-            }
-            else {
-                return true;
-            }
-        }
-
-        $order = $query['order'] ?? 'DESC';
-
-        $sortby = [
-            [
-                'order'   => $order,
-                'orderby' => null,
-            ],
-        ];
-
-        // If we have a simple string as the orderby parameter.
-        if (
-            ! empty( $query['orderby'] ) &&
-            is_string( $query['orderby'] ) &&
-            strpos( $query['orderby'], ' ' ) === false
-        ) {
-            $sortby[0]['orderby'] = $query['orderby'];
-        }
-        // If we have an array with key-value pairs
-        elseif (
-            ! empty( $query['orderby'] ) &&
-            is_array( $query['orderby'] )
-        ) {
-            $sortby = [];
-
-            foreach ( $query['orderby'] as $key => $value ) {
-                $sortby[] = [
-                    'order'   => $value,
-                    'orderby' => $key,
-                ];
-            }
-        }
-        elseif ( empty( $query['orderby'] ) ) {
-            $this->sortby = [];
-            return true;
-        }
-        // Anything else is a no-go.
-        else {
-            return false;
-        }
-
-        $sortby = array_map( function( array $clause ) use ( $query ) {
-            // Create the mappings for orderby parameter
-            switch ( $clause['orderby'] ) {
-                case 'menu_order':
-                case 'meta_value':
-                case 'meta_value_num':
-                    break;
-                case 'none':
-                case 'relevance':
-                    return true;
-                case 'ID':
-                case 'author':
-                case 'title':
-                case 'name':
-                case 'type':
-                case 'date':
-                case 'parent':
-                    $clause['orderby'] = 'post_' . strtolower( $clause['orderby'] );
-                    break;
-                default:
-                    // The value can also be a named meta clause
-                    if ( ! empty( $this->meta_clauses[ $clause['orderby'] ] ) ) {
-                        $clause['orderby'] = $this->meta_clauses[ $clause['orderby'] ];
-                    }
-                    else {
-                        return false;
-                    }
-            }
-
-            // We may also have a meta value as the orderby.
-            if ( in_array( $clause['orderby'], [ 'meta_value', 'meta_value_num' ], true ) ) {
-                if ( is_string( $query['meta_key'] ) && ! empty( $query['meta_key'] ) ) {
-                    $clause['orderby'] = $query['meta_key'];
-                }
-                else {
-                    return false;
-                }
-            }
-
-            // If we don't have the field in the schema, it's a no-go as well.
-            $fields = array_column( $this->index_info['fields'], 0 );
-
-            if ( ! in_array( $clause['orderby'], $fields, true ) ) {
-                return false;
-            }
-
-            return $clause;
-        }, $sortby );
-
-        // If we have a false value in the sortby array, just bail away.
-        foreach ( $sortby as $clause ) {
-            if ( ! $clause ) {
-                return false;
-            }
-        }
-
-        $this->sortby = array_merge(
-            [ 'SORTBY', ( count( $sortby ) * 2 ) ],
-            array_reduce( $sortby, function( $carry, $item ) {
-
-                // Store groupby these need to be in sync with sortby params.
-                $this->groupby[] = '@' . $item['orderby'];
-
-                return array_merge( $carry, [ '@' . $item['orderby'], $item['order'] ] );
-            }, [] )
-        );
-
-        return true;
-    }
-
-    /**
      * Create a RediSearch taxonomy query from a single WP_Query tax_query block.
      *
      * This function runs itself recursively if the query has multiple levels.
      *
-     * @param array  $query    The block to create the block from.
-     * @param string $operator Possible operator of the parent array.
+     * @param array   $query    The block to create the block from.
+     * @param string  $operator Possible operator of the parent array.
+     * @param boolean $prefix   Whether to prefix the field with taxonomy_ or not.
      * @return string
      */
-    public function create_taxonomy_query( array $query, string $operator = 'AND' ) : string {
+    public function create_taxonomy_query( array $query, string $operator = 'AND', bool $prefix = true ) : string {
 
         $relation = $query['relation'] ?? $operator;
         unset( $query['relation'] );
@@ -886,21 +515,18 @@ class QueryBuilder {
             if ( ! empty( $clause['taxonomy'] ) ) {
                 switch ( $clause['field'] ) {
                     case 'name':
-
                         // Form clause by operator.
                         if ( $clause['operator'] === 'IN' ) {
-
                             $queries[] = sprintf(
-                                '(@taxonomy_%s:{%s})',
-                                $clause['taxonomy'],
+                                '(@%s:{%s})',
+                                $prefix ? 'taxonomy_' . $clause['taxonomy'] : $clause['taxonomy'],
                                 implode( '|', (array) $clause['terms'] )
                             );
                         }
                         elseif ( $clause['operator'] === 'NOT IN' ) {
-
                             $queries[] = sprintf(
-                                '-(@taxonomy_%s:{%s})',
-                                $clause['taxonomy'],
+                                '-(@%s:{%s})',
+                                $prefix ? 'taxonomy_' . $clause['taxonomy'] : $clause['taxonomy'],
                                 implode( '|', (array) $clause['terms'] )
                             );
                         }
@@ -917,10 +543,8 @@ class QueryBuilder {
 
                         // The fallthrough is intentional: we only turn the slugs into ids.
                     case 'term_id':
-
                         // Form clause by operator.
                         if ( $clause['operator'] === 'IN' ) {
-
                             $queries[] = sprintf(
                                 '(@taxonomy_id_%s:{%s})',
                                 $clause['taxonomy'],
@@ -928,7 +552,6 @@ class QueryBuilder {
                             );
                         }
                         elseif ( $clause['operator'] === 'NOT IN' ) {
-
                             $queries[] = sprintf(
                                 '-(@taxonomy_id_%s:{%s})',
                                 $clause['taxonomy'],
@@ -965,7 +588,7 @@ class QueryBuilder {
      * @param string $operator Possible operator of the parent array.
      * @return string
      */
-    private function create_meta_query( array $query, string $operator = 'AND' ) : ?string {
+    protected function create_meta_query( array $query, string $operator = 'AND' ) : ?string {
 
         $relation = $query['relation'] ?? $operator;
         unset( $query['relation'] );
@@ -1033,7 +656,7 @@ class QueryBuilder {
      * @param array $clause The array to work with.
      * @return string|null
      */
-    private function create_meta_clause( array $clause ) : ?string {
+    protected function create_meta_clause( array $clause ) : ?string {
         // Find out the type of the field we are dealing with.
         $field_type = $this->get_field_type( $clause['key'] );
 
@@ -1062,29 +685,58 @@ class QueryBuilder {
                 }
         }
 
-        // Map compare types to functions
-        $compare_map = [
-            '='           => 'equal',
-            '!='          => 'not_equal',
-            '>'           => 'greater_than',
-            '>='          => 'greater_or_equal_than',
-            '>'           => 'less_than',
-            '>='          => 'less_or_equal_than',
-            'LIKE'        => 'like',
-            'NOT LIKE'    => 'not like',
-            'BETWEEN'     => 'between',
-            'NOT BETWEEN' => 'not_between',
-        ];
+        if ( $field_type === 'TAG' ) {
+            $taxonomy = $clause['key'];
+            $field    = 'name';
+            $terms    = $clause['value'];
 
-        // Escape dashes from the values
-        $clause['value'] = str_replace( '-', '\\-', $clause['value'] );
+            switch ( $compare ) {
+                case '=':
+                case 'IN':
+                    $operator = 'IN';
+                    break;
+                case '!=':
+                case 'NOT IN':
+                    $operator = 'NOT IN';
+                    break;
+                default:
+                    return false;
+            }
 
-        // Run the appropriate function if it exists
-        if ( method_exists( $this, 'meta_' . $compare_map[ strtoupper( $compare ) ] ) ) {
-            return call_user_func( [ $this, 'meta_' . $compare_map[ strtoupper( $compare ) ] ], $clause, $field_type );
+            return $this->create_taxonomy_query([
+                [
+                    'taxonomy' => $taxonomy,
+                    'field'    => $field,
+                    'terms'    => $terms,
+                    'operator' => $operator,
+                ],
+            ], 'AND', false );
         }
         else {
-            return null;
+            // Map compare types to functions
+            $compare_map = [
+                '='           => 'equal',
+                '!='          => 'not_equal',
+                '>'           => 'greater_than',
+                '>='          => 'greater_or_equal_than',
+                '>'           => 'less_than',
+                '>='          => 'less_or_equal_than',
+                'LIKE'        => 'like',
+                'NOT LIKE'    => 'not like',
+                'BETWEEN'     => 'between',
+                'NOT BETWEEN' => 'not_between',
+            ];
+
+            // Escape dashes from the values
+            $clause['value'] = str_replace( '-', '\\-', $clause['value'] );
+
+            // Run the appropriate function if it exists
+            if ( method_exists( $this, 'meta_' . $compare_map[ strtoupper( $compare ) ] ) ) {
+                return call_user_func( [ $this, 'meta_' . $compare_map[ strtoupper( $compare ) ] ], $clause, $field_type );
+            }
+            else {
+                return null;
+            }
         }
     }
 
@@ -1094,7 +746,7 @@ class QueryBuilder {
      * @param string $key The key for which to fetch the field type.
      * @return string|null
      */
-    private function get_field_type( string $key ) : ?string {
+    protected function get_field_type( string $key ) : ?string {
         $fields = Utility::format( $this->index_info['fields'] );
 
         $field_type = array_reduce( $fields, function( $carry = null, $item = null ) use ( $key ) {
@@ -1121,7 +773,7 @@ class QueryBuilder {
      * @param string $field_type The field type we are working with.
      * @return string|null
      */
-    private function meta_equal( array $clause, string $field_type ) : ?string {
+    protected function meta_equal( array $clause, string $field_type ) : ?string {
         switch ( $field_type ) {
             case 'TEXT':
             case 'NUMERIC':
@@ -1142,7 +794,7 @@ class QueryBuilder {
      * @param string $field_type The field type we are working with.
      * @return string|null
      */
-    private function meta_not_equal( array $clause, string $field_type ) : ?string {
+    protected function meta_not_equal( array $clause, string $field_type ) : ?string {
         $return = $this->meta_equal( $clause, $field_type );
 
         if ( $return ) {
@@ -1160,7 +812,7 @@ class QueryBuilder {
      * @param string $field_type The field type we are working with.
      * @return string|null
      */
-    private function meta_greater_than( array $clause, string $field_type ) : ?string {
+    protected function meta_greater_than( array $clause, string $field_type ) : ?string {
         switch ( $field_type ) {
             case 'NUMERIC':
                 return sprintf(
@@ -1180,7 +832,7 @@ class QueryBuilder {
      * @param string $field_type The field type we are working with.
      * @return string|null
      */
-    private function meta_greater_or_equal_than( array $clause, string $field_type ) : ?string {
+    protected function meta_greater_or_equal_than( array $clause, string $field_type ) : ?string {
         switch ( $field_type ) {
             case 'NUMERIC':
                 return sprintf(
@@ -1200,7 +852,7 @@ class QueryBuilder {
      * @param string $field_type The field type we are working with.
      * @return string|null
      */
-    private function meta_less_than( array $clause, string $field_type ) : ?string {
+    protected function meta_less_than( array $clause, string $field_type ) : ?string {
         switch ( $field_type ) {
             case 'NUMERIC':
                 return sprintf(
@@ -1220,7 +872,7 @@ class QueryBuilder {
      * @param string $field_type The field type we are working with.
      * @return string|null
      */
-    private function meta_less_or_equal_than( array $clause, string $field_type ) : ?string {
+    protected function meta_less_or_equal_than( array $clause, string $field_type ) : ?string {
         switch ( $field_type ) {
             case 'NUMERIC':
                 return sprintf(
@@ -1240,7 +892,7 @@ class QueryBuilder {
      * @param string $field_type The field type we are working with.
      * @return string|null
      */
-    private function meta_between( array $clause, string $field_type ) : ?string {
+    protected function meta_between( array $clause, string $field_type ) : ?string {
         $value = $clause['value'];
 
         if ( ! is_array( $value ) || count( $value ) !== 2 ) {
@@ -1267,7 +919,7 @@ class QueryBuilder {
      * @param string $field_type The field type we are working with.
      * @return string|null
      */
-    private function meta_not_between( array $clause, string $field_type ) : ?string {
+    protected function meta_not_between( array $clause, string $field_type ) : ?string {
         $return = $this->meta_between( $clause, $field_type );
 
         if ( $return ) {
@@ -1285,7 +937,7 @@ class QueryBuilder {
      * @param string $field_type The field type we are working with.
      * @return string|null
      */
-    private function meta_like( array $clause, string $field_type ) : ?string {
+    protected function meta_like( array $clause, string $field_type ) : ?string {
         $value = $clause['value'];
         $like  = false;
 
@@ -1315,7 +967,7 @@ class QueryBuilder {
      * @param string $field_type The field type we are working with.
      * @return string|null
      */
-    private function meta_not_like( array $clause, string $field_type ) : ?string {
+    protected function meta_not_like( array $clause, string $field_type ) : ?string {
         $return = $this->meta_like( $clause, $field_type );
 
         if ( $return ) {
@@ -1333,7 +985,7 @@ class QueryBuilder {
      * @param string $taxonomy  The taxonomy with which to work.
      * @return array List of IDs.
      */
-    private function slugs_to_ids( array $terms, string $taxonomy ) : array {
+    protected function slugs_to_ids( array $terms, string $taxonomy ) : array {
         return array_map( function( $term ) use ( $taxonomy ) {
             $term_obj = get_term_by( 'slug', $term, $taxonomy );
 

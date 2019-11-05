@@ -190,8 +190,9 @@ class Index {
         if ( \is_multisite() ) {
             \array_unshift(
                 $this->core_schema_fields,
-                new NumericField([
-                    'name' => 'blog_id',
+                new TextField([
+                    'name'     => 'blog_id',
+                    'sortable' => true,
                 ]),
             );
         }

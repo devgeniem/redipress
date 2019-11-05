@@ -108,8 +108,10 @@ class Search {
         // Filter the query string for the count feature
         $count_search_query_string = apply_filters( 'redipress/count_search_query_string', $search_query_string );
 
+        $infields = array_merge( $this->default_search_fields, $this->query_builder->get_search_fields() );
+
         // Filter the list of fields from which the search is conducted.
-        $infields = array_unique( apply_filters( 'redipress/search_fields', $this->default_search_fields, $query ) );
+        $infields = array_unique( apply_filters( 'redipress/search_fields', $infields, $query ) );
 
         // Filter the list of fields that will be returned with the query.
         $return = array_unique( apply_filters( 'redipress/return_fields', [ 'post_object', 'post_date', 'post_type', 'post_id', 'post_parent' ], $query ) );
@@ -270,7 +272,7 @@ class Search {
             $query->query['blog_id'] = [ \get_current_blog_id() ];
         }
 
-        $this->query_builder = new Search\QueryBuilder( $query, $this->index_info );
+        $this->query_builder = new Search\PostQueryBuilder( $query, $this->index_info );
 
         // If we don't have explicitly defined post type query, use the public ones
         if ( empty( $query->query['post_type'] ) ) {

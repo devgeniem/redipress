@@ -22,7 +22,7 @@ class TagField extends SchemaField {
      *
      * @var string
      */
-    public $separator = ',';
+    public $separator = '*';
 
     /**
      * Field constructor
@@ -41,7 +41,7 @@ class TagField extends SchemaField {
             $this->name = $args['name'];
         }
 
-        $this->separator = $args['separator'];
+        $this->separator = $args['separator'] ?? $this->separator;
     }
 
     /**

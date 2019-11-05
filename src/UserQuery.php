@@ -51,6 +51,19 @@ class UserQuery {
     protected $query_builder = null;
 
     /**
+     * Default search fields
+     *
+     * @var array
+     */
+    protected $default_search_fields = [
+        'user_id',
+        'user_login',
+        'user_url',
+        'user_email',
+        'user_nicename',
+    ];
+
+    /**
      * Construct the index object
      *
      * @param Client $client     Client instance.
@@ -80,10 +93,10 @@ class UserQuery {
     /**
      * The search function itself
      *
-     * @param \WP_Query $query The WP_Query object for the search.
+     * @param \WP_Query|\WP_User_Query $query The WP_Query or WP_User_query object for the search.
      * @return mixed Search results.
      */
-    public function search( \WP_Query $query ) {
+    public function search( $query ) {
         // Create the search query
         $search_query = $this->query_builder->get_query();
 
@@ -100,13 +113,13 @@ class UserQuery {
         $infields = array_unique( apply_filters( 'redipress/search_fields', $this->default_search_fields, $query ) );
 
         // Filter the list of fields that will be returned with the query.
-        $return = array_unique( apply_filters( 'redipress/return_fields', [ 'post_object', 'post_date', 'post_type', 'post_id', 'post_parent' ], $query ) );
+        $return = array_unique( apply_filters( 'redipress/return_fields', [ 'user_id', 'user_object' ], $query ) );
 
         // Determine the limit and offset parameters.
-        $limit = $query->query_vars['posts_per_page'];
+        $limit = $query->query_vars['number'] ?: \get_option( 'posts_per_page' );
 
         if ( isset( $query->query_vars['paged'] ) && $query->query_vars['paged'] > 1 ) {
-            $offset = $query->query_vars['posts_per_page'] * ( $query->query_vars['paged'] - 1 );
+            $offset = $limit * ( $query->query_vars['paged'] - 1 );
         }
         elseif ( isset( $query->query_vars['offset'] ) ) {
             $offset = $query->query_vars['offset'];
@@ -118,7 +131,7 @@ class UserQuery {
         // Get the sortby parameter
         $sortby = $this->query_builder->get_sortby() ?: [];
 
-        if ( empty( $sortby ) && ! empty( $query->query_vars['s'] ) ) {
+        if ( empty( $sortby ) && ! empty( $query->query_vars['search'] ) ) {
             // Form the search query
             $command = array_merge(
                 [ $this->index, $search_query_string, 'INFIELDS', count( $infields ) ],
@@ -173,7 +186,7 @@ class UserQuery {
             $command = array_merge(
                 [ $this->index, $search_query_string, 'INFIELDS', count( $infields ) ],
                 $infields,
-                [ 'LOAD', 1, '@post_object' ],
+                [ 'LOAD', 1, '@user_object' ],
                 $this->query_builder->get_groupby(),
                 array_reduce( $return_fields, 'array_merge', [] ),
                 array_merge( $sortby ),
@@ -219,28 +232,17 @@ class UserQuery {
             }, $command ) );
         }
 
-        // Run the count post types command
-        $counts = $this->client->raw_command(
-            'FT.AGGREGATE',
-            array_merge(
-                [ $this->index, $count_search_query_string, 'INFIELDS', count( $infields ) ],
-                $infields,
-                [ 'GROUPBY', 1, '@post_type', 'REDUCE', 'COUNT', '0', 'AS', 'amount' ]
-            )
-        );
-
         // Return the results through a filter
-        return apply_filters( 'redipress/search_results', (object) [
+        return apply_filters( 'redipress/search_results/users', (object) [
             'results' => $results,
-            'counts'  => $counts,
         ], $query );
     }
 
     /**
      * Filter WordPress users requests
      *
-     * @param array|null $users An empty array of posts.
-     * @param \WP_User_Query  $query The WP_User_Query object.
+     * @param array|null     $users An empty array of posts.
+     * @param \WP_User_Query $query The WP_User_Query object.
      * @return array Results or null if no results.
      */
     public function users_pre_query( ?array $users, \WP_User_Query $query ) : ?array {
@@ -249,55 +251,26 @@ class UserQuery {
         // If we are on a multisite and have not explicitly defined that
         // we want to do stuff with other sites, use the current site
         if ( empty( $query->query['blog_id'] ) ) {
-            $query->query['blog_id'] = [ \get_current_blog_id() ];
+            $query_var            = $query->query;
+            $query_var['blog_id'] = [ \get_current_blog_id() ];
         }
 
-        $this->query_builder = new Search\QueryBuilder( $query, $this->index_info );
-
-        // If we don't have explicitly defined post type query, use the public ones
-        if ( empty( $query->query['post_type'] ) ) {
-            $post_types = get_post_types([
-                'public'              => true,
-                'publicly_queryable'  => true,
-                'exclude_from_search' => false,
-            ], 'names' );
-
-            $post_types = apply_filters( 'redipress/search_post_types', $post_types );
-
-            $query->query['post_type']      = $post_types;
-            $query->query_vars['post_type'] = $post_types;
-        }
-
-        // If we don't have explicitly defined post status, just use publish
-        if ( empty( $query->query['post_status'] ) ) {
-            $query->query['post_status']      = 'publish';
-            $query->query_vars['post_status'] = 'publish';
-        }
+        $this->query_builder = new Search\UserQueryBuilder( $query, $this->index_info );
 
         // Only filter front-end search queries
         if ( $this->query_builder->enable() ) {
             do_action( 'redipress/before_search', $this, $query );
+            do_action( 'redipress/before_user_search', $this, $query );
 
             $raw_results = $this->search( $query );
 
-            $count = $raw_results->results[0];
-
-            $query->post_type_counts = [];
-
-            if ( is_array( $raw_results->counts ) ) {
-                unset( $raw_results->counts[0] );
-
-                foreach ( $raw_results->counts as $post_type ) {
-                    $formatted = Utility::format( $post_type );
-
-                    $query->post_type_counts[ $formatted['post_type'] ] = $formatted['amount'];
-                }
-            }
-
             if ( empty( $raw_results->results ) || $raw_results->results[0] === 0 ) {
                 $query->redipress_no_results = true;
-                return apply_filters( 'redipress/no_results', null, $query );
+                $no_results                  = apply_filters( 'redipress/no_results', null, $query );
+                return apply_filters( 'redipress/no_results/users', $no_results, $query );
             }
+
+            $count = $raw_results->results[0];
 
             $results = $this->format_results( $raw_results->results );
 
@@ -308,8 +281,16 @@ class UserQuery {
                 Utility::format( $raw_results->results )
             );
 
+            $results = apply_filters(
+                'redipress/formatted_search_results/users',
+                $results,
+                Utility::format( $raw_results->results )
+            );
+
+            $number = $query->query_vars['number'] ?: \get_option( 'posts_per_page' );
+
             $query->found_posts = $count;
-            $query->max_num_pages( ceil( $count / $query->query_vars['posts_per_page'] ) );
+            $query->max_num_pages( ceil( $count / $number ) );
 
             $query->using_redisearch = true;
 
@@ -329,10 +310,10 @@ class UserQuery {
     public function format_results( array $results ) : array {
         $results = Utility::format( $results );
 
-        return array_map( function( array $result ) : ?\WP_Post {
+        return array_map( function( array $result ) : ?\WP_User {
             $formatted = Utility::format( $result );
 
-            return maybe_unserialize( $formatted['post_object'] );
+            return maybe_unserialize( $formatted['user_object'] );
         }, $results );
     }
 }

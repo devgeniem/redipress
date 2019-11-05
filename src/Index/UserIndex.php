@@ -358,7 +358,21 @@ class UserIndex {
         $additional_fields = array_diff( $fields, $core_field_names );
         $additional_values = array_map( function( $field ) use ( $user ) {
             $value = apply_filters( 'redipress/additional_user_field/' . $field, null, $user->ID, $user );
-            return apply_filters( 'redipress/additional_user_field/' . $user->ID . '/' . $field, $value, $user );
+            $value = apply_filters( 'redipress/additional_user_field/' . $user->ID . '/' . $field, $value, $user );
+
+            switch ( $this->get_field_type( $field ) ) {
+                case 'TAG':
+                    if ( ! is_array( $value ) ) {
+                        $value = [ $value ];
+                    }
+
+                    $value = implode( $this->get_tag_separator(), $value );
+                    break;
+                default:
+                    break;
+            }
+
+            return $value;
         }, $additional_fields );
 
         $additions = array_combine( $additional_fields, $additional_values );
@@ -375,6 +389,7 @@ class UserIndex {
 
         // Filter the post object that will be added to the database serialized.
         $user_object = apply_filters( 'redipress/user_object', $user );
+        $user_object = serialize( $user_object );
 
         $user_login = apply_filters( 'redipress/user_login', $user->user_login );
         $user_login = apply_filters( 'redipress/user_index_strings', $user->user_login, $user );
@@ -409,6 +424,7 @@ class UserIndex {
         $last_name = apply_filters( 'redipress/last_name', $user->last_name );
         $last_name = apply_filters( 'redipress/user_index_strings', $user->last_name, $user );
         $last_name = $this->escape_dashes( $last_name );
+
         if ( \is_multisite() ) {
             $blogs = \get_blogs_of_user( $user->ID, true );
 
@@ -437,11 +453,41 @@ class UserIndex {
             'first_name'      => $first_name,
             'last_name'       => $last_name,
             'search_index'    => $search_index,
+            'user_object'     => $user_object,
         ];
 
         do_action( 'redipress/indexed_user', $user );
 
         return $this->client->convert_associative( array_merge( $args, $rest, $additions ) );
+    }
+
+    /**
+     * Get RediSearch field type for a field
+     *
+     * @param string $key The key for which to fetch the field type.
+     * @return string|null
+     */
+    protected function get_field_type( string $key ) : ?string {
+        $schema     = $this->client->raw_command( 'FT.INFO', [ $this->index ] );
+        $index_info = Utility::format( $schema );
+
+        $fields = Utility::format( $index_info['fields'] );
+
+        $field_type = array_reduce( $fields, function( $carry = null, $item = null ) use ( $key ) {
+            if ( ! empty( $carry ) ) {
+                return $carry;
+            }
+
+            $name = $item[0];
+
+            if ( $name === $key ) {
+                return Utility::get_value( $item, 'type' );
+            }
+
+            return null;
+        });
+
+        return $field_type;
     }
 
     /**

@@ -96,40 +96,6 @@ abstract class QueryBuilder {
     }
 
     /**
-     * Query builder constructor
-     *
-     * @param WP_Query|WP_User_query $query   WP Query or WP User Query object.
-     * @param array                  $index_info Index information.
-     */
-    public function __construct( $query, array $index_info ) {
-        global $wp_rewrite;
-
-        $this->query      = $query;
-        $this->index_info = $index_info;
-
-        $ignore_added_query_vars = array_map( function( $code ) {
-            return preg_replace( '/^\%(.+)\%$/', '\1', $code );
-        }, $wp_rewrite->rewritecode );
-
-        $this->ignore_query_vars = apply_filters( 'redipress/ignore_query_vars', array_merge( [
-            'order',
-            'orderby',
-            'paged',
-            'posts_per_page',
-            'offset',
-            'meta_key',
-            'update_post_meta_cache',
-            'update_post_term_cache',
-        ], $ignore_added_query_vars ) );
-
-        $this->ignore_query_vars = apply_filters( 'redipress/ignore_query_vars/' . static::TYPE, $this->ignore_query_vars );
-
-        // Allow adding support for query vars via a filter
-        $this->query_vars = apply_filters( 'redipress/query_vars', $this->query_vars );
-        $this->query_vars = apply_filters( 'redipress/query_vars/' . static::TYPE, $this->query_vars );
-    }
-
-    /**
      * Get the determined sortby command.
      *
      * @return array
@@ -297,7 +263,7 @@ abstract class QueryBuilder {
         $terms = apply_filters( 'redipress/search_terms/raw/' . static::TYPE, $terms );
 
         // Remove a list of forbidden characters based on RediSearch restrictions.
-        $forbidden_characters = str_split( ',.<>{}[]"\':;!@#$%^&*()+=~' );
+        $forbidden_characters = str_split( ',.<>{}[]"\':;!@#$%^&()+=~' );
 
         $terms = str_replace( $forbidden_characters, array_fill( 0, count( $forbidden_characters ), ' ' ), $terms );
 
@@ -317,6 +283,17 @@ abstract class QueryBuilder {
 
         $sort = explode( ' ', $terms );
 
+        // Handle stars
+        $sort = array_map( function( $word ) {
+            if ( substr( $word, -1 ) === '*' ) {
+                return str_replace( '*', '', $word ) . '*';
+            }
+            else {
+                return str_replace( '*', '', $word );
+            }
+        }, $sort );
+
+        // Handle tildes
         $tilde = array_filter( $sort, function( $word ) {
             return strpos( $word, '~' ) === 0;
         });

@@ -59,12 +59,46 @@ class PostQueryBuilder extends QueryBuilder {
     const TYPE = 'post';
 
     /**
+     * Query builder constructor
+     *
+     * @param \WP_Query $query      WP Query object.
+     * @param array     $index_info Index information.
+     */
+    public function __construct( \WP_Query $query, array $index_info ) {
+        global $wp_rewrite;
+
+        $this->query      = $query;
+        $this->index_info = $index_info;
+
+        $ignore_added_query_vars = array_map( function( $code ) {
+            return preg_replace( '/^\%(.+)\%$/', '\1', $code );
+        }, $wp_rewrite->rewritecode );
+
+        $this->ignore_query_vars = apply_filters( 'redipress/ignore_query_vars', array_merge( [
+            'order',
+            'orderby',
+            'paged',
+            'posts_per_page',
+            'offset',
+            'meta_key',
+            'update_post_meta_cache',
+            'update_post_term_cache',
+        ], $ignore_added_query_vars ) );
+
+        $this->ignore_query_vars = apply_filters( 'redipress/ignore_query_vars/' . static::TYPE, $this->ignore_query_vars );
+
+        // Allow adding support for query vars via a filter
+        $this->query_vars = apply_filters( 'redipress/query_vars', $this->query_vars );
+        $this->query_vars = apply_filters( 'redipress/query_vars/' . static::TYPE, $this->query_vars );
+    }
+
+    /**
      * WP_Query s parameter.
      *
      * @return string
      */
     protected function s() : string {
-        return $this->conduct_search( 's' );
+        $return = $this->conduct_search( 's' );
     }
 
     /**

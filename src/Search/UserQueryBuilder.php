@@ -78,6 +78,32 @@ class UserQueryBuilder extends QueryBuilder {
     const TYPE = 'user';
 
     /**
+     * Query builder constructor
+     *
+     * @param \WP_User_Query $query      WP User Query object.
+     * @param array          $index_info Index information.
+     */
+    public function __construct( \WP_User_Query $query, array $index_info ) {
+        $this->query      = $query;
+        $this->index_info = $index_info;
+
+        $this->ignore_query_vars = apply_filters( 'redipress/ignore_query_vars', [
+            'order',
+            'orderby',
+            'paged',
+            'number',
+            'offset',
+            'meta_key',
+        ]);
+
+        $this->ignore_query_vars = apply_filters( 'redipress/ignore_query_vars/' . static::TYPE, $this->ignore_query_vars );
+
+        // Allow adding support for query vars via a filter
+        $this->query_vars = apply_filters( 'redipress/query_vars', $this->query_vars );
+        $this->query_vars = apply_filters( 'redipress/query_vars/' . static::TYPE, $this->query_vars );
+    }
+
+    /**
      * Returns a boolean whether we want to use only the defined search fields.
      *
      * @return boolean
@@ -105,12 +131,11 @@ class UserQueryBuilder extends QueryBuilder {
     }
 
     /**
-     * WP_User_Query blog_id parameter.
+     * Get array'd blog_id query var.
      *
-     * @return string Redisearch query condition.
+     * @return array
      */
-    protected function blog_id() : string {
-
+    protected function get_blogs() : array {
         if ( empty( $this->query->query_vars['blog_id'] ) ) {
             $blog_id = \get_current_blog_id();
         }
@@ -118,13 +143,16 @@ class UserQueryBuilder extends QueryBuilder {
             $blog_id = $this->query->query_vars['blog_id'];
         }
 
-        $clause = '';
+        return is_array( $blog_id ) ? $blog_id : [ $blog_id ];
+    }
 
-        if ( ! is_array( $blog_id ) ) {
-            $blog_id = [ $blog_id ];
-        }
-
-        $clause = '@blogs:{' . implode( '|', $blog_id ) . '}';
+    /**
+     * WP_User_Query blog_id parameter.
+     *
+     * @return string Redisearch query condition.
+     */
+    protected function blog_id() : string {
+        $clause = '@blogs:{' . implode( '|', $this->get_blogs() ) . '}';
 
         return $clause;
     }
@@ -139,16 +167,22 @@ class UserQueryBuilder extends QueryBuilder {
             return false;
         }
         else {
-            $role = $this->query->query_vars['role'];
+            $roles = $this->query->query_vars['role'];
         }
 
         $clause = '';
 
-        if ( ! is_array( $role ) ) {
-            $role = [ $role ];
+        if ( ! is_array( $roles ) ) {
+            $roles = [ $roles ];
         }
 
-        $clause = '@roles:{' . implode( '|', $role ) . '}';
+        $roles = array_map( function( $role ) {
+            return implode( '|', array_map( function( $blog ) use ( $role ) {
+                return $blog . '_' . $role;
+            }, $this->get_blogs() ) );
+        }, $roles );
+
+        $clause = '@roles:{' . implode( '|', $roles ) . '}';
 
         return $clause;
     }
@@ -163,16 +197,22 @@ class UserQueryBuilder extends QueryBuilder {
             return false;
         }
         else {
-            $role = $this->query->query_vars['role__not_in'];
+            $roles = $this->query->query_vars['role__not_in'];
         }
 
         $clause = '';
 
-        if ( ! is_array( $role ) ) {
-            $role = [ $role ];
+        if ( ! is_array( $roles ) ) {
+            $roles = [ $roles ];
         }
 
-        $clause = '-@roles:{' . implode( '|', $role ) . '}';
+        $roles = array_map( function( $role ) {
+            return implode( '|', array_map( function( $blog ) use ( $role ) {
+                return $blog . '_' . $role;
+            }, $this->get_blogs() ) );
+        }, $roles );
+
+        $clause = '-@roles:{' . implode( '|', $roles ) . '}';
 
         return $clause;
     }
@@ -187,16 +227,22 @@ class UserQueryBuilder extends QueryBuilder {
             return false;
         }
         else {
-            $role = $this->query->query_vars['role__in'];
+            $roles = $this->query->query_vars['role__in'];
         }
 
         $clause = '';
 
-        if ( ! is_array( $role ) ) {
-            $role = [ $role ];
+        if ( ! is_array( $roles ) ) {
+            $roles = [ $roles ];
         }
 
-        $clause = '@roles:{' . implode( '|', $role ) . '}';
+        $roles = array_map( function( $role ) {
+            return implode( '|', array_map( function( $blog ) use ( $role ) {
+                return $blog . '_' . $role;
+            }, $this->get_blogs() ) );
+        }, $roles );
+
+        $clause = '@roles:{' . implode( '|', $roles ) . '}';
 
         return $clause;
     }

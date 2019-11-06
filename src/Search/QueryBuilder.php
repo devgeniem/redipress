@@ -285,10 +285,12 @@ abstract class QueryBuilder {
     /**
      * Search parameter.
      *
+     * @param string $parameter The search parameter.
+     *
      * @return string
      */
-    protected function conduct_search() : string {
-        $terms = $this->query->query_vars['s'];
+    protected function conduct_search( string $parameter ) : string {
+        $terms = $this->query->query_vars[ $parameter ];
 
         // Add a filter for the raw search terms
         $terms = apply_filters( 'redipress/search_terms/raw', $terms );
@@ -506,6 +508,10 @@ abstract class QueryBuilder {
 
         // Determine the relation type
         $queries = [];
+
+        if ( empty( $query ) ) {
+            return '';
+        }
 
         foreach ( $query as $clause ) {
 

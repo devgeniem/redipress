@@ -64,7 +64,7 @@ class PostQueryBuilder extends QueryBuilder {
      * @return string
      */
     protected function s() : string {
-        return $this->conduct_search();
+        return $this->conduct_search( 's' );
     }
 
     /**

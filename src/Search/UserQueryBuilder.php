@@ -101,7 +101,7 @@ class UserQueryBuilder extends QueryBuilder {
      * @return string
      */
     protected function search() : string {
-        return $this->conduct_search();
+        return $this->conduct_search( 'search' );
     }
 
     /**

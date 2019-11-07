@@ -293,7 +293,7 @@ class UserQuery {
 
             $number = $query->query_vars['number'] ?: \get_option( 'posts_per_page' );
 
-            $query->found_posts = $count;
+            $query->total_users = $count;
             $query->max_num_pages( ceil( $count / $number ) );
 
             $query->using_redisearch = true;

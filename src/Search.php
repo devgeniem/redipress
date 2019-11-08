@@ -321,7 +321,7 @@ class Search {
             );
 
             $query->found_posts = $count;
-            $query->max_num_pages( ceil( $count / $query->query_vars['posts_per_page'] ) );
+            $query->max_num_pages = ceil( $count / $query->query_vars['posts_per_page'] );
 
             $query->using_redisearch = true;
 

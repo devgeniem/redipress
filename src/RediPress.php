@@ -243,6 +243,11 @@ class RediPress {
         if ( function_exists( 'pll_languages_list' ) ) {
             new \Geniem\RediPress\External\Polylang();
         }
+
+        // DustPress Debugger
+        if ( class_exists( '\DustPress\Debugger' ) && \DustPress\Debugger::use_debugger() ) {
+            new \Geniem\RediPress\External\DustpressDebugger();
+        }
     }
 
     /**

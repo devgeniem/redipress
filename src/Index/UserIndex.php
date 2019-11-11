@@ -90,7 +90,7 @@ class UserIndex {
         // Register indexing hooks
         add_action( 'profile_update', [ $this, 'upsert' ], 10, 1 );
         add_action( 'user_register', [ $this, 'upsert' ], 10, 1 );
-        add_action( 'delete_user', [ $this, 'delete' ], 10, 1 );
+        add_action( 'deleted_user', [ $this, 'delete' ], 10, 1 );
 
         $this->define_core_fields();
     }

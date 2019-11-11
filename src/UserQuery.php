@@ -236,6 +236,8 @@ class UserQuery {
             }, $command ) );
         }
 
+        \do_action( 'dustpress/debug_query', $query, $results, 'users' );
+
         // Return the results through a filter
         return apply_filters( 'redipress/search_results/users', (object) [
             'results' => $results,

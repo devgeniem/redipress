@@ -513,8 +513,9 @@ class Index {
         $additional_fields = array_diff( $fields, $core_field_names );
 
         $additional_values = array_map( function( $field ) use ( $post ) {
-            $value = apply_filters( 'redipress/additional_field/' . $field, null, $post->ID, $post );
-            return apply_filters( 'redipress/additional_field/' . $post->ID . '/' . $field, $value, $post );
+            $value = apply_filters( 'redipress/additional_field/' . $post->ID . '/' . $field, null, $post );
+            $value = apply_filters( 'redipress/additional_field/' . $field, $value, $post->ID, $post );
+            return $value;
         }, $additional_fields );
 
         $additions = array_combine( $additional_fields, $additional_values );
@@ -530,7 +531,7 @@ class Index {
         // Handle the taxonomies
         $taxonomies = get_taxonomies();
 
-        $wanted_taxonomies = $settings->get( 'taxonomies' ) ?? [];
+        $wanted_taxonomies = $settings->get( 'taxonomies' ) ?: [];
 
         foreach ( $taxonomies as $taxonomy ) {
             $terms = get_the_terms( $post->ID, $taxonomy ) ?: [];

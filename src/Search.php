@@ -8,7 +8,6 @@ namespace Geniem\RediPress;
 use Geniem\RediPress\Settings,
     Geniem\RediPress\Redis\Client,
     Geniem\RediPress\Utility;
-use function GuzzleHttp\Promise\each;
 
 /**
  * RediPress search class
@@ -243,13 +242,7 @@ class Search {
             )
         );
 
-        if ( \class_exists( '\DustPress\Debugger' ) ) {
-            \DustPress\Debugger::set_debugger_data( 'RediPress', [
-                'query'   => $query->redisearch_query,
-                'params'  => $query->query,
-                'results' => count( $results ),
-            ]);
-        }
+        \do_action( 'dustpress/debug_query', $query, $results, 'posts' );
 
         // Return the results through a filter
         return apply_filters( 'redipress/search_results', (object) [
@@ -337,7 +330,7 @@ class Search {
             );
 
             $query->found_posts = $count;
-            $query->max_num_pages( ceil( $count / $query->query_vars['posts_per_page'] ) );
+            $query->max_num_pages = ceil( $count / $query->query_vars['posts_per_page'] );
 
             $query->using_redisearch = true;
 

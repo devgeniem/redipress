@@ -8,7 +8,7 @@ namespace Geniem\RediPress\External;
 /**
  * RediPress DustPress Debugger extension class
  */
-class DustpressDebugger {
+class DustPressDebugger {
 
     /**
      * Constructor
@@ -22,7 +22,7 @@ class DustpressDebugger {
      * Add the data to DustPress Debugger
      *
      * @param object $query The query object.
-     * @param array $results Query results.
+     * @param array  $results Query results.
      * @param string $type Whether we are dealing with posts or users query.
      * @return void
      */

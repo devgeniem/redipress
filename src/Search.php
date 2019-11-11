@@ -8,7 +8,6 @@ namespace Geniem\RediPress;
 use Geniem\RediPress\Settings,
     Geniem\RediPress\Redis\Client,
     Geniem\RediPress\Utility;
-use function GuzzleHttp\Promise\each;
 
 /**
  * RediPress search class
@@ -240,6 +239,8 @@ class Search {
                 [ 'GROUPBY', 1, '@post_type', 'REDUCE', 'COUNT', '0', 'AS', 'amount' ]
             )
         );
+
+        \do_action( 'dustpress/debug_query', $query, $results );
 
         // Return the results through a filter
         return apply_filters( 'redipress/search_results', (object) [

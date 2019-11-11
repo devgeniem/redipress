@@ -101,6 +101,8 @@ class UserQueryBuilder extends QueryBuilder {
         // Allow adding support for query vars via a filter
         $this->query_vars = apply_filters( 'redipress/query_vars', $this->query_vars );
         $this->query_vars = apply_filters( 'redipress/query_vars/' . static::TYPE, $this->query_vars );
+
+        $this->query_params = $this->query->query_vars;
     }
 
     /**

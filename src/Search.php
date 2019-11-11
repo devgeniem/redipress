@@ -243,6 +243,14 @@ class Search {
             )
         );
 
+        if ( \class_exists( '\DustPress\Debugger' ) ) {
+            \DustPress\Debugger::set_debugger_data( 'RediPress', [
+                'query'   => $query->redisearch_query,
+                'params'  => $query->query,
+                'results' => count( $results ),
+            ]);
+        }
+
         // Return the results through a filter
         return apply_filters( 'redipress/search_results', (object) [
             'results' => $results,
@@ -300,6 +308,11 @@ class Search {
 
             $raw_results = $this->search( $query );
 
+            if ( empty( $raw_results->results ) || $raw_results->results[0] === 0 ) {
+                $query->redipress_no_results = true;
+                return apply_filters( 'redipress/no_results', null, $query );
+            }
+
             $count = $raw_results->results[0];
 
             $query->post_type_counts = [];
@@ -312,11 +325,6 @@ class Search {
 
                     $query->post_type_counts[ $formatted['post_type'] ] = $formatted['amount'];
                 }
-            }
-
-            if ( empty( $raw_results->results ) || $raw_results->results[0] === 0 ) {
-                $query->redipress_no_results = true;
-                return apply_filters( 'redipress/no_results', null, $query );
             }
 
             $results = $this->format_results( $raw_results->results );

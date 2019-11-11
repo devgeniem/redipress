@@ -207,7 +207,7 @@ abstract class QueryBuilder {
             return false;
         }
 
-        $query_vars = $this->query->query_vars;
+        $query_vars = $this->query_params;
 
         if ( $this->query->is_front_page ) {
             return false;

@@ -33,6 +33,7 @@ class PostQueryBuilder extends QueryBuilder {
         'blog_id'          => 'blog_id',
         'p'                => 'post_id',
         'name'             => 'post_name',
+        'page'             => null,
         'pagename'         => 'post_name',
         'post_type'        => 'post_type',
         'post_parent'      => 'post_parent',
@@ -90,6 +91,8 @@ class PostQueryBuilder extends QueryBuilder {
         // Allow adding support for query vars via a filter
         $this->query_vars = apply_filters( 'redipress/query_vars', $this->query_vars );
         $this->query_vars = apply_filters( 'redipress/query_vars/' . static::TYPE, $this->query_vars );
+
+        $this->query_params = $this->query->query;
     }
 
     /**
@@ -98,7 +101,7 @@ class PostQueryBuilder extends QueryBuilder {
      * @return string
      */
     protected function s() : string {
-        $return = $this->conduct_search( 's' );
+        return $this->conduct_search( 's' );
     }
 
     /**

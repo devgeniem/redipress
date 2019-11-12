@@ -8,7 +8,7 @@ namespace Geniem\RediPress\External;
 /**
  * RediPress DustPress Debugger extension class
  */
-class DustpressDebugger {
+class DustPressDebugger {
 
     /**
      * Constructor

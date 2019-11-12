@@ -246,7 +246,7 @@ class RediPress {
 
         // DustPress Debugger
         if ( class_exists( '\DustPress\Debugger' ) && \DustPress\Debugger::use_debugger() ) {
-            new \Geniem\RediPress\External\DustpressDebugger();
+            new \Geniem\RediPress\External\DustPressDebugger();
         }
     }
 

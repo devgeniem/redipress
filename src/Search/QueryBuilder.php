@@ -141,6 +141,10 @@ class QueryBuilder {
      * @return array
      */
     public function get_query() : array {
+        if ( empty( $this->wp_query->query['tax_query'] ) ) {
+            $this->wp_query->query['tax_query'] = true;
+        }
+
         $return = array_filter( array_map( function( string $query_var ) : string {
             if ( in_array( $query_var, $this->ignore_query_vars, true ) ) {
                 return false;
@@ -607,15 +611,13 @@ class QueryBuilder {
      */
     protected function tax_query() : string {
 
-        if ( empty( $this->wp_query->query_vars['tax_query'] ) ) {
+        if ( empty( $this->wp_query->tax_query ) ) {
             return false;
         }
 
-        $query = $this->wp_query->query_vars['tax_query'];
+        $query = $this->wp_query->tax_query;
 
-        // Sanitize and validate the query through the WP_Tax_Query class
-        $tax_query = new \WP_Tax_Query( $query );
-        return $this->create_taxonomy_query( $tax_query->queries );
+        return $this->create_taxonomy_query( $query->queries );
     }
 
     /**
@@ -654,10 +656,7 @@ class QueryBuilder {
             return $this->meta_query;
         }
 
-        $query = $this->wp_query->query_vars['meta_query'];
-
-        // Sanitize and validate the query through the WP_Meta_Query class
-        $meta_query = new \WP_Meta_Query( $query );
+        $meta_query = $this->wp_query->meta_query;
 
         $query = $this->create_meta_query( $meta_query->queries );
 

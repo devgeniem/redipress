@@ -30,7 +30,7 @@ class PostQueryBuilder extends QueryBuilder {
     protected $query_vars = [
         'paged'            => null,
         's'                => null,
-        'blog_id'          => 'blog_id',
+        'blog'             => 'blog_id',
         'p'                => 'post_id',
         'name'             => 'post_name',
         'page'             => null,
@@ -101,8 +101,8 @@ class PostQueryBuilder extends QueryBuilder {
      * @return array
      */
     public function get_query() : array {
-        if ( empty( $this->wp_query->query['tax_query'] ) ) {
-            $this->wp_query->query['tax_query'] = true;
+        if ( empty( $this->query->query['tax_query'] ) ) {
+            $this->query->query['tax_query'] = true;
         }
 
         return parent::get_query();
@@ -132,17 +132,17 @@ class PostQueryBuilder extends QueryBuilder {
     }
 
     /**
-     * WP_Query blog_id parameter.
+     * WP_Query blog parameter.
      *
      * @return string Redisearch query condition.
      */
-    protected function blog_id() : string {
+    protected function blog() : string {
 
-        if ( empty( $this->query->query_vars['blog_id'] ) ) {
+        if ( empty( $this->query->query_vars['blog'] ) ) {
             $blog_id = \get_current_blog_id();
         }
         else {
-            $blog_id = $this->query->query_vars['blog_id'];
+            $blog_id = $this->query->query_vars['blog'];
         }
 
         $clause = '';

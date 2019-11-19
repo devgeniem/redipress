@@ -269,12 +269,12 @@ class Search {
 
         // If we are on a multisite and have not explicitly defined that
         // we want to do stuff with other sites, use the current site
-        if ( empty( $query->query['blog_id'] ) ) {
-            $query->query['blog_id']      = [ \get_current_blog_id() ];
-            $query->query_vars['blog_id'] = [ \get_current_blog_id() ];
+        if ( empty( $query->query['blog'] ) ) {
+            $query->query['blog']      = [ \get_current_blog_id() ];
+            $query->query_vars['blog'] = [ \get_current_blog_id() ];
         }
         else {
-            $query->query_vars['blog_id'] = $query->query['blog_id'];
+            $query->query_vars['blog'] = $query->query['blog'];
         }
 
         $this->query_builder = new Search\PostQueryBuilder( $query, $this->index_info );

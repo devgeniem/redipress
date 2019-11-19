@@ -598,12 +598,12 @@ class Index {
         // Get rest of the fields
         $rest = [
             'post_id'        => $post->ID,
-            'post_name'      => $post->post_name,
+            'post_name'      => $this->escape_dashes( $post->post_name ),
             'post_title'     => $post_title,
             'post_author_id' => $post->post_author,
             'post_excerpt'   => $post_excerpt,
             'post_content'   => $post_content,
-            'post_type'      => $post->post_type,
+            'post_type'      => $this->escape_dashes( $post->post_type ),
             'post_parent'    => $post->post_parent,
             'post_status'    => $post_status,
             'post_object'    => serialize( $post_object ),

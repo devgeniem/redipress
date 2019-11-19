@@ -442,10 +442,7 @@ abstract class QueryBuilder {
             return $this->meta_query;
         }
 
-        $query = $this->query->query_vars['meta_query'];
-
-        // Sanitize and validate the query through the WP_Meta_Query class
-        $meta_query = new \WP_Meta_Query( $query );
+        $meta_query = $this->query->meta_query;
 
         if ( empty( $meta_query->queries ) ) {
             return '';

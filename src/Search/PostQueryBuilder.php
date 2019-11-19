@@ -96,6 +96,19 @@ class PostQueryBuilder extends QueryBuilder {
     }
 
     /**
+     * Get the RediSearch query based on the original query
+     *
+     * @return array
+     */
+    public function get_query() : array {
+        if ( empty( $this->wp_query->query['tax_query'] ) ) {
+            $this->wp_query->query['tax_query'] = true;
+        }
+
+        return parent::get_query();
+    }
+
+    /**
      * WP_Query s parameter.
      *
      * @return string
@@ -344,15 +357,11 @@ class PostQueryBuilder extends QueryBuilder {
      */
     protected function tax_query() : string {
 
-        if ( empty( $this->query->query_vars['tax_query'] ) ) {
+        if ( empty( $this->query->tax_query ) ) {
             return false;
         }
 
-        $query = $this->query->query_vars['tax_query'];
-
-        // Sanitize and validate the query through the WP_Tax_Query class
-        $tax_query = new \WP_Tax_Query( $query );
-        return $this->create_taxonomy_query( $tax_query->queries );
+        return $this->create_taxonomy_query( $this->query->tax_query->queries );
     }
 
     /**

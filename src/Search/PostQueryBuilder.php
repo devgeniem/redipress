@@ -214,7 +214,34 @@ class PostQueryBuilder extends QueryBuilder {
         if ( $post_type !== 'any' ) {
             $post_types = is_array( $post_type ) ? $post_type : [ $post_type ];
 
+            $post_types = array_map( [ $this, 'escape_dashes' ], $post_types );
+
             return '@post_type:(' . implode( '|', $post_types ) . ')';
+        }
+        else {
+            return '';
+        }
+    }
+
+    /**
+     * WP_Query name parameter.
+     *
+     * @return ?string
+     */
+    protected function name() : ?string {
+
+        if ( empty( $this->query->query_vars['name'] ) ) {
+            return false;
+        }
+
+        $name = $this->query->query_vars['name'];
+
+        if ( $name !== 'any' ) {
+            $names = is_array( $name ) ? $name : [ $name ];
+
+            $names = array_map( [ $this, 'escape_dashes' ], $names );
+
+            return '@post_name:(' . implode( '|', $names ) . ')';
         }
         else {
             return '';

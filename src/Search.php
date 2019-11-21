@@ -242,7 +242,7 @@ class Search {
             )
         );
 
-        \do_action( 'dustpress/debug_query', $query, $results, 'posts' );
+        \do_action( 'redipress/debug_query', $query, $results, 'posts' );
 
         // Return the results through a filter
         return apply_filters( 'redipress/search_results', (object) [
@@ -333,7 +333,7 @@ class Search {
                 Utility::format( $raw_results->results )
             );
 
-            $query->found_posts = $count;
+            $query->found_posts   = $count;
             $query->max_num_pages = ceil( $count / $query->query_vars['posts_per_page'] );
 
             $query->using_redisearch = true;

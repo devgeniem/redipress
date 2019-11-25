@@ -707,9 +707,11 @@ abstract class QueryBuilder {
                 '>'           => 'less_than',
                 '>='          => 'less_or_equal_than',
                 'LIKE'        => 'like',
-                'NOT LIKE'    => 'not like',
+                'NOT LIKE'    => 'not_like',
                 'BETWEEN'     => 'between',
                 'NOT BETWEEN' => 'not_between',
+                'IN'          => 'in',
+                'NOT IN'      => 'not_in',
             ];
 
             // Escape dashes from the values
@@ -761,10 +763,16 @@ abstract class QueryBuilder {
     protected function meta_equal( array $clause, string $field_type ) : ?string {
         switch ( $field_type ) {
             case 'TEXT':
-            case 'NUMERIC':
                 return sprintf(
                     '(@%s:%s)',
                     $clause['key'],
+                    $clause['value']
+                );
+            case 'NUMERIC':
+                return sprintf(
+                    '(@%s:[%s %s])',
+                    $clause['key'],
+                    $clause['value'],
                     $clause['value']
                 );
             default:
@@ -954,6 +962,53 @@ abstract class QueryBuilder {
      */
     protected function meta_not_like( array $clause, string $field_type ) : ?string {
         $return = $this->meta_like( $clause, $field_type );
+
+        if ( $return ) {
+            return '-' . $return;
+        }
+        else {
+            return $return;
+        }
+    }
+
+    /**
+     * Meta clause generator for compare type IN
+     *
+     * @param array  $clause     The clause to work with.
+     * @param string $field_type The field type we are working with.
+     * @return string|null
+     */
+    protected function meta_in( array $clause, string $field_type ) : ?string {
+        switch ( $field_type ) {
+            case 'TEXT':
+                return sprintf(
+                    '(@%s:(%s))',
+                    $clause['key'],
+                    implode( '|', (array) $clause['value'] )
+                );
+            case 'NUMERIC':
+                return implode( '|', array_map( function( $value ) use ( $clause ) {
+                    return sprintf(
+                        '(@%s:[%s %s])',
+                        $clause['key'],
+                        $value,
+                        $value
+                    );
+                }, $clause['value'] ) );
+            default:
+                return null;
+        }
+    }
+
+    /**
+     * Meta clause generator for compare type NOT IN
+     *
+     * @param array  $clause     The clause to work with.
+     * @param string $field_type The field type we are working with.
+     * @return string|null
+     */
+    protected function meta_not_in( array $clause, string $field_type ) : ?string {
+        $return = $this->meta_in( $clause, $field_type );
 
         if ( $return ) {
             return '-' . $return;

@@ -287,16 +287,22 @@ class Search {
                 'exclude_from_search' => false,
             ], 'names' );
 
-            $post_types = apply_filters( 'redipress/search_post_types', $post_types );
+            $post_types = apply_filters( 'redipress/post_types', $post_types );
 
             $query->query['post_type']      = $post_types;
             $query->query_vars['post_type'] = $post_types;
         }
 
+        $post_status = apply_filters( 'redipress/post_status', $query->query['post_status'] );
+
         // If we don't have explicitly defined post status, just use publish
-        if ( empty( $query->query['post_status'] ) ) {
+        if ( is_null( $post_status ) ) {
             $query->query['post_status']      = 'publish';
             $query->query_vars['post_status'] = 'publish';
+        }
+        else {
+            $query->query['post_status']      = $post_status;
+            $query->query_vars['post_status'] = $post_status;
         }
 
         // Only filter front-end search queries

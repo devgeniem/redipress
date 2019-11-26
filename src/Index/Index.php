@@ -515,6 +515,12 @@ class Index {
         $additional_values = array_map( function( $field ) use ( $post ) {
             $value = apply_filters( 'redipress/additional_field/' . $post->ID . '/' . $field, null, $post );
             $value = apply_filters( 'redipress/additional_field/' . $field, $value, $post->ID, $post );
+
+            // RediSearch doesn't accept boolean values
+            if ( is_bool( $value ) ) {
+                $value = (int) $value;
+            }
+
             return $value;
         }, $additional_fields );
 

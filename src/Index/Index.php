@@ -462,8 +462,13 @@ class Index {
      * @return void
      */
     public function delete( $post_id ) {
-        $this->delete_post( $post_id );
+        $post = \get_post( $post_id );
 
+        if ( $post ) {
+            $post_id = $this->get_document_id( $post );
+        }
+
+        $this->delete_post( $post_id );
         $this->maybe_write_to_disk( 'post_deleted' );
     }
 

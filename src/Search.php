@@ -269,12 +269,14 @@ class Search {
 
         // If we are on a multisite and have not explicitly defined that
         // we want to do stuff with other sites, use the current site
-        if ( empty( $query->query['blog'] ) ) {
-            $query->query['blog']      = [ \get_current_blog_id() ];
-            $query->query_vars['blog'] = [ \get_current_blog_id() ];
-        }
-        else {
-            $query->query_vars['blog'] = $query->query['blog'];
+        if ( is_multisite() ) {
+            if ( empty( $query->query['blog'] ) ) {
+                $query->query['blog']      = [ \get_current_blog_id() ];
+                $query->query_vars['blog'] = [ \get_current_blog_id() ];
+            }
+            else {
+                $query->query_vars['blog'] = $query->query['blog'];
+            }
         }
 
         $this->query_builder = new Search\PostQueryBuilder( $query, $this->index_info );
@@ -293,7 +295,7 @@ class Search {
             $query->query_vars['post_type'] = $post_types;
         }
 
-        $post_status = apply_filters( 'redipress/post_status', $query->query['post_status'] );
+        $post_status = apply_filters( 'redipress/post_status', $query->query['post_status'] ?? null );
 
         // If we don't have explicitly defined post status, just use publish
         if ( is_null( $post_status ) ) {

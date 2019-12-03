@@ -23,3 +23,4 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 - String escaping fixed for post data indexing.
+- Polylang term query fixed for empty 'lang' query variable.

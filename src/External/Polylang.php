@@ -30,6 +30,10 @@ class Polylang {
 
             $slug = $query->query['lang'];
 
+            if ( empty( $slug ) ) {
+                return '';
+            }
+
             $term_clause = [
                 [
                     'field'    => 'slug',

@@ -490,7 +490,6 @@ class Index {
         $author_field = apply_filters( 'redipress/post_author_field', 'display_name', $post->ID, $post );
         $user_object  = get_userdata( $post->post_author );
 
-
         if ( $user_object instanceof \WP_User ) {
             $post_author = $user_object->{ $author_field };
         }
@@ -505,12 +504,14 @@ class Index {
         // Get the post date
         $args['post_date'] = strtotime( $post->post_date ) ?: null;
 
-        // Get the RediSearch schema for possible additional fields
-        $schema = $this->client->raw_command( 'FT.INFO', [ $this->index ] );
+        if ( ! $this->index_info ) {
+            // Get the RediSearch schema for possible additional fields
+            $schema = $this->client->raw_command( 'FT.INFO', [ $this->index ] );
 
-        $schema = Utility::format( $schema );
+            $this->index_info = Utility::format( $schema );
+        }
 
-        $fields = Utility::get_schema_fields( $schema['fields'] ?? [] );
+        $fields = Utility::get_schema_fields( $this->index_info['fields'] ?? [] );
 
         // Gather field names from hardcoded field for later.
         $core_field_names = array_map( [ $this, 'return_field_name' ], $this->core_schema_fields );
@@ -520,6 +521,12 @@ class Index {
         $additional_values = array_map( function( $field ) use ( $post ) {
             $value = apply_filters( 'redipress/additional_field/' . $post->ID . '/' . $field, null, $post );
             $value = apply_filters( 'redipress/additional_field/' . $field, $value, $post->ID, $post );
+
+            $type = $this->get_field_type( $field );
+
+            if ( $type === 'TAG' && is_array( $value ) ) {
+                $value = implode( $this->get_tag_separator(), $value );
+            }
 
             // RediSearch doesn't accept boolean values
             if ( is_bool( $value ) ) {
@@ -885,5 +892,31 @@ class Index {
      */
     protected function get_tag_separator() : string {
         return apply_filters( 'redipress/tag_separator', self::TAG_SEPARATOR );
+    }
+
+    /**
+     * Get RediSearch field type for a field
+     *
+     * @param string $key The key for which to fetch the field type.
+     * @return string|null
+     */
+    protected function get_field_type( string $key ) : ?string {
+        $fields = Utility::format( $this->index_info['fields'] );
+
+        $field_type = array_reduce( $fields, function( $carry = null, $item = null ) use ( $key ) {
+            if ( ! empty( $carry ) ) {
+                return $carry;
+            }
+
+            $name = $item[0];
+
+            if ( $name === $key ) {
+                return Utility::get_value( $item, 'type' );
+            }
+
+            return null;
+        });
+
+        return $field_type;
     }
 }

@@ -46,6 +46,7 @@ class PostQueryBuilder extends QueryBuilder {
         'category_name'    => 'taxonomy_category',
         'meta_query'       => null,
         'tax_query'        => null,
+        'date_query'       => null,
         'order'            => null,
         'orderby'          => null,
         'posts_per_page'   => null,
@@ -53,6 +54,20 @@ class PostQueryBuilder extends QueryBuilder {
         'meta_key'         => null,
         'weight'           => null,
     ];
+
+    /**
+     * Possible applies for the query
+     *
+     * @var array
+     */
+    protected $applies = [];
+
+    /**
+     * Possible filters for the query
+     *
+     * @var array
+     */
+    protected $filters = [];
 
     /**
      * Whether the builder is for posts or for users
@@ -82,6 +97,7 @@ class PostQueryBuilder extends QueryBuilder {
             'posts_per_page',
             'offset',
             'meta_key',
+            'meta_type',
             'update_post_meta_cache',
             'update_post_term_cache',
         ], $ignore_added_query_vars ) );
@@ -106,6 +122,32 @@ class PostQueryBuilder extends QueryBuilder {
         }
 
         return parent::get_query();
+    }
+
+    /**
+     * Return the possible apply clauses.
+     *
+     * @return array
+     */
+    public function get_applies() : array {
+        return array_merge( ...$this->applies );
+    }
+
+    /**
+     * Return the possible filters
+     *
+     * @return array
+     */
+    public function get_filters() : array {
+        if ( empty( $this->filters) ) {
+            return [];
+        }
+        else {
+            return [
+                'FILTER',
+                $this->filters,
+            ];
+        }
     }
 
     /**
@@ -383,12 +425,217 @@ class PostQueryBuilder extends QueryBuilder {
      * @return string
      */
     protected function tax_query() : string {
-
         if ( empty( $this->query->tax_query ) ) {
             return false;
         }
 
         return $this->create_taxonomy_query( $this->query->tax_query->queries );
+    }
+
+    /**
+     * WP_Query date_query parameter.
+     *
+     * @return string
+     */
+    protected function date_query() : string {
+        if ( empty( $this->query->date_query ) ) {
+            return false;
+        }
+
+        $queries = $this->create_date_query( $this->query->date_query->queries );
+
+        $this->applies = array_map( function( $apply ) {
+            return [
+                'APPLY',
+                $apply['function'] . '(@' . $apply['field'] . ')',
+                'AS',
+                'redipress_' . $apply['as'],
+            ];
+        }, $queries['applies'] );
+
+        $this->filters = $queries['filters'];
+
+        return '';
+    }
+
+    /**
+     * Create a RediSearch date query from a single WP_Query date_query block.
+     *
+     * This function runs itself recursively if the query has multiple levels.
+     *
+     * @param array $query The block to create the block from.
+     * @return array
+     */
+    public function create_date_query( array $query ) : array {
+
+        // Determine the relation type
+        $queries = [];
+
+        if ( empty( $query ) ) {
+            return '';
+        }
+
+        $unsupported_time_keys = [
+            'after',
+            'before',
+            'second',
+            'week',
+            'w',
+            'dayofweek_iso',
+            'hour',
+            'minute',
+            'second',
+        ];
+
+        $mappings = [
+            'year'      => 'year',
+            'month'     => 'monthofyear',
+            'monthnum'  => 'monthofyear',
+            'dayofyear' => 'dayofyear',
+            'day'       => 'dayofmonth',
+            'dayofweek' => 'dayofweek',
+        ];
+
+        $unsupported_compares = [
+            'IN',
+            'NOT IN',
+            'BETWEEN',
+            'NOT BETWEEN',
+        ];
+
+        if ( empty( $query['compare'] ) ) {
+            $query['compare'] = '=';
+        }
+
+        // Compare
+        switch ( $query['compare'] ) {
+            case '=':
+                $compare = '==';
+                break;
+            case '!=':
+            case '<':
+            case '<=':
+            case '>':
+            case '>=':
+                $compare = $query['compare'];
+                break;
+            default:
+                return [];
+        }
+        unset( $query['compare'] );
+
+        switch ( $query['relation'] ) {
+            case 'OR':
+                $relation = '||';
+                break;
+            case 'AND':
+            default:
+                $relation = '&&';
+        };
+        unset( $query['relation'] );
+
+        $column = $query['column'] ?? 'post_date';
+        unset( $query['column'] );
+
+        $applies = [];
+        $filters = [];
+
+        foreach ( $query as $clause ) {
+            foreach ( $clause as $key => $value ) {
+                if ( in_array( $key, $unsupported_time_keys, true ) ) {
+                    return false;
+                }
+            }
+
+            if ( $column === 'post_date_gmt' ) {
+                return false;
+            }
+
+            if ( empty( $clause['compare'] ) ) {
+                $clause['compare'] = '=';
+            }
+
+            if ( in_array( $compare, $unsupported_compares, true ) ) {
+                return false;
+            }
+
+            // Compare
+            switch ( $clause['compare'] ) {
+                case '=':
+                    $compare = '==';
+                    break;
+                case '!=':
+                case '<':
+                case '<=':
+                case '>':
+                case '>=':
+                    $compare = $clause['compare'];
+                    break;
+                default:
+                    return [];
+            }
+            unset( $clause['compare'] );
+
+            switch ( $clause['relation'] ) {
+                case 'OR':
+                    $inner_relation = '||';
+                    break;
+                case 'AND':
+                default:
+                    $inner_relation = '&&';
+            };
+            unset( $clause['relation'] );
+
+            // Count the number of non-arrays in the clause. If it's greater than zero
+            // we are dealing with an actual clause.
+            $single = array_reduce( $clause, function( int $carry, $item ) {
+                if ( ! is_array( $item ) ) {
+                    return ++$carry;
+                }
+                else {
+                    return $carry;
+                }
+            }, 0 );
+
+            if ( $single ) {
+                $res = [];
+
+                foreach ( $mappings as $map_key => $map_value ) {
+                    if ( ! empty( $clause[ $map_key ] ) ) {
+                        $applies[] = [
+                            'as'       => $map_key,
+                            'function' => $map_value,
+                            'field'    => $column,
+                        ];
+
+                        if ( $map_value === 'monthofyear' ) {
+                            $clause[ $map_key ] -= 1;
+                        }
+
+                        $res[] = [
+                            '@redipress_' . $map_key, // Parameter key prefixed
+                            $clause[ $map_key ],     // Parameter value
+                        ];
+                    }
+                }
+
+                $filters[] = '(' . implode( ' ' . $inner_relation . ' ', array_map( function( $clause ) use ( $compare ) {
+                    return implode( ' ' . $compare . ' ', $clause );
+                }, $res ) ) . ')';
+            }
+            // If we have multiple clauses in the block, run the function recursively.
+            else {
+                $sub_queries = $this->create_date_query( $clause );
+
+                $applies[] = $sub_queries['applies'];
+                $filters[] = $sub_queries['filters'];
+            }
+        }
+
+        return [
+            'applies' => $applies,
+            'filters' => '(' . implode( ' ' . $relation . ' ',  $filters ) . ')',
+        ];
     }
 
     /**

@@ -129,9 +129,11 @@ class Search {
         }
 
         // Get the sortby parameter
-        $sortby = $this->query_builder->get_sortby() ?: [];
+        $sortby  = $this->query_builder->get_sortby() ?: [];
+        $applies = $this->query_builder->get_applies() ?: [];
+        $filters = $this->query_builder->get_filters() ?: [];
 
-        if ( empty( $sortby ) && ! empty( $query->query_vars['s'] ) ) {
+        if ( empty( $sortby ) && ! empty( $query->query_vars['s'] ) && empty( $applies ) && empty( $filters ) ) {
             // Form the search query
             $command = array_merge(
                 [ $this->index, $search_query_string, 'INFIELDS', count( $infields ) ],
@@ -189,6 +191,8 @@ class Search {
                 [ 'LOAD', 1, '@post_object' ],
                 $this->query_builder->get_groupby(),
                 array_reduce( $return_fields, 'array_merge', [] ),
+                $applies,
+                $filters,
                 array_merge( $sortby ),
                 [ 'LIMIT', $offset, $limit ]
             );

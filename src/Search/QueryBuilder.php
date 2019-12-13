@@ -171,7 +171,7 @@ abstract class QueryBuilder {
 
         return array_merge(
             $return,
-            $this->modifiers
+            $this->modifiers,
         );
     }
 

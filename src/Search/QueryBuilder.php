@@ -520,11 +520,12 @@ abstract class QueryBuilder {
 
                         break;
                     case 'slug':
+                    case 'term_taxonomy_id':
                         $taxonomy = $clause['taxonomy'] ?? false;
 
                         // Change slug to the term id.
                         // We are searching with the term id not with the term slug.
-                        $clause['terms'] = $this->slugs_to_ids( $clause['terms'], $taxonomy );
+                        $clause['terms'] = $this->terms_to_ids( $clause['terms'], $taxonomy, $clause['field'] );
 
                         // The fallthrough is intentional: we only turn the slugs into ids.
                     case 'term_id':
@@ -1023,11 +1024,12 @@ abstract class QueryBuilder {
      *
      * @param array  $terms     The slugs.
      * @param string $taxonomy  The taxonomy with which to work.
+     * @param string $field     The field to fetch the term by.
      * @return array List of IDs.
      */
-    protected function slugs_to_ids( array $terms, string $taxonomy ) : array {
-        return array_map( function( $term ) use ( $taxonomy ) {
-            $term_obj = get_term_by( 'slug', $term, $taxonomy );
+    protected function terms_to_ids( array $terms, string $taxonomy, string $field = 'slug' ) : array {
+        return array_map( function( $term ) use ( $taxonomy, $field ) {
+            $term_obj = get_term_by( $field, $term, $taxonomy );
 
             return $term_obj->term_id;
         }, $terms );

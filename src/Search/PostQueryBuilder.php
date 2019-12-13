@@ -46,6 +46,7 @@ class PostQueryBuilder extends QueryBuilder {
         'category_name'    => 'taxonomy_category',
         'meta_query'       => null,
         'tax_query'        => null,
+        'date_query'       => null,
         'order'            => null,
         'orderby'          => null,
         'posts_per_page'   => null,
@@ -389,6 +390,20 @@ class PostQueryBuilder extends QueryBuilder {
         }
 
         return $this->create_taxonomy_query( $this->query->tax_query->queries );
+    }
+
+    /**
+     * WP_Query category__and parameter.
+     *
+     * @return string
+     */
+    protected function date_query() : string {
+
+        if ( empty( $this->query->date_query ) ) {
+            return false;
+        }
+
+        return $this->create_date_query( $this->query->date_query->queries );
     }
 
     /**

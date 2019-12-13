@@ -567,6 +567,117 @@ abstract class QueryBuilder {
     }
 
     /**
+     * Create a RediSearch date query from a single WP_Query date_query block.
+     *
+     * @param array   $query    The block to create the block from.
+     * @param string  $operator Possible operator of the parent array.
+     * @param boolean $prefix   Whether to prefix the field with taxonomy_ or not.
+     * @return string
+     */
+    public function create_date_query( array $query, string $relation = 'AND', bool $prefix = true ) : string {
+
+        // Fail fast.
+        if ( empty( $query ) ) {
+            return '';
+        }
+
+        $relation = $query['relation'] ?? $compare;
+        unset( $query['relation'] );
+
+        // RediSearch doesn't support these tax query clause compares.
+        $unsupported_compares = [
+            'test'
+        ];
+
+        // These will be added later.
+        $unsupported_parameters = [
+            'week',
+
+            // Days
+            'day',
+            'dayofweek',
+
+            // Time
+            'hour',
+            'minute',
+            'second',
+        ];
+
+        // Determine the relation type
+        $queries = [];
+
+        foreach ( $query as $clause ) {
+
+ /*            if ( empty( $clause['compare'] ) ) {
+                return false;
+            } */
+
+            // Column to check date for.
+            // Defaults to post_date.
+            $column = $query[ 'column' ] ?? 'post_date';
+
+            // We do not support some compare types, so bail early if some of them is found.
+/*             if ( in_array( $clause['compare'], $unsupported_compares, true ) ) {
+                return false;
+            } */
+
+            // An array of all possible params.
+            $all_possible_time_params = [
+                'year',
+                'month',
+                'week',
+
+                // Days
+                'day',
+                'dayofweek',
+
+                // Time
+                'hour',
+                'minute',
+                'second',
+            ];
+
+            /**
+             * year and monthnum
+             *
+             * TODO HOW TO HANDLE MULTIPLE COMBINATIONS
+             * https://developer.wordpress.org/reference/classes/wp_query/
+             */
+            if ( ! empty( $clause['year'] ) && ! empty( $clause['monthnum'] && $this->other_values_are_empty( ['year', 'month'], $clause ) ) ) {
+
+                $date = $clause['year'] . '-' . $clause['monthnum'];
+
+                $date      = new \DateTime( $date );
+                $first_day = $date->getTimestamp();
+                $last_day  = $date->modify( 'last day of' );
+                $last_day  = $last_day->getTimestamp();
+
+/*                 $queries[] = sprintf(
+                    '(@%s:[%s %s])',
+                    $column,
+                    $first_day,
+                    $last_day
+                ); */
+                $queries[] = sprintf(
+                    '(@%s:monthofyear())',
+                    $column,
+                    $first_day
+                );
+
+                $this->add_search_field( $column );
+            }
+        }
+
+        // Compare the relation.
+        if ( $relation === 'AND' ) {
+            return count( $queries ) ? '(' . implode( ' ', $queries ) . ')' : '';
+        }
+        elseif ( $relation === 'OR' ) {
+            return count( $queries ) ? '(' . implode( '|', $queries ) . ')' : '';
+        }
+    }
+
+    /**
      * Create a RediSearch meta query from a single WP_Query meta_query block.
      *
      * @param array  $query    The block to create the block from.

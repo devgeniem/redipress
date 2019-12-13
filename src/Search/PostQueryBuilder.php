@@ -130,7 +130,12 @@ class PostQueryBuilder extends QueryBuilder {
      * @return array
      */
     public function get_applies() : array {
-        return array_merge( ...$this->applies );
+        if ( ! empty( $this->applies ) ) {
+            return array_merge( ...$this->applies );
+        }
+        else {
+            return [];
+        }
     }
 
     /**

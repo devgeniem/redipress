@@ -504,7 +504,7 @@ class Index {
         // Get the post date
         $args['post_date'] = strtotime( $post->post_date ) ?: null;
 
-        if ( ! $this->index_info ) {
+        if ( empty( $this->index_info ) ) {
             // Get the RediSearch schema for possible additional fields
             $schema = $this->client->raw_command( 'FT.INFO', [ $this->index ] );
 

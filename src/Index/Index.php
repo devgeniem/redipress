@@ -103,7 +103,7 @@ class Index {
         add_action( 'redipress/index_post', [ $this, 'upsert' ], 50, 3 );
 
         // Register indexing hooks
-        add_action( 'save_post', [ $this, 'upsert' ], 10, 3 );
+        add_action( 'save_post', [ $this, 'upsert' ], 500, 3 );
         add_action( 'delete_post', [ $this, 'delete' ], 10, 1 );
 
         $this->define_core_fields();

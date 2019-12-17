@@ -210,6 +210,11 @@ class Index {
                 'name'      => 'taxonomy_id_' . $taxonomy,
                 'separator' => $this->get_tag_separator(),
             ]);
+
+            $this->core_schema_fields[] = new TagField([
+                'name'      => 'taxonomy_slug_' . $taxonomy,
+                'separator' => $this->get_tag_separator(),
+            ]);
         }
     }
 
@@ -579,12 +584,21 @@ class Index {
                 return $term->term_id;
             }, $terms ) );
 
+            // Add the terms
+            $slug_string = implode( $this->get_tag_separator(), array_map( function( $term ) {
+                return $term->slug;
+            }, $terms ) );
+
             if ( ! empty( $term_string ) ) {
                 $tax[ 'taxonomy_' . $taxonomy ] = $term_string;
             }
 
             if ( ! empty( $id_string ) ) {
                 $tax[ 'taxonomy_id_' . $taxonomy ] = $id_string;
+            }
+
+            if ( ! empty( $slug_string ) ) {
+                $tax[ 'taxonomy_id_' . $taxonomy ] = $slug_string;
             }
 
             if ( in_array( $taxonomy, $wanted_taxonomies, true ) && ! empty( $term_string ) ) {

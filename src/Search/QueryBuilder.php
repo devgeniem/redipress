@@ -520,6 +520,25 @@ abstract class QueryBuilder {
 
                         break;
                     case 'slug':
+                        // Form clause by operator.
+                        if ( $clause['operator'] === 'IN' ) {
+                            $queries[] = sprintf(
+                                '(@%s:{%s})',
+                                $prefix ? 'taxonomy_slug_' . $clause['taxonomy'] : $clause['taxonomy'],
+                                implode( '|', (array) $clause['terms'] )
+                            );
+                        }
+                        elseif ( $clause['operator'] === 'NOT IN' ) {
+                            $queries[] = sprintf(
+                                '-(@%s:{%s})',
+                                $prefix ? 'taxonomy_slug_' . $clause['taxonomy'] : $clause['taxonomy'],
+                                implode( '|', (array) $clause['terms'] )
+                            );
+                        }
+
+                        $this->add_search_field( 'taxonomy_slug_' . $clause['taxonomy'] );
+
+                        break;
                     case 'term_taxonomy_id':
                         $taxonomy = $clause['taxonomy'] ?? false;
 

@@ -598,7 +598,7 @@ class Index {
             }
 
             if ( ! empty( $slug_string ) ) {
-                $tax[ 'taxonomy_id_' . $taxonomy ] = $slug_string;
+                $tax[ 'taxonomy_slug_' . $taxonomy ] = $slug_string;
             }
 
             if ( in_array( $taxonomy, $wanted_taxonomies, true ) && ! empty( $term_string ) ) {

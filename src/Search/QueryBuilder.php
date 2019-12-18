@@ -587,7 +587,7 @@ abstract class QueryBuilder {
                 if ( ! empty( $clause['key'] ) ) {
                     $query = $this->create_meta_clause( $clause );
 
-                    if ( ! $query ) {
+                    if ( is_null( $query ) ) {
                         return null;
                     }
                     else {
@@ -614,7 +614,7 @@ abstract class QueryBuilder {
                 if ( ! empty( $clause['key'] ) ) {
                     $query = $this->create_meta_clause( $clause );
 
-                    if ( ! $query ) {
+                    if ( is_null( $query ) ) {
                         return null;
                     }
                     else {

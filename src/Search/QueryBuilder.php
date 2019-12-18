@@ -659,6 +659,12 @@ abstract class QueryBuilder {
             return null;
         }
 
+        // If we don't have a value to compare with, the clause should not be handled.
+        // Appears when a meta_key is used only for sorting.
+        if ( ! isset( $clause['value'] ) ) {
+            return '';
+        }
+
         // If we have a date or datetime values, convert them to unixtime.
         switch ( $type ) {
             case 'DATE':
@@ -717,6 +723,7 @@ abstract class QueryBuilder {
 
             // Escape dashes from the values
             $clause['value'] = str_replace( '-', '\\-', $clause['value'] );
+
 
             // Run the appropriate function if it exists
             if ( method_exists( $this, 'meta_' . $compare_map[ strtoupper( $compare ) ] ) ) {

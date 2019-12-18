@@ -48,7 +48,7 @@ function get_post( $post_id ) { //}: ?\WP_Post {
  */
 function update_value( $doc_id, $field, $value, $score = 1 ) {
     $settings = new Settings();
-    $client = apply_filters( 'redipress/client', null );
+    $client   = apply_filters( 'redipress/client', null );
 
     $index = Settings::get( 'index' );
 

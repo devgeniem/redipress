@@ -203,12 +203,12 @@ class Index {
         foreach ( $taxonomies as $taxonomy ) {
             $this->core_schema_fields[] = new TagField([
                 'name'      => 'taxonomy_' . $taxonomy,
-                'separator' => $this->get_tag_separator(),
+                'separator' => self::get_tag_separator(),
             ]);
 
             $this->core_schema_fields[] = new TagField([
                 'name'      => 'taxonomy_id_' . $taxonomy,
-                'separator' => $this->get_tag_separator(),
+                'separator' => self::get_tag_separator(),
             ]);
         }
     }
@@ -296,7 +296,7 @@ class Index {
 
             $converted = $this->convert_post( $post );
 
-            $this->add_post( $converted, $this->get_document_id( $post ), $language );
+            $this->add_post( $converted, self::get_document_id( $post ), $language );
 
             if ( ! empty( $progress ) ) {
                 $progress->tick();
@@ -320,7 +320,7 @@ class Index {
      * @param \WP_Post $post The post to deal with.
      * @return string
      */
-    public function get_document_id( \WP_Post $post ) : string {
+    public static function get_document_id( \WP_Post $post ) : string {
         if ( ! \is_multisite() ) {
             return $post->ID;
         }
@@ -395,7 +395,7 @@ class Index {
 
             $converted = $this->convert_post( $post );
 
-            $this->add_post( $converted, $this->get_document_id( $post ), $language );
+            $this->add_post( $converted, self::get_document_id( $post ), $language );
 
             if ( ! empty( $progress ) ) {
                 $progress->tick();
@@ -424,7 +424,7 @@ class Index {
 
         $converted = $this->convert_post( $post );
 
-        return $this->add_post( $converted, $this->get_document_id( $post ) );
+        return $this->add_post( $converted, self::get_document_id( $post ) );
     }
 
     /**
@@ -446,7 +446,7 @@ class Index {
 
         $converted = $this->convert_post( $post );
 
-        $result = $this->add_post( $converted, $this->get_document_id( $post ) );
+        $result = $this->add_post( $converted, self::get_document_id( $post ) );
 
         do_action( 'redipress/new_post_added', $result, $post );
 
@@ -465,7 +465,7 @@ class Index {
         $post = \get_post( $post_id );
 
         if ( $post ) {
-            $post_id = $this->get_document_id( $post );
+            $post_id = self::get_document_id( $post );
         }
 
         $this->delete_post( $post_id );
@@ -525,7 +525,7 @@ class Index {
             $type = $this->get_field_type( $field );
 
             if ( $type === 'TAG' && is_array( $value ) ) {
-                $value = implode( $this->get_tag_separator(), $value );
+                $value = implode( self::get_tag_separator(), $value );
             }
 
             // RediSearch doesn't accept boolean values
@@ -565,7 +565,7 @@ class Index {
             }
 
             // Add the terms
-            $term_string = implode( $this->get_tag_separator(), array_map( function( $term ) {
+            $term_string = implode( self::get_tag_separator(), array_map( function( $term ) {
                 return $term->name;
             }, $terms ) );
 
@@ -575,7 +575,7 @@ class Index {
             }, $terms ) );
 
             // Add the terms
-            $id_string = implode( $this->get_tag_separator(), array_map( function( $term ) {
+            $id_string = implode( self::get_tag_separator(), array_map( function( $term ) {
                 return $term->term_id;
             }, $terms ) );
 
@@ -890,7 +890,7 @@ class Index {
      *
      * @return string
      */
-    protected function get_tag_separator() : string {
+    public static function get_tag_separator() : string {
         return apply_filters( 'redipress/tag_separator', self::TAG_SEPARATOR );
     }
 

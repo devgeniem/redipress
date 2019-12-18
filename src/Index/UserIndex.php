@@ -165,7 +165,7 @@ class UserIndex {
             ]),
             new TagField([
                 'name'      => 'roles',
-                'separator' => $this->get_tag_separator(),
+                'separator' => self::get_tag_separator(),
             ]),
             new TextField([
                 'name' => 'search_index',
@@ -175,7 +175,7 @@ class UserIndex {
         if ( \is_multisite() ) {
             $this->core_schema_fields[] = new TagField([
                 'name'      => 'blogs',
-                'separator' => $this->get_tag_separator(),
+                'separator' => self::get_tag_separator(),
             ]);
         }
     }
@@ -260,7 +260,7 @@ class UserIndex {
         $result = array_map( function( $user ) use ( $progress ) {
             $converted = $this->convert_user( $user );
 
-            $this->add_user( $converted, $this->get_document_id( $user ) );
+            $this->add_user( $converted, self::get_document_id( $user ) );
 
             if ( ! empty( $progress ) ) {
                 $progress->tick();
@@ -284,7 +284,7 @@ class UserIndex {
      * @param \WP_User $user The user to deal with.
      * @return string
      */
-    public function get_document_id( \WP_User $user ) : string {
+    public static function get_document_id( \WP_User $user ) : string {
         return (string) $user->ID;
     }
 
@@ -299,7 +299,7 @@ class UserIndex {
 
         $converted = $this->convert_user( $user );
 
-        return $this->add_user( $converted, $this->get_document_id( $user ) );
+        return $this->add_user( $converted, self::get_document_id( $user ) );
     }
 
     /**
@@ -313,7 +313,7 @@ class UserIndex {
 
         $converted = $this->convert_user( $user );
 
-        $result = $this->add_user( $converted, $this->get_document_id( $user ) );
+        $result = $this->add_user( $converted, self::get_document_id( $user ) );
 
         do_action( 'redipress/new_user_added', $result, $user );
 
@@ -366,7 +366,7 @@ class UserIndex {
                         $value = [ $value ];
                     }
 
-                    $value = implode( $this->get_tag_separator(), $value );
+                    $value = implode( self::get_tag_separator(), $value );
                     break;
                 default:
                     break;
@@ -428,11 +428,11 @@ class UserIndex {
         if ( \is_multisite() ) {
             $blogs = \get_blogs_of_user( $user->ID, true );
 
-            $args['blogs'] = implode( $this->get_tag_separator(), array_map( function( $blog ) {
+            $args['blogs'] = implode( self::get_tag_separator(), array_map( function( $blog ) {
                 return $blog->userblog_id;
             }, $blogs ) );
 
-            $args['roles'] = implode( $this->get_tag_separator(), array_map( function( $blog ) use ( $user ) {
+            $args['roles'] = implode( self::get_tag_separator(), array_map( function( $blog ) use ( $user ) {
                 return $this->get_user_roles_for_site( $user->ID, $blog->userblog_id );
             }, $blogs ) );
         }
@@ -504,7 +504,7 @@ class UserIndex {
             return $userblog_id . '_' . $role;
         }, $obj->roles );
 
-        return implode( $this->get_tag_separator(), $roles );
+        return implode( self::get_tag_separator(), $roles );
     }
 
     /**
@@ -593,7 +593,7 @@ class UserIndex {
      *
      * @return string
      */
-    protected function get_tag_separator() : string {
+    public static function get_tag_separator() : string {
         return apply_filters( 'redipress/tag_separator', self::TAG_SEPARATOR );
     }
 }

@@ -22,3 +22,4 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 - String escaping fixed for post data indexing.
+- Fixed a bug in user creation if the user query setting was disabled.

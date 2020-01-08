@@ -138,7 +138,10 @@ class RediPress {
             // Initialize indexing features, we have everything we need to have here.
             add_action( 'init', function() {
                 new Index( $this->connection );
-                new UserIndex( $this->connection );
+
+                if ( Settings::get( 'use_user_query' ) ) {
+                    new UserIndex( $this->connection );
+                }
             }, 1000 );
 
             return true;

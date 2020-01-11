@@ -497,6 +497,9 @@ abstract class QueryBuilder {
                 return false;
             }
 
+            // Escape clause terms
+            $clause['terms'] = $this->escape_clause_terms( $clause['terms'] );
+
             if ( ! empty( $clause['taxonomy'] ) ) {
                 switch ( $clause['field'] ) {
                     case 'name':
@@ -584,6 +587,23 @@ abstract class QueryBuilder {
         elseif ( $relation === 'OR' ) {
             return count( $queries ) ? '(' . implode( '|', $queries ) . ')' : '';
         }
+    }
+
+    /**
+     * Escape clause terms for the RediSearch query.
+     *
+     * @param array $terms Terms to be escaped.
+     * @return array Escaped strings.
+     */
+    protected function escape_clause_terms( $terms ) {
+
+        if ( ! empty( $terms ) ) {
+            foreach ( $terms as &$term ) {
+                $term = \str_replace( '-', '\\-', $term );
+            }
+        }
+
+        return $terms;
     }
 
     /**

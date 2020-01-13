@@ -558,6 +558,11 @@ abstract class QueryBuilder {
             }
         }
 
+        // All minuses to the end of the line.
+        usort( $queries, function( $a, $b ) {
+            return ( substr( $a, 0, 1 ) === '-' );
+        });
+
         // Compare the relation.
         if ( $relation === 'AND' ) {
             return count( $queries ) ? '(' . implode( ' ', $queries ) . ')' : '';
@@ -605,6 +610,11 @@ abstract class QueryBuilder {
                 }
             }
 
+            // All minuses to the end of the line.
+            usort( $queries, function( $a, $b ) {
+                return ( substr( $a, 0, 1 ) === '-' );
+            });
+
             return '(' . implode( ' ', $queries ) . ')';
         }
         elseif ( $relation === 'OR' ) {
@@ -631,6 +641,11 @@ abstract class QueryBuilder {
                     $queries[] = $this->create_meta_query( $clause, 'OR' );
                 }
             }
+
+            // All minuses to the end of the line.
+            usort( $queries, function( $a, $b ) {
+                return ( substr( $a, 0, 1 ) === '-' );
+            });
 
             return '(' . implode( '|', $queries ) . ')';
         }

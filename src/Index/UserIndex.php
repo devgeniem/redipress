@@ -359,8 +359,9 @@ class UserIndex {
         $additional_values = array_map( function( $field ) use ( $user ) {
             $value = apply_filters( 'redipress/additional_user_field/' . $user->ID . '/' . $field, null, $user );
             $value = apply_filters( 'redipress/additional_user_field/' . $field, $value, $user->ID, $user );
+            $type  = $this->get_field_type( $field );
 
-            switch ( $this->get_field_type( $field ) ) {
+            switch ( $type ) {
                 case 'TAG':
                     if ( ! is_array( $value ) ) {
                         $value = [ $value ];
@@ -370,6 +371,16 @@ class UserIndex {
                     break;
                 default:
                     break;
+            }
+
+            // RediSearch doesn't accept boolean values
+            if ( is_bool( $value ) ) {
+                $value = (int) $value;
+            }
+
+            // Escape dashes in all but numeric fields
+            if ( $type !== 'NUMERIC' ) {
+                $value = $this->escape_dashes( $value );
             }
 
             return $value;

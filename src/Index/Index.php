@@ -533,6 +533,11 @@ class Index {
                 $value = (int) $value;
             }
 
+            // Escape dashes in all but numeric fields
+            if ( $type !== 'NUMERIC' ) {
+                $value = $this->escape_dashes( $value );
+            }
+
             return $value;
         }, $additional_fields );
 

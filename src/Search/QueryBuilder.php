@@ -590,6 +590,10 @@ abstract class QueryBuilder {
 
             foreach ( $query as $name => $clause ) {
                 if ( ! empty( $clause['key'] ) ) {
+                    if ( empty( $clause['value'] ) ) {
+                        continue;
+                    }
+
                     $query = $this->create_meta_clause( $clause );
 
                     if ( is_null( $query ) ) {
@@ -622,6 +626,10 @@ abstract class QueryBuilder {
 
             foreach ( $query as $name => $clause ) {
                 if ( ! empty( $clause['key'] ) ) {
+                    if ( empty( $clause['value'] ) ) {
+                        continue;
+                    }
+
                     $query = $this->create_meta_clause( $clause );
 
                     if ( is_null( $query ) ) {

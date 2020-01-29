@@ -863,11 +863,12 @@ class Index {
         // TODO: handle numeric fields.
         $return = $this->client->raw_command( 'FT.SEARCH', [ $this->index, '@' . $field_name .':(' . $value . ')' ] );
 
-        $return = Utility::format( $return );
-
-        if ( empty( $return ) ) {
+        // Nothing found.
+        if ( empty( $return ) || (string) $return[0] === '0' ) {
             return 0;
         }
+
+        $return = Utility::format( $return );
 
         foreach ( $return as $doc_id => $values ) {
             $this->delete_post( $doc_id );

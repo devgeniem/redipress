@@ -15,10 +15,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - doc, rtf, odt, pdf & docx support
 - Index management in admin
 - `wp redipress index missing` command for indexing only posts that do not exist in the search index already.
+- Add a reverse filter for getting the Index class instance.
+- Add a method for deleting indexed items by a field name and matching value.
 
 ### Changed
 - The index creation is now run on the `init` hook with a priority of *1000*. This allow various dependencies to execute before RediPress indexing.
 - Removed `post_object` and `permalink` from the index as they are never queried.
+- Fix getting the document id for posts with a custom document id.
 
 ### Fixed
 - String escaping fixed for post data indexing.

@@ -91,6 +91,11 @@ class Index {
             ],
         ]);
 
+        // Reverse filter for getting the Index instance.
+        add_filter( 'redipress/index_instance', function( $value ) {
+            return $this;
+        }, 1, 1 );
+
         // Register CLI bindings
         add_action( 'redipress/cli/index_all', [ $this, 'index_all' ], 50, 0 );
         add_action( 'redipress/cli/index_missing', [ $this, 'index_missing' ], 50, 0 );
@@ -322,15 +327,22 @@ class Index {
     /**
      * Get a RediPress document ID for a post.
      *
-     * @param \WP_Post $post The post to deal with.
+     * @param \WP_Post $post    The post to deal with.
+     * @param mixed    $post_id The current doc id set for the post.
      * @return string
      */
-    public static function get_document_id( \WP_Post $post ) : string {
-        if ( ! \is_multisite() ) {
-            return $post->ID;
+    public static function get_document_id( \WP_Post $post, $post_id = null ) : string {
+        if ( $post_id && (string) $post->ID !== (string) $post_id ) {
+            $id = $post_id;
         }
         else {
-            return ( $post->blog_id ?? \get_current_blog_id() ) . '_' . $post->ID;
+            $id = $post->ID;
+        }
+        if ( ! \is_multisite() ) {
+            return $id;
+        }
+        else {
+            return ( $post->blog_id ?? \get_current_blog_id() ) . '_' . $id;
         }
     }
 
@@ -451,7 +463,7 @@ class Index {
 
         $converted = $this->convert_post( $post );
 
-        $result = $this->add_post( $converted, self::get_document_id( $post ) );
+        $result = $this->add_post( $converted, self::get_document_id( $post, $post_id ) );
 
         do_action( 'redipress/new_post_added', $result, $post );
 
@@ -838,6 +850,32 @@ class Index {
 
         return $return;
     }
+
+    /**
+     * Delete document items by field name and value.
+     *
+     * @param string $field_name The RediPress index field name.
+     * @param        $value      The value to look for by the name.
+     *
+     * @return int The number of items deleted.
+     */
+    public function delete_by_field( string $field_name, $value ) : int {
+        // TODO: handle numeric fields.
+        $return = $this->client->raw_command( 'FT.SEARCH', [ $this->index, '@' . $field_name .':(' . $value . ')' ] );
+
+        $return = Utility::format( $return );
+
+        if ( empty( $return ) ) {
+            return 0;
+        }
+
+        foreach ( $return as $doc_id => $values ) {
+            $this->delete_post( $doc_id );
+        }
+
+        return count( $return );
+    }
+
 
     /**
      * Write the index to the disk if the setting is on.

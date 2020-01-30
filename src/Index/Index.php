@@ -263,7 +263,8 @@ class Index {
     /**
      * Index all posts to the RediSearch database
      *
-     * @param  \WP_REST_Request|null $request Rest request details or null if not rest api request.
+     * @param  \WP_REST_Request|null $request    Rest request details or null if not rest api request.
+     * @param  array                 $query_args Possible additional arguments for the posts to index.
      * @return int                            Amount of items indexed.
      */
     public function index_all( \WP_REST_Request $request = null, array $query_args = [] ) : int {
@@ -282,7 +283,17 @@ class Index {
                 $where = ' WHERE ';
 
                 foreach ( $query_args as $key => $value ) {
-                    $where .= $key . ' = "' . $value .'" ';
+                    if ( ! in_array( $key, [ 'ID', 'post_author', 'post_date', 'post_status', 'post_name', 'post_parent', 'post_type' ] ) ) {
+                        if ( defined( 'WP_CLI' ) && \WP_CLI ) {
+                            \WP_CLI::error( 'Incorrect filter ' . $key . ' given.' );
+                            die;
+                        }
+                        else {
+                            throw new \Exception( 'Incorrect filter ' . $key . ' given.' );
+                        }
+                    }
+
+                    $where .= $key . ' = "' . \addslashes( $value ) .'" ';
                 }
             }
             else {
@@ -296,7 +307,7 @@ class Index {
 
         $count = count( $ids );
 
-        if ( defined( 'WP_CLI' ) && WP_CLI ) {
+        if ( defined( 'WP_CLI' ) && \WP_CLI ) {
             \WP_CLI::success( 'Starting to index a total of ' . $count . ' posts.' );
 
             $progress = \WP_CLI\Utils\make_progress_bar( __( 'Indexing posts', 'redipress' ), $count );
@@ -361,9 +372,10 @@ class Index {
      * Index all missing posts to the RediSearch database
      *
      * @param  \WP_REST_Request|null $request Rest request details or null if not rest api request.
+     * @param  array                 $query_args Possible additional arguments for the posts to index.
      * @return int                            Amount of items indexed.
      */
-    public function index_missing( \WP_REST_Request $request = null ) : int {
+    public function index_missing( \WP_REST_Request $request = null, array $query_args = [] ) : int {
         global $wpdb;
 
         \do_action( 'redipress/before_index_missing', $request );
@@ -375,7 +387,28 @@ class Index {
             $query  = $wpdb->prepare( "SELECT ID FROM $wpdb->posts LIMIT %d OFFSET %d", $limit, $offset );
         }
         else {
-            $query  = "SELECT ID FROM $wpdb->posts";
+            if ( ! empty( $query_args ) ) {
+                $where = ' WHERE ';
+
+                foreach ( $query_args as $key => $value ) {
+                    if ( ! in_array( $key, [ 'ID', 'post_author', 'post_date', 'post_status', 'post_name', 'post_parent', 'post_type' ] ) ) {
+                        if ( defined( 'WP_CLI' ) && \WP_CLI ) {
+                            \WP_CLI::error( 'Incorrect filter ' . $key . ' given.' );
+                            die;
+                        }
+                        else {
+                            throw new \Exception( 'Incorrect filter ' . $key . ' given.' );
+                        }
+                    }
+
+                    $where .= $key . ' = "' . \addslashes( $value ) .'" ';
+                }
+            }
+            else {
+                $where = '';
+            }
+
+            $query  = "SELECT ID FROM $wpdb->posts$where";
         }
         $ids = $wpdb->get_results( $query ) ?? [];
         // phpcs:enable

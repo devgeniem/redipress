@@ -20,7 +20,7 @@ class Index implements Command {
      */
     public function run( array $args = [], array $assoc_args = [] ) : bool {
         if ( count( $args ) === 0 ) {
-            return $this->index_posts();
+            return $this->index_posts( $assoc_args );
         }
         else {
             switch ( $args[0] ) {
@@ -65,7 +65,7 @@ class Index implements Command {
      * @return bool
      */
     public function index_posts( array $assoc_args = [] ) {
-        $result = apply_filters( 'redipress/cli/index_all', 0, $assoc_args );
+        $result = apply_filters( 'redipress/cli/index_all', null, $assoc_args );
 
         WP_CLI::success( 'All ' . $result . ' posts indexed successfully!' );
         return true;

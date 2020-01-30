@@ -11,18 +11,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Nonscalar fields are serialized before storing them to the index.
 - Support for `update_post_meta_cache` and `update_post_term_cache`.
 - Support for giving own weights for post types, post authors, taxonomy terms and meta values.
-- A support for `update_post_meta_cache` and `update_post_term_cache`.
+- Support for `update_post_meta_cache` and `update_post_term_cache`.
 - doc, rtf, odt, pdf & docx support
 - Index management in admin
 - `wp redipress index missing` command for indexing only posts that do not exist in the search index already.
-- Add a reverse filter for getting the Index class instance.
-- Add a method for deleting indexed items by a field name and matching value.
+- A reverse filter for getting the Index class instance.
+- A method for deleting indexed items by a field name and matching value.
+- A way to index only certain posts via the CLI commands.
 
 ### Changed
 - The index creation is now run on the `init` hook with a priority of *1000*. This allow various dependencies to execute before RediPress indexing.
 - Removed `post_object` and `permalink` from the index as they are never queried.
-- Fix getting the document id for posts with a custom document id.
+- Getting the document id for posts with a custom document id.
 
 ### Fixed
 - String escaping fixed for post data indexing.
-- Fixed a bug in user creation if the user query setting was disabled.
+- A bug in user creation if the user query setting was disabled.

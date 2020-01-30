@@ -18,7 +18,7 @@ class CLI {
      * @param array $args Command arguments.
      * @return void
      */
-    public function __invoke( array $args = [] ) {
+    public function __invoke( array $args = [], array $assoc_args = [] ) {
         // Check if we have at least one parameter for the command
         if ( isset( $args[0] ) ) {
             // Check if we have a class that corresponds to the asked command
@@ -43,7 +43,7 @@ class CLI {
                         default:
                             $command = new $class();
 
-                            $command->run( $parameters );
+                            $command->run( $parameters, $assoc_args );
                             exit;
                     }
                 }

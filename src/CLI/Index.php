@@ -18,7 +18,7 @@ class Index implements Command {
      * @param array $args The command parameters.
      * @return boolean
      */
-    public function run( array $args = [] ) : bool {
+    public function run( array $args = [], array $assoc_args = [] ) : bool {
         if ( count( $args ) === 0 ) {
             return $this->index_posts();
         }
@@ -26,14 +26,14 @@ class Index implements Command {
             switch ( $args[0] ) {
                 case 'posts':
                     if ( count( $args ) === 1 ) {
-                        return $this->index_posts();
+                        return $this->index_posts( $assoc_args );
                     }
                     elseif ( count( $args ) === 2 ) {
                         if ( is_numeric( $args[1] ) ) {
                             return $this->index_single( $args[1] );
                         }
                         elseif ( $args[1] === 'missing' ) {
-                            return $this->index_missing();
+                            return $this->index_missing( $assoc_args );
                         }
                         else {
                             WP_CLI::error( 'RediPress: "index" does not accept second parameter "' . $args[1] . '"' );
@@ -64,8 +64,8 @@ class Index implements Command {
      *
      * @return bool
      */
-    public function index_posts() {
-        $result = apply_filters( 'redipress/cli/index_all', 0 );
+    public function index_posts( array $assoc_args = [] ) {
+        $result = apply_filters( 'redipress/cli/index_all', 0, $assoc_args );
 
         WP_CLI::success( 'All ' . $result . ' posts indexed successfully!' );
         return true;

@@ -97,8 +97,8 @@ class Index {
         }, 1, 1 );
 
         // Register CLI bindings
-        add_action( 'redipress/cli/index_all', [ $this, 'index_all' ], 50, 0 );
-        add_action( 'redipress/cli/index_missing', [ $this, 'index_missing' ], 50, 0 );
+        add_filter( 'redipress/cli/index_all', [ $this, 'index_all' ], 50, 2 );
+        add_filter( 'redipress/cli/index_missing', [ $this, 'index_missing' ], 50, 2 );
         add_action( 'redipress/cli/index_single', [ $this, 'index_single' ], 50, 1 );
         add_filter( 'redipress/create_index', [ $this, 'create' ], 50, 1 );
         add_filter( 'redipress/drop_index', [ $this, 'drop' ], 50, 1 );
@@ -266,7 +266,7 @@ class Index {
      * @param  \WP_REST_Request|null $request Rest request details or null if not rest api request.
      * @return int                            Amount of items indexed.
      */
-    public function index_all( \WP_REST_Request $request = null ) : int {
+    public function index_all( \WP_REST_Request $request = null, array $query_args = [] ) : int {
         global $wpdb;
 
         \do_action( 'redipress/before_index_all', $request );
@@ -278,7 +278,18 @@ class Index {
             $query  = $wpdb->prepare( "SELECT ID FROM $wpdb->posts LIMIT %d OFFSET %d", $limit, $offset );
         }
         else {
-            $query  = "SELECT ID FROM $wpdb->posts";
+            if ( ! empty( $query_args ) ) {
+                $where = ' WHERE ';
+
+                foreach ( $query_args as $key => $value ) {
+                    $where .= $key . ' = "' . $value .'" ';
+                }
+            }
+            else {
+                $where = '';
+            }
+
+            $query  = "SELECT ID FROM $wpdb->posts$where";
         }
         $ids = $wpdb->get_results( $query ) ?? [];
         // phpcs:enable

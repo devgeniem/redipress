@@ -116,7 +116,6 @@ class PostQueryBuilder extends QueryBuilder {
             'meta_type',
             'update_post_meta_cache',
             'update_post_term_cache',
-            'reduce_functions'
         ], $ignore_added_query_vars ) );
 
         $this->ignore_query_vars = apply_filters( 'redipress/ignore_query_vars/' . static::TYPE, $this->ignore_query_vars );

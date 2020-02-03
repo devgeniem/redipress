@@ -117,7 +117,7 @@ class UserQuery {
         $infields = array_unique( apply_filters( 'redipress/search_fields', $search_fields, $query ) );
 
         // Filter the list of fields that will be returned with the query.
-        $return = array_unique( apply_filters( 'redipress/return_fields', [ 'user_id', 'user_object' ], $query ) );
+        $return = array_unique( apply_filters( 'redipress/return_fields', $this->query_builder->get_return_fields(), $query ) );
 
         // Determine the limit and offset parameters.
         $limit = $query->query_vars['number'] ?: \get_option( 'posts_per_page' );

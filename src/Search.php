@@ -113,7 +113,7 @@ class Search {
         $infields = array_unique( apply_filters( 'redipress/search_fields', $infields, $query ) );
 
         // Filter the list of fields that will be returned with the query.
-        $return = array_unique( apply_filters( 'redipress/return_fields', [ 'post_object', 'post_date', 'post_type', 'post_id', 'post_parent' ], $query ) );
+        $return = array_unique( apply_filters( 'redipress/return_fields', $this->query_builder->get_return_fields(), $query ) );
 
         // Determine the limit and offset parameters.
         $limit = $query->query_vars['posts_per_page'];

@@ -35,6 +35,14 @@ abstract class QueryBuilder {
     protected $sortby = [];
 
     /**
+     * Return fields
+     * The fields that we want the query to return from RediSearch.
+     *
+     * @var array
+     */
+    protected $return_fields = [];
+
+    /**
      * Index info
      *
      * @var array
@@ -102,6 +110,15 @@ abstract class QueryBuilder {
      */
     public function get_sortby() : array {
         return $this->sortby;
+    }
+
+    /**
+     * Return the return fields
+     *
+     * @return array
+     */
+    public function get_return_fields() : array {
+        return $this->return_fields;
     }
 
     /**

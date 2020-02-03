@@ -276,7 +276,7 @@ class Index {
             $limit  = $request->get_param( 'limit' );
             $offset = $request->get_param( 'offset' );
             $query  = $wpdb->prepare( "SELECT ID FROM $wpdb->posts LIMIT %d OFFSET %d", $limit, $offset );
-        }1
+        }
         else {
             if ( ! empty( $query_args ) ) {
                 $where = ' WHERE ';

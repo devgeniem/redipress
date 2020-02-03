@@ -31,6 +31,13 @@ class PostQueryBuilder extends QueryBuilder {
     protected $return_fields = [ 'post_object', 'post_date', 'post_type', 'post_id', 'post_parent' ];
 
     /**
+     * Reduce functions for return fields
+     *
+     * @var array
+     */
+    protected $reduce_functions = [];
+
+    /**
      * Mapped query vars
      *
      * @var array
@@ -61,6 +68,7 @@ class PostQueryBuilder extends QueryBuilder {
         'offset'           => null,
         'meta_key'         => null,
         'weight'           => null,
+        'reduce_functions' => null,
     ];
 
     /**
@@ -108,6 +116,7 @@ class PostQueryBuilder extends QueryBuilder {
             'meta_type',
             'update_post_meta_cache',
             'update_post_term_cache',
+            'reduce_functions'
         ], $ignore_added_query_vars ) );
 
         $this->ignore_query_vars = apply_filters( 'redipress/ignore_query_vars/' . static::TYPE, $this->ignore_query_vars );

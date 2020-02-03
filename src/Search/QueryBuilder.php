@@ -43,6 +43,13 @@ abstract class QueryBuilder {
     protected $return_fields = [];
 
     /**
+     * Reduce functions for return fields
+     *
+     * @var array
+     */
+    protected $reduce_functions = [];
+
+    /**
      * Index info
      *
      * @var array
@@ -61,31 +68,7 @@ abstract class QueryBuilder {
      *
      * @var array
      */
-    protected $query_vars = [
-        'paged'            => null,
-        's'                => null,
-        'blog_id'          => 'blog_id',
-        'p'                => 'post_id',
-        'name'             => 'post_name',
-        'pagename'         => 'post_name',
-        'post_type'        => 'post_type',
-        'post_parent'      => 'post_parent',
-        'post_status'      => 'post_status',
-        'post__in'         => 'post_id',
-        'post__not_in'     => 'post_id',
-        'category__in'     => 'taxonomy_id_category',
-        'category__not_in' => 'taxonomy_id_category',
-        'category__and'    => 'taxonomy_id_category',
-        'category_name'    => 'taxonomy_category',
-        'meta_query'       => null,
-        'tax_query'        => null,
-        'order'            => null,
-        'orderby'          => null,
-        'posts_per_page'   => null,
-        'offset'           => null,
-        'meta_key'         => null,
-        'weight'           => null,
-    ];
+    protected $query_vars = [];
 
     /**
      * From which fields the search is conducted.
@@ -119,6 +102,15 @@ abstract class QueryBuilder {
      */
     public function get_return_fields() : array {
         return $this->return_fields;
+    }
+
+    /**
+     * Return possible reduce functions
+     *
+     * @return array
+     */
+    public function get_reduce_functions() : array {
+        return $this->reduce_functions;
     }
 
     /**
@@ -262,6 +254,17 @@ abstract class QueryBuilder {
      * @return string|null
      */
     protected function paged() : string {
+        return '';
+    }
+
+    /**
+     * Reduce functions handling
+     *
+     * @return string
+     */
+    protected function reduce_functions() : string {
+        $this->reduce_functions = array_merge( $this->reduce_functions, $this->query->query['reduce_functions'] );
+
         return '';
     }
 

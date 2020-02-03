@@ -129,16 +129,16 @@ class Search {
         }
 
         // Get the sortby parameter
-        $sortby  = $this->query_builder->get_sortby() ?: [];
-        $applies = $this->query_builder->get_applies() ?: [];
-        $filters = $this->query_builder->get_filters() ?: [];
+        $sortby           = $this->query_builder->get_sortby() ?: [];
+        $applies          = $this->query_builder->get_applies() ?: [];
+        $filters          = $this->query_builder->get_filters() ?: [];
+        $reduce_functions = $this->query_builder->get_reduce_functions() ?: [];
 
         // Form the return field clause
-        $return_fields = array_map( function( string $field ) : array {
-
+        $return_fields = array_map( function( string $field ) use ( $reduce_functions ) : array {
             $return = [
                 'REDUCE',
-                'FIRST_VALUE',
+                $reduce_functions[ $field ] ?? 'FIRST_VALUE',
                 1,
                 '@' . $field,
                 'AS',

@@ -31,6 +31,13 @@ class UserQueryBuilder extends QueryBuilder {
     protected $return_fields = [ 'user_id', 'user_object' ];
 
     /**
+     * Reduce functions for return fields
+     *
+     * @var array
+     */
+    protected $reduce_functions = [];
+
+    /**
      * Mapped query vars
      *
      * @var array

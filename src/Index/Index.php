@@ -346,6 +346,9 @@ class Index {
         if ( $post_id && (string) $post->ID !== (string) $post_id ) {
             $id = $post_id;
         }
+        elseif ( ! empty( $post->doc_id ) ) {
+            $id = $post->doc_id;
+        }
         else {
             $id = $post->ID;
         }

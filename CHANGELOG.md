@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - Sortby fields are no longer added into groupby clause but only in the return fields lists with a FIRST_VALUE reducer by default.
 
+### Fixed
+- A bug with the main query when there is a page and one or more other posts with the same post_name.
+
 ## [1.0.2] - 2020-02-03
 
 ### Changed

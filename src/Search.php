@@ -249,12 +249,18 @@ class Search {
         $this->query_builder = new Search\PostQueryBuilder( $query, $this->index_info );
 
         // If we don't have explicitly defined post type query, use the public ones
-        if ( empty( $query->query['post_type'] ) ) {
-            $post_types = get_post_types([
-                'public'              => true,
-                'publicly_queryable'  => true,
-                'exclude_from_search' => false,
-            ], 'names' );
+        if ( empty( $query->query_vars['post_type'] ) ) {
+            // ...but if we have pagename defined, we know it should be a page
+            if ( ! empty( $query->query_vars['pagename'] ) ) {
+                $post_types = [ 'page' ];
+            }
+            else {
+                $post_types = get_post_types([
+                    'public'              => true,
+                    'publicly_queryable'  => true,
+                    'exclude_from_search' => false,
+                ], 'names' );
+            }
 
             $post_types = apply_filters( 'redipress/post_types', $post_types );
 

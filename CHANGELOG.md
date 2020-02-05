@@ -6,8 +6,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 
+### Added
+- A way to give a document ID for custom posts with index all feature.
+
 ### Changed
-- Sortby fields are no longer added into groupby clause but only in the return fields lists with a first_value reducer.
+- Sortby fields are no longer added into groupby clause but only in the return fields lists with a FIRST_VALUE reducer by default.
 
 ## [1.0.2] - 2020-02-03
 

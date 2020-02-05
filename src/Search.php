@@ -255,7 +255,7 @@ class Search {
                 $post_types = [ 'page' ];
             }
             else {
-                $post_types = get_post_types([
+                $post_types = get_post_types( [
                     'public'              => true,
                     'publicly_queryable'  => true,
                     'exclude_from_search' => false,

@@ -301,11 +301,11 @@ abstract class QueryBuilder {
         $terms = apply_filters( 'redipress/search_terms/escaped', $terms );
         $terms = apply_filters( 'redipress/search_terms/escaped/' . static::TYPE, $terms );
 
-        $sort = explode( ' ', $terms );
+        $sort = explode( ' ', $terms ) ?: [];
 
-        // Handle stars
+        // Handle asterisks
         $sort = array_map( function( $word ) {
-            return str_replace( '*', '', $word ) . '*';
+            return $word ? str_replace( '*', '', $word ) . '*' : $word;
         }, $sort );
 
         // Handle tildes

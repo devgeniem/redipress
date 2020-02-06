@@ -305,12 +305,7 @@ abstract class QueryBuilder {
 
         // Handle stars
         $sort = array_map( function( $word ) {
-            if ( substr( $word, -1 ) === '*' ) {
-                return str_replace( '*', '', $word ) . '*';
-            }
-            else {
-                return str_replace( '*', '', $word );
-            }
+            return str_replace( '*', '', $word ) . '*';
         }, $sort );
 
         // Handle tildes

@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.1.2] - 2020-02-07
+
 ### Changed
 - Fix empty search string handling.
 - Prevent the query builder from handling empty query variables.

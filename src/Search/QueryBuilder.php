@@ -120,7 +120,10 @@ abstract class QueryBuilder {
      */
     public function get_query() : array {
         $return = array_filter( array_map( function( string $query_var ) : string {
-            if ( in_array( $query_var, $this->ignore_query_vars, true ) ) {
+            if (
+                in_array( $query_var, $this->ignore_query_vars, true ) ||
+                empty( $this->query_vars[ $query_var ] )
+            ) {
                 return false;
             }
 
@@ -305,7 +308,7 @@ abstract class QueryBuilder {
 
         // Handle asterisks
         $sort = array_map( function( $word ) {
-            return $word ? str_replace( '*', '', $word ) . '*' : $word;
+            return str_replace( '*', '', $word ) . '*';
         }, $sort );
 
         // Handle tildes

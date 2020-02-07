@@ -122,7 +122,7 @@ abstract class QueryBuilder {
         $return = array_filter( array_map( function( string $query_var ) : string {
             if (
                 in_array( $query_var, $this->ignore_query_vars, true ) ||
-                empty( $this->query_vars[ $query_var ] )
+                empty( $this->query->query_vars[ $query_var ] )
             ) {
                 return false;
             }

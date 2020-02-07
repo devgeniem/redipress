@@ -120,7 +120,10 @@ abstract class QueryBuilder {
      */
     public function get_query() : array {
         $return = array_filter( array_map( function( string $query_var ) : string {
-            if ( in_array( $query_var, $this->ignore_query_vars, true ) ) {
+            if (
+                in_array( $query_var, $this->ignore_query_vars, true ) ||
+                empty( $this->query_vars[ $query_var ] )
+            ) {
                 return false;
             }
 
@@ -301,9 +304,9 @@ abstract class QueryBuilder {
         $terms = apply_filters( 'redipress/search_terms/escaped', $terms );
         $terms = apply_filters( 'redipress/search_terms/escaped/' . static::TYPE, $terms );
 
-        $sort = explode( ' ', $terms );
+        $sort = explode( ' ', $terms ) ?: [];
 
-        // Handle stars
+        // Handle asterisks
         $sort = array_map( function( $word ) {
             return str_replace( '*', '', $word ) . '*';
         }, $sort );

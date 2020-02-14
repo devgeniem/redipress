@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+- Do not add the Polylang language query for main queries. PLL will handle it.
+
 ## [1.1.3] - 2020-02-07
 
 ### Changed

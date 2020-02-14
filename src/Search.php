@@ -118,11 +118,11 @@ class Search {
         // Determine the limit and offset parameters.
         $limit = $query->query_vars['posts_per_page'];
 
-        if ( isset( $query->query_vars['paged'] ) && $query->query_vars['paged'] > 1 ) {
-            $offset = $query->query_vars['posts_per_page'] * ( $query->query_vars['paged'] - 1 );
-        }
-        elseif ( isset( $query->query_vars['offset'] ) ) {
+        if ( isset( $query->query_vars['offset'] ) ) {
             $offset = $query->query_vars['offset'];
+        }
+        elseif ( isset( $query->query_vars['paged'] ) && $query->query_vars['paged'] > 1 ) {
+            $offset = $query->query_vars['posts_per_page'] * ( $query->query_vars['paged'] - 1 );
         }
         else {
             $offset = 0;

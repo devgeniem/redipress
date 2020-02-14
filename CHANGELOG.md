@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 - Do not add the Polylang language query for main queries. PLL will handle it.
+- Set query offset firstly from the 'offset' query variable if it is set.
 
 ## [1.1.3] - 2020-02-07
 

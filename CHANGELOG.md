@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.1.5] - 2020-02-18
+
+### Fixed
+- A bug where the tax query was not parsed in all situations.
+
 ## [1.1.4] - 2020-02-14
 
 ### Changed

@@ -119,6 +119,11 @@ abstract class QueryBuilder {
      * @return array
      */
     public function get_query() : array {
+        // Ensure that the tax query gets parsed even if it wasn't implicitly defined.
+        if ( empty( $this->query->query_vars['tax_query'] ) ) {
+            $this->query->query_vars['tax_query'] = true;
+        }
+
         $return = array_filter( array_map( function( string $query_var ) : string {
             if (
                 in_array( $query_var, $this->ignore_query_vars, true ) ||

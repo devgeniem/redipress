@@ -128,10 +128,18 @@ class Search {
             $offset = 0;
         }
 
-        // Get the sortby parameter
+        // Get query parameters
         $sortby  = $this->query_builder->get_sortby() ?: [];
         $applies = $this->query_builder->get_applies() ?: [];
         $filters = $this->query_builder->get_filters() ?: [];
+        $groupby = $this->query_builder->get_groupby();
+
+        // Filters for query parts
+        $sortby  = apply_filters( 'redipress/sortby', $sortby );
+        $applies = apply_filters( 'redipress/applies', $applies );
+        $filters = apply_filters( 'redipress/filters', $filters );
+        $groupby = apply_filters( 'redipress/groupby', $groupby );
+        $load    = apply_filters( 'redipress/load', [ 'post_object' ] );
 
         // Form the return field clause
         $return_fields = array_map( function( string $field ) : array {
@@ -152,8 +160,8 @@ class Search {
         $command = array_merge(
             [ $this->index, $search_query_string, 'INFIELDS', count( $infields ) ],
             $infields,
-            [ 'LOAD', 1, '@post_object' ],
-            $this->query_builder->get_groupby(),
+            [ 'LOAD', count( $load ), ...array_map( function( $l ) { return '@' . $l; }, $load ) ],
+            $groupby,
             array_reduce( $return_fields, 'array_merge', [] ),
             $applies,
             $filters,

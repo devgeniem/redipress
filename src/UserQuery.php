@@ -117,7 +117,7 @@ class UserQuery {
         $infields = array_unique( apply_filters( 'redipress/search_fields', $search_fields, $query ) );
 
         // Filter the list of fields that will be returned with the query.
-        $return = array_unique( apply_filters( 'redipress/return_fields', [ 'user_id', 'user_object' ], $query ) );
+        $return = array_unique( apply_filters( 'redipress/return_fields', $this->query_builder->get_return_fields(), $query ) );
 
         // Determine the limit and offset parameters.
         $limit = $query->query_vars['number'] ?: \get_option( 'posts_per_page' );
@@ -133,7 +133,8 @@ class UserQuery {
         }
 
         // Get the sortby parameter
-        $sortby = $this->query_builder->get_sortby() ?: [];
+        $sortby           = $this->query_builder->get_sortby() ?: [];
+        $reduce_functions = $this->query_builder->get_reduce_functions() ?: [];
 
         if ( empty( $sortby ) && ! empty( $query->query_vars['search'] ) ) {
             // Form the search query
@@ -171,12 +172,10 @@ class UserQuery {
             $query->request = 'FT.SEARCH ' . implode( ' ', $command );
         }
         else {
-            // Form the return field clause
-            $return_fields = array_map( function( string $field ) : array {
-
+            $return_fields = array_map( function( string $field ) use ( $reduce_functions ) : array {
                 $return = [
                     'REDUCE',
-                    'FIRST_VALUE',
+                    $reduce_functions[ $field ] ?? 'FIRST_VALUE',
                     1,
                     '@' . $field,
                     'AS',

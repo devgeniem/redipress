@@ -23,6 +23,21 @@ class PostQueryBuilder extends QueryBuilder {
     protected $groupby = [ '@post_id' ];
 
     /**
+     * Return fields
+     * The fields that we want the query to return from RediSearch.
+     *
+     * @var array
+     */
+    protected $return_fields = [ 'post_object', 'post_date', 'post_type', 'post_id', 'post_parent' ];
+
+    /**
+     * Reduce functions for return fields
+     *
+     * @var array
+     */
+    protected $reduce_functions = [];
+
+    /**
      * Mapped query vars
      *
      * @var array
@@ -53,6 +68,7 @@ class PostQueryBuilder extends QueryBuilder {
         'offset'           => null,
         'meta_key'         => null,
         'weight'           => null,
+        'reduce_functions' => null,
     ];
 
     /**
@@ -766,7 +782,7 @@ class PostQueryBuilder extends QueryBuilder {
             array_reduce( $sortby, function( $carry, $item ) {
 
                 // Store groupby these need to be in sync with sortby params.
-                $this->groupby[] = '@' . $item['orderby'];
+                $this->return_fields[] = $item['orderby'];
 
                 return array_merge( $carry, [ '@' . $item['orderby'], $item['order'] ] );
             }, [] )

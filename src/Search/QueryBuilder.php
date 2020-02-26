@@ -35,6 +35,21 @@ abstract class QueryBuilder {
     protected $sortby = [];
 
     /**
+     * Return fields
+     * The fields that we want the query to return from RediSearch.
+     *
+     * @var array
+     */
+    protected $return_fields = [];
+
+    /**
+     * Reduce functions for return fields
+     *
+     * @var array
+     */
+    protected $reduce_functions = [];
+
+    /**
      * Index info
      *
      * @var array
@@ -53,31 +68,7 @@ abstract class QueryBuilder {
      *
      * @var array
      */
-    protected $query_vars = [
-        'paged'            => null,
-        's'                => null,
-        'blog_id'          => 'blog_id',
-        'p'                => 'post_id',
-        'name'             => 'post_name',
-        'pagename'         => 'post_name',
-        'post_type'        => 'post_type',
-        'post_parent'      => 'post_parent',
-        'post_status'      => 'post_status',
-        'post__in'         => 'post_id',
-        'post__not_in'     => 'post_id',
-        'category__in'     => 'taxonomy_id_category',
-        'category__not_in' => 'taxonomy_id_category',
-        'category__and'    => 'taxonomy_id_category',
-        'category_name'    => 'taxonomy_category',
-        'meta_query'       => null,
-        'tax_query'        => null,
-        'order'            => null,
-        'orderby'          => null,
-        'posts_per_page'   => null,
-        'offset'           => null,
-        'meta_key'         => null,
-        'weight'           => null,
-    ];
+    protected $query_vars = [];
 
     /**
      * From which fields the search is conducted.
@@ -105,13 +96,39 @@ abstract class QueryBuilder {
     }
 
     /**
+     * Return the return fields
+     *
+     * @return array
+     */
+    public function get_return_fields() : array {
+        return $this->return_fields;
+    }
+
+    /**
+     * Return possible reduce functions
+     *
+     * @return array
+     */
+    public function get_reduce_functions() : array {
+        return $this->reduce_functions;
+    }
+
+    /**
      * Get the RediSearch query based on the original query
      *
      * @return array
      */
     public function get_query() : array {
+        // Ensure that the tax query gets parsed even if it wasn't implicitly defined.
+        if ( empty( $this->query->query_vars['tax_query'] ) ) {
+            $this->query->query_vars['tax_query'] = true;
+        }
+
         $return = array_filter( array_map( function( string $query_var ) : string {
-            if ( in_array( $query_var, $this->ignore_query_vars, true ) ) {
+            if (
+                in_array( $query_var, $this->ignore_query_vars, true ) ||
+                empty( $this->query->query_vars[ $query_var ] )
+            ) {
                 return false;
             }
 
@@ -249,6 +266,17 @@ abstract class QueryBuilder {
     }
 
     /**
+     * Reduce functions handling
+     *
+     * @return string
+     */
+    protected function reduce_functions() : string {
+        $this->reduce_functions = array_merge( $this->reduce_functions, $this->query->query['reduce_functions'] );
+
+        return '';
+    }
+
+    /**
      * Search parameter.
      *
      * @param string $parameter The search parameter.
@@ -281,16 +309,11 @@ abstract class QueryBuilder {
         $terms = apply_filters( 'redipress/search_terms/escaped', $terms );
         $terms = apply_filters( 'redipress/search_terms/escaped/' . static::TYPE, $terms );
 
-        $sort = explode( ' ', $terms );
+        $sort = explode( ' ', $terms ) ?: [];
 
-        // Handle stars
+        // Handle asterisks
         $sort = array_map( function( $word ) {
-            if ( substr( $word, -1 ) === '*' ) {
-                return str_replace( '*', '', $word ) . '*';
-            }
-            else {
-                return str_replace( '*', '', $word );
-            }
+            return str_replace( '*', '', $word ) . '*';
         }, $sort );
 
         // Handle tildes

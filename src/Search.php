@@ -113,40 +113,41 @@ class Search {
         $infields = array_unique( apply_filters( 'redipress/search_fields', $infields, $query ) );
 
         // Filter the list of fields that will be returned with the query.
-        $return = array_unique( apply_filters( 'redipress/return_fields', [ 'post_object', 'post_date', 'post_type', 'post_id', 'post_parent' ], $query ) );
+        $return = array_unique( apply_filters( 'redipress/return_fields', $this->query_builder->get_return_fields(), $query ) );
 
         // Determine the limit and offset parameters.
         $limit = $query->query_vars['posts_per_page'];
 
-        if ( isset( $query->query_vars['paged'] ) && $query->query_vars['paged'] > 1 ) {
-            $offset = $query->query_vars['posts_per_page'] * ( $query->query_vars['paged'] - 1 );
-        }
-        elseif ( isset( $query->query_vars['offset'] ) ) {
+        if ( isset( $query->query_vars['offset'] ) ) {
             $offset = $query->query_vars['offset'];
+        }
+        elseif ( isset( $query->query_vars['paged'] ) && $query->query_vars['paged'] > 1 ) {
+            $offset = $query->query_vars['posts_per_page'] * ( $query->query_vars['paged'] - 1 );
         }
         else {
             $offset = 0;
         }
 
         // Get query parameters
-        $sortby  = $this->query_builder->get_sortby() ?: [];
-        $applies = $this->query_builder->get_applies() ?: [];
-        $filters = $this->query_builder->get_filters() ?: [];
-        $groupby = $this->query_builder->get_groupby();
+        $sortby           = $this->query_builder->get_sortby() ?: [];
+        $applies          = $this->query_builder->get_applies() ?: [];
+        $filters          = $this->query_builder->get_filters() ?: [];
+        $reduce_functions = $this->query_builder->get_reduce_functions() ?: [];
+        $groupby          = $this->query_builder->get_groupby();
 
         // Filters for query parts
-        $sortby  = apply_filters( 'redipress/sortby', $sortby );
-        $applies = apply_filters( 'redipress/applies', $applies );
-        $filters = apply_filters( 'redipress/filters', $filters );
-        $groupby = apply_filters( 'redipress/groupby', $groupby );
-        $load    = apply_filters( 'redipress/load', [ 'post_object' ] );
+        $sortby           = apply_filters( 'redipress/sortby', $sortby );
+        $applies          = apply_filters( 'redipress/applies', $applies );
+        $filters          = apply_filters( 'redipress/filters', $filters );
+        $groupby          = apply_filters( 'redipress/groupby', $groupby );
+        $reduce_functions = apply_filters( 'redipress/reduce_functions', $reduce_functions );
+        $load             = apply_filters( 'redipress/load', [ 'post_object' ] );
 
         // Form the return field clause
-        $return_fields = array_map( function( string $field ) : array {
-
+        $return_fields = array_map( function( string $field ) use ( $reduce_functions ) : array {
             $return = [
                 'REDUCE',
-                'FIRST_VALUE',
+                $reduce_functions[ $field ] ?? 'FIRST_VALUE',
                 1,
                 '@' . $field,
                 'AS',
@@ -257,12 +258,18 @@ class Search {
         $this->query_builder = new Search\PostQueryBuilder( $query, $this->index_info );
 
         // If we don't have explicitly defined post type query, use the public ones
-        if ( empty( $query->query['post_type'] ) ) {
-            $post_types = get_post_types([
-                'public'              => true,
-                'publicly_queryable'  => true,
-                'exclude_from_search' => false,
-            ], 'names' );
+        if ( empty( $query->query_vars['post_type'] ) ) {
+            // ...but if we have pagename defined, we know it should be a page
+            if ( ! empty( $query->query_vars['pagename'] ) ) {
+                $post_types = [ 'page' ];
+            }
+            else {
+                $post_types = get_post_types( [
+                    'public'              => true,
+                    'publicly_queryable'  => true,
+                    'exclude_from_search' => false,
+                ], 'names' );
+            }
 
             $post_types = apply_filters( 'redipress/post_types', $post_types );
 

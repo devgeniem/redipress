@@ -6,6 +6,54 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.1.5] - 2020-02-18
+
+### Fixed
+- A bug where the tax query was not parsed in all situations.
+
+## [1.1.4] - 2020-02-14
+
+### Changed
+- Do not add the Polylang language query for main queries. PLL will handle it.
+- Set query offset firstly from the 'offset' query variable if it is set.
+
+## [1.1.3] - 2020-02-07
+
+### Changed
+- Fix empty query variable handling.
+
+## [1.1.2] - 2020-02-07
+
+### Changed
+- Fix empty search string handling.
+- Prevent the query builder from handling empty query variables.
+
+## [1.1.1] - 2020-02-06
+
+### Changed
+- Always add an asterisk at the end of each search keyword to better mimic WordPress native behaviour.
+
+## [1.1.0] - 2020-02-05
+
+### Added
+- A way to give a document ID for custom posts with index all feature.
+
+### Changed
+- Sortby fields are no longer added into groupby clause but only in the return fields lists with a FIRST_VALUE reducer by default.
+
+### Fixed
+- A bug with the main query when there is a page and one or more other posts with the same post_name.
+
+## [1.0.2] - 2020-02-03
+
+### Changed
+- Version number to resemble reality in the changelog.
+
+### Fixed
+- Removed syntax error causing character from code.
+
+## [1.0.1] - 2020-01-31
+
 ### Added
 - This changelog adhering to the 'keep a changelog' standard.
 - Nonscalar fields are serialized before storing them to the index.

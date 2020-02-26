@@ -28,6 +28,11 @@ class Polylang {
         $query_vars['lang'] = function ( \Geniem\RediPress\Search\QueryBuilder $query_builder ) : string {
             $query = $query_builder->get_query_instance();
 
+            // No need to modify the query if this is the main query.
+            if ( method_exists( $query, 'is_main_query' ) && $query->is_main_query() ) {
+                return '';
+            }
+
             $slug = $query->query['lang'];
 
             $term_clause = [

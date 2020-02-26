@@ -23,6 +23,21 @@ class UserQueryBuilder extends QueryBuilder {
     protected $groupby = [ '@user_id' ];
 
     /**
+     * Return fields
+     * The fields that we want the query to return from RediSearch.
+     *
+     * @var array
+     */
+    protected $return_fields = [ 'user_id', 'user_object' ];
+
+    /**
+     * Reduce functions for return fields
+     *
+     * @var array
+     */
+    protected $reduce_functions = [];
+
+    /**
      * Mapped query vars
      *
      * @var array

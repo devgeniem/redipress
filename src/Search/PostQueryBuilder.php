@@ -20,7 +20,7 @@ class PostQueryBuilder extends QueryBuilder {
      *
      * @var array
      */
-    protected $groupby = [ '@post_id' ];
+    protected $groupby = [ 'post_id' ];
 
     /**
      * Return fields
@@ -781,7 +781,7 @@ class PostQueryBuilder extends QueryBuilder {
             [ 'SORTBY', ( count( $sortby ) * 2 ) ],
             array_reduce( $sortby, function( $carry, $item ) {
 
-                // Store groupby these need to be in sync with sortby params.
+                // Store to return fields array, these need to be in sync with sortby params.
                 $this->return_fields[] = $item['orderby'];
 
                 return array_merge( $carry, [ '@' . $item['orderby'], $item['order'] ] );

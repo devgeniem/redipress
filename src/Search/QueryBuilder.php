@@ -96,6 +96,24 @@ abstract class QueryBuilder {
     }
 
     /**
+     * Return the possible apply clauses.
+     *
+     * @return array
+     */
+    public function get_applies() : array {
+        return [];
+    }
+
+    /**
+     * Return the possible filters
+     *
+     * @return array
+     */
+    public function get_filters() : array {
+        return [];
+    }
+
+    /**
      * Return the return fields
      *
      * @return array
@@ -447,11 +465,6 @@ abstract class QueryBuilder {
      * @return string
      */
     public function get_groupby() : array {
-
-        // Add groupby count as a first item in the array.
-        // example [ 2, @post_id, @post_date ].
-        array_unshift( $this->groupby, 'GROUPBY', count( $this->groupby ) );
-
         return $this->groupby;
     }
 

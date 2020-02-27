@@ -20,7 +20,7 @@ class UserQueryBuilder extends QueryBuilder {
      *
      * @var array
      */
-    protected $groupby = [ '@user_id' ];
+    protected $groupby = [ 'user_id' ];
 
     /**
      * Return fields
@@ -611,7 +611,7 @@ class UserQueryBuilder extends QueryBuilder {
             array_reduce( $sortby, function( $carry, $item ) {
 
                 // Store groupby these need to be in sync with sortby params.
-                $this->groupby[] = '@' . $item['orderby'];
+                $this->groupby[] = $item['orderby'];
 
                 return array_merge( $carry, [ '@' . $item['orderby'], $item['order'] ] );
             }, [] )

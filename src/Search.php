@@ -161,8 +161,8 @@ class Search {
         $command = array_merge(
             [ $this->index, $search_query_string, 'INFIELDS', count( $infields ) ],
             $infields,
-            [ 'LOAD', count( $load ), ...array_map( function( $l ) { return '@' . $l; }, $load ) ],
-            [ 'GROUPBY', count( $groupby ), ...array_map( function( $g ) { return '@' . $g; }, $groupby ) ],
+            array_merge( [ 'LOAD', count( $load ) ], array_map( function( $l ) { return '@' . $l; }, $load ) ),
+            array_merge( [ 'GROUPBY', count( $groupby ) ], array_map( function( $g ) { return '@' . $g; }, $groupby ) ),
             array_reduce( $return_fields, 'array_merge', [] ),
             $applies,
             $filters,

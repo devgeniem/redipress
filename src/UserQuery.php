@@ -172,6 +172,10 @@ class UserQuery {
             $query->request = 'FT.SEARCH ' . implode( ' ', $command );
         }
         else {
+            $groupby = $this->query_builder->get_groupby();
+
+            $groupby = apply_filters( 'redipress/user_groupby', $groupby );
+
             $return_fields = array_map( function( string $field ) use ( $reduce_functions ) : array {
                 $return = [
                     'REDUCE',
@@ -190,7 +194,7 @@ class UserQuery {
                 [ $this->index, $search_query_string, 'INFIELDS', count( $infields ) ],
                 $infields,
                 [ 'LOAD', 1, '@user_object' ],
-                $this->query_builder->get_groupby(),
+                array_merge( [ 'GROUPBY', count( $groupby ) ], array_map( function( $g ) { return '@' . $g; }, $groupby ) ),
                 array_reduce( $return_fields, 'array_merge', [] ),
                 array_merge( $sortby ),
                 [ 'LIMIT', $offset, $limit ]

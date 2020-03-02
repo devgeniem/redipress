@@ -157,6 +157,19 @@ new WP_Query([
 ]);
 ```
 
+### Filters
+
+#### Query parts
+
+To customize the RediSearch query, you can filter individual query parts with the following filters:
+
+- `redipress/sortby`
+- `redipress/applies`
+- `redipress/filters`
+- `redipress/groupby`
+- `redipress/reduce_functions`
+- `redipress/load`
+
 ## Expanding
 
 RediPress is built to be as developer-friendly as possible. Nearly everything can be filtered and there are a lot of actions to work with.

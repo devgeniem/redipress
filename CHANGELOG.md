@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.2.0] - 2020-03-02
+
+### Added
+
+- Filters for various query parts to enable query customizations.
+
 ## [1.1.5] - 2020-02-18
 
 ### Fixed

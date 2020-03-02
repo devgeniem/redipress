@@ -194,7 +194,7 @@ class UserQuery {
                 [ $this->index, $search_query_string, 'INFIELDS', count( $infields ) ],
                 $infields,
                 [ 'LOAD', 1, '@user_object' ],
-                [ 'GROUPBY', count( $groupby ), ...array_map( function( $g ) { return '@' . $g; }, $groupby ) ],
+                array_merge( [ 'GROUPBY', count( $groupby ) ], array_map( function( $g ) { return '@' . $g; }, $groupby ) ),
                 array_reduce( $return_fields, 'array_merge', [] ),
                 array_merge( $sortby ),
                 [ 'LIMIT', $offset, $limit ]

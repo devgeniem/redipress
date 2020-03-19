@@ -16,6 +16,7 @@ class Drop implements Command {
      * The command itself.
      *
      * @param array $args The command parameters.
+     * @param array $assoc_args The optional command parameters.
      * @return boolean
      */
     public function run( array $args = [], array $assoc_args = [] ) : bool {

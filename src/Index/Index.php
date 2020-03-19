@@ -366,7 +366,7 @@ class Index {
      * @param  \WP_REST_Request|null $request Rest request details or null if not rest api request.
      * @return int                            Amount of items indexed.
      */
-    public function index_missing( \WP_REST_Request $request = null ) : int {
+    public function index_missing( \WP_REST_Request $request = null, array $query_args = [] ) : int {
         global $wpdb;
 
         \do_action( 'redipress/before_index_missing', $request );
@@ -386,7 +386,9 @@ class Index {
         $count = count( $ids );
 
         $posts = array_filter( $ids, function( $row ) {
-            $present = \Geniem\RediPress\get_post( $row->ID );
+            $post = \get_post( $row->ID );
+
+            $present = \Geniem\RediPress\get_post( self::get_document_id( $post ) );
 
             return empty( $present );
         });

@@ -542,14 +542,14 @@ abstract class QueryBuilder {
                         // Form clause by operator.
                         if ( $clause['operator'] === 'IN' ) {
                             $queries[] = sprintf(
-                                '(@%s:{%s})',
+                                '@%s:{%s}',
                                 $prefix ? 'taxonomy_' . $clause['taxonomy'] : $clause['taxonomy'],
                                 implode( '|', (array) $clause['terms'] )
                             );
                         }
                         elseif ( $clause['operator'] === 'NOT IN' ) {
                             $queries[] = sprintf(
-                                '-(@%s:{%s})',
+                                '-@%s:{%s}',
                                 $prefix ? 'taxonomy_' . $clause['taxonomy'] : $clause['taxonomy'],
                                 implode( '|', (array) $clause['terms'] )
                             );
@@ -562,14 +562,14 @@ abstract class QueryBuilder {
                         // Form clause by operator.
                         if ( $clause['operator'] === 'IN' ) {
                             $queries[] = sprintf(
-                                '(@%s:{%s})',
+                                '@%s:{%s}',
                                 $prefix ? 'taxonomy_slug_' . $clause['taxonomy'] : $clause['taxonomy'],
                                 implode( '|', (array) $clause['terms'] )
                             );
                         }
                         elseif ( $clause['operator'] === 'NOT IN' ) {
                             $queries[] = sprintf(
-                                '-(@%s:{%s})',
+                                '-@%s:{%s}',
                                 $prefix ? 'taxonomy_slug_' . $clause['taxonomy'] : $clause['taxonomy'],
                                 implode( '|', (array) $clause['terms'] )
                             );
@@ -590,14 +590,14 @@ abstract class QueryBuilder {
                         // Form clause by operator.
                         if ( $clause['operator'] === 'IN' ) {
                             $queries[] = sprintf(
-                                '(@taxonomy_id_%s:{%s})',
+                                '@taxonomy_id_%s:{%s}',
                                 $clause['taxonomy'],
                                 implode( '|', (array) $clause['terms'] )
                             );
                         }
                         elseif ( $clause['operator'] === 'NOT IN' ) {
                             $queries[] = sprintf(
-                                '-(@taxonomy_id_%s:{%s})',
+                                '-@taxonomy_id_%s:{%s}',
                                 $clause['taxonomy'],
                                 implode( '|', (array) $clause['terms'] )
                             );
@@ -623,10 +623,24 @@ abstract class QueryBuilder {
 
         // Compare the relation.
         if ( $relation === 'AND' ) {
-            return count( $queries ) ? '(' . implode( ' ', $queries ) . ')' : '';
+            switch ( count( $queries ) ) {
+                case 0:
+                    return '';
+                case 1:
+                    return $queries[0];
+                default:
+                    return '(' . implode( ' ', $queries ) . ')';
+            }
         }
         elseif ( $relation === 'OR' ) {
-            return count( $queries ) ? '(' . implode( '|', $queries ) . ')' : '';
+            switch ( count( $queries ) ) {
+                case 0:
+                    return '';
+                case 1:
+                    return $queries[0];
+                default:
+                    return '(' . implode( '|', $queries ) . ')';
+            }
         }
     }
 
@@ -694,7 +708,18 @@ abstract class QueryBuilder {
                 return ( substr( $a, 0, 1 ) === '-' );
             });
 
-            return '(' . implode( ' ', $queries ) . ')';
+            $queries = array_filter( $queries, function( $query ) {
+                return ! empty( $query );
+            });
+
+            switch ( count( $queries ) ) {
+                case 0:
+                    return '';
+                case 1:
+                    return $queries[0];
+                default:
+                    return '(' . implode( ' ', $queries ) . ')';
+            }
         }
         elseif ( $relation === 'OR' ) {
             $queries = [];
@@ -730,7 +755,18 @@ abstract class QueryBuilder {
                 return ( substr( $a, 0, 1 ) === '-' );
             });
 
-            return '(' . implode( '|', $queries ) . ')';
+            $queries = array_filter( $queries, function( $query ) {
+                return ! empty( $query );
+            });
+
+            switch ( count( $queries ) ) {
+                case 0:
+                    return '';
+                case 1:
+                    return $queries[0];
+                default:
+                    return '(' . implode( '|', $queries ) . ')';
+            }
         }
     }
 
@@ -741,6 +777,13 @@ abstract class QueryBuilder {
      * @return string|null
      */
     protected function create_meta_clause( array $clause ) : ?string {
+        global $wpdb;
+
+        // Filter out capability queries as they are handled differently
+        if ( preg_match( '/^wp_\d+?_capabilities$/', $clause['key'] ) ) {
+            return '';
+        }
+
         // Find out the type of the field we are dealing with.
         $field_type = $this->get_field_type( $clause['key'] );
 

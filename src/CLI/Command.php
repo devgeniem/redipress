@@ -16,7 +16,7 @@ interface Command {
      * @param array $args The command parameters.
      * @return boolean Whether the command succeeded or not.
      */
-    public function run( array $args = [] ) : bool;
+    public function run( array $args = [], array $assoc_args = [] ) : bool;
 
     /**
      * Must return the minimum amount of parameters the command accepts.

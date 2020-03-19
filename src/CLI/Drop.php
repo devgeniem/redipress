@@ -18,7 +18,7 @@ class Drop implements Command {
      * @param array $args The command parameters.
      * @return boolean
      */
-    public function run( array $args = [] ) : bool {
+    public function run( array $args = [], array $assoc_args = [] ) : bool {
         if ( count( $args ) === 0 ) {
             return $this->drop_index( 'posts' );
         }

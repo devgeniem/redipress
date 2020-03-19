@@ -57,6 +57,8 @@ class Index implements Command {
                     break;
             }
         }
+
+        return false;
     }
 
     /**
@@ -89,8 +91,8 @@ class Index implements Command {
      *
      * @return bool
      */
-    public function index_missing() {
-        $result = apply_filters( 'redipress/cli/index_missing', 0 );
+    public function index_missing( $assoc_args ) {
+        $result = apply_filters( 'redipress/cli/index_missing', null, $assoc_args );
 
         WP_CLI::success( $result . ' posts indexed successfully!' );
         return true;

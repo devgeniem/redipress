@@ -679,7 +679,7 @@ abstract class QueryBuilder {
 
             foreach ( $query as $name => $clause ) {
                 if ( ! empty( $clause['key'] ) ) {
-                    if ( $clause['value'] === null ) {
+                    if ( ! isset( $clause['value'] ) ) {
                         continue;
                     }
 
@@ -726,7 +726,7 @@ abstract class QueryBuilder {
 
             foreach ( $query as $name => $clause ) {
                 if ( ! empty( $clause['key'] ) ) {
-                    if ( $clause['value'] === null ) {
+                    if ( ! isset( $clause['value'] ) ) {
                         continue;
                     }
 

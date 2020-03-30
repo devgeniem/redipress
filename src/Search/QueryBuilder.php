@@ -549,7 +549,7 @@ abstract class QueryBuilder {
                         }
                         elseif ( $clause['operator'] === 'NOT IN' ) {
                             $queries[] = sprintf(
-                                '(-@%s:{%s})',
+                                '-(@%s:{%s})',
                                 $prefix ? 'taxonomy_' . $clause['taxonomy'] : $clause['taxonomy'],
                                 implode( '|', (array) $clause['terms'] )
                             );
@@ -569,7 +569,7 @@ abstract class QueryBuilder {
                         }
                         elseif ( $clause['operator'] === 'NOT IN' ) {
                             $queries[] = sprintf(
-                                '(-@%s:{%s})',
+                                '-(@%s:{%s})',
                                 $prefix ? 'taxonomy_slug_' . $clause['taxonomy'] : $clause['taxonomy'],
                                 implode( '|', (array) $clause['terms'] )
                             );
@@ -597,7 +597,7 @@ abstract class QueryBuilder {
                         }
                         elseif ( $clause['operator'] === 'NOT IN' ) {
                             $queries[] = sprintf(
-                                '(-@taxonomy_id_%s:{%s})',
+                                '-(@taxonomy_id_%s:{%s})',
                                 $clause['taxonomy'],
                                 implode( '|', (array) $clause['terms'] )
                             );
@@ -679,7 +679,7 @@ abstract class QueryBuilder {
 
             foreach ( $query as $name => $clause ) {
                 if ( ! empty( $clause['key'] ) ) {
-                    if ( empty( $clause['value'] ) ) {
+                    if ( $clause['value'] === null ) {
                         continue;
                     }
 
@@ -726,7 +726,7 @@ abstract class QueryBuilder {
 
             foreach ( $query as $name => $clause ) {
                 if ( ! empty( $clause['key'] ) ) {
-                    if ( empty( $clause['value'] ) ) {
+                    if ( $clause['value'] === null ) {
                         continue;
                     }
 

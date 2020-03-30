@@ -542,14 +542,14 @@ abstract class QueryBuilder {
                         // Form clause by operator.
                         if ( $clause['operator'] === 'IN' ) {
                             $queries[] = sprintf(
-                                '@%s:{%s}',
+                                '(@%s:{%s})',
                                 $prefix ? 'taxonomy_' . $clause['taxonomy'] : $clause['taxonomy'],
                                 implode( '|', (array) $clause['terms'] )
                             );
                         }
                         elseif ( $clause['operator'] === 'NOT IN' ) {
                             $queries[] = sprintf(
-                                '-@%s:{%s}',
+                                '(-@%s:{%s})',
                                 $prefix ? 'taxonomy_' . $clause['taxonomy'] : $clause['taxonomy'],
                                 implode( '|', (array) $clause['terms'] )
                             );
@@ -562,14 +562,14 @@ abstract class QueryBuilder {
                         // Form clause by operator.
                         if ( $clause['operator'] === 'IN' ) {
                             $queries[] = sprintf(
-                                '@%s:{%s}',
+                                '(@%s:{%s})',
                                 $prefix ? 'taxonomy_slug_' . $clause['taxonomy'] : $clause['taxonomy'],
                                 implode( '|', (array) $clause['terms'] )
                             );
                         }
                         elseif ( $clause['operator'] === 'NOT IN' ) {
                             $queries[] = sprintf(
-                                '-@%s:{%s}',
+                                '(-@%s:{%s})',
                                 $prefix ? 'taxonomy_slug_' . $clause['taxonomy'] : $clause['taxonomy'],
                                 implode( '|', (array) $clause['terms'] )
                             );
@@ -590,14 +590,14 @@ abstract class QueryBuilder {
                         // Form clause by operator.
                         if ( $clause['operator'] === 'IN' ) {
                             $queries[] = sprintf(
-                                '@taxonomy_id_%s:{%s}',
+                                '(@taxonomy_id_%s:{%s})',
                                 $clause['taxonomy'],
                                 implode( '|', (array) $clause['terms'] )
                             );
                         }
                         elseif ( $clause['operator'] === 'NOT IN' ) {
                             $queries[] = sprintf(
-                                '-@taxonomy_id_%s:{%s}',
+                                '(-@taxonomy_id_%s:{%s})',
                                 $clause['taxonomy'],
                                 implode( '|', (array) $clause['terms'] )
                             );

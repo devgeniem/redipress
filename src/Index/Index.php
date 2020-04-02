@@ -369,6 +369,7 @@ class Index {
     public function index_missing( \WP_REST_Request $request = null, array $query_args = [] ) : int {
         global $wpdb;
 
+        \do_action( 'redipress/before_index_all', $request );
         \do_action( 'redipress/before_index_missing', $request );
 
         // phpcs:disable

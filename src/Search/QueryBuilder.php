@@ -647,15 +647,19 @@ abstract class QueryBuilder {
     /**
      * Escape clause terms for the RediSearch query.
      *
-     * @param array $terms Terms to be escaped.
+     * @param mixed $terms Terms to be escaped.
      * @return array Escaped strings.
      */
-    protected function escape_clause_terms( $terms ) {
+    protected function escape_clause_terms( $terms ) : array {
 
         if ( ! empty( $terms ) ) {
-            foreach ( $terms as &$term ) {
-                $term = \str_replace( '-', '\\-', $term );
+            if ( ! is_array( $terms ) ) {
+                $terms = [ $terms ];
             }
+
+            $terms = array_map( function( $term ) {
+                return \str_replace( '-', '\\-', $term );
+            }, $terms );
         }
 
         return $terms;

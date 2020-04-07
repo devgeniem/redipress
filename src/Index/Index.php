@@ -111,6 +111,10 @@ class Index {
         add_action( 'save_post', [ $this, 'upsert' ], 500, 3 );
         add_action( 'delete_post', [ $this, 'delete' ], 10, 1 );
 
+        // Register taxonomy actions
+        add_action( 'added_term_relationship', [ $this, 'index_single' ], 50, 1 );
+        add_action( 'deleted_term_relationship', [ $this, 'index_single' ], 50, 1 );
+
         $this->define_core_fields();
     }
 
@@ -893,7 +897,6 @@ class Index {
 
         return count( $return );
     }
-
 
     /**
      * Write the index to the disk if the setting is on.

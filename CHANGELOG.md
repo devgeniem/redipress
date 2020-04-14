@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 
+### Added
+- Similar value formatting functionalities to update_value than in the save post action.
+
 ### Fixed
 - A bug where giving a string or integer value to taxonomy query `terms` parameter would cause a warning.
 

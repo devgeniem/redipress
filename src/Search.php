@@ -297,6 +297,11 @@ class Search {
 
             if ( empty( $raw_results->results ) || $raw_results->results[0] === 0 ) {
                 $query->redipress_no_results = true;
+
+                if ( ! empty( $query->query_vars['post_type'] ) && is_array( $query->query_vars['post_type'] ) ) {
+                    $query->query_vars['post_type'] = implode( ',', $query->query_vars['post_type'] );
+                }
+
                 return apply_filters( 'redipress/no_results', null, $query );
             }
 

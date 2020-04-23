@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 - A bug where giving a string or integer value to taxonomy query `terms` parameter would cause a warning.
+- A bug where 404 page does not work properly.
 
 ## [1.2.1] - 2020-04-02
 

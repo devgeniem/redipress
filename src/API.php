@@ -5,6 +5,8 @@
 
 namespace Geniem\RediPress;
 
+use Geniem\RediPress\Index\Index;
+
 /**
  * Get one post with its from RediPress index.
  *
@@ -47,10 +49,29 @@ function get_post( $post_id ) { //}: ?\WP_Post {
  * @return array
  */
 function update_value( $doc_id, $field, $value, $score = 1 ) {
-    $settings = new Settings();
-    $client   = apply_filters( 'redipress/client', null );
+    $client = apply_filters( 'redipress/client', null );
 
     $index = Settings::get( 'index' );
+
+    $raw_schema = $client->raw_command( 'FT.INFO', [ $index ] );
+
+    $index_info = Utility::format( $raw_schema );
+
+    $type = get_field_type( $field, $index_info );
+
+    if ( $type === 'TAG' && is_array( $value ) ) {
+        $value = implode( Index::get_tag_separator(), $value );
+    }
+
+    // RediSearch doesn't accept boolean values
+    if ( is_bool( $value ) ) {
+        $value = (int) $value;
+    }
+
+    // Escape dashes in all but numeric fields
+    if ( $type !== 'NUMERIC' ) {
+        $value = escape_dashes( $value );
+    }
 
     $result_add = $client->raw_command(
         'FT.ADD',
@@ -81,4 +102,46 @@ function update_value( $doc_id, $field, $value, $score = 1 ) {
         $result_add,
         $result_add_hash,
     ];
+}
+
+/**
+ * Escape dashes from string
+ *
+ * @param  string $string Unescaped string.
+ * @return string         Escaped $string.
+ */
+function escape_dashes( ?string $string = '' ) : string {
+    if ( ! $string ) {
+        $string = '';
+    }
+
+    $string = \str_replace( '-', '\\-', $string );
+    return $string;
+}
+
+/**
+ * Get RediSearch field type for a field
+ *
+ * @param string $key The key for which to fetch the field type.
+ * @param array  $index The index.
+ * @return string|null
+ */
+function get_field_type( string $key, array $index ) : ?string {
+    $fields = Utility::format( $index['fields'] );
+
+    $field_type = array_reduce( $fields, function( $carry = null, $item = null ) use ( $key ) {
+        if ( ! empty( $carry ) ) {
+            return $carry;
+        }
+
+        $name = $item[0];
+
+        if ( $name === $key ) {
+            return Utility::get_value( $item, 'type' );
+        }
+
+        return null;
+    });
+
+    return $field_type;
 }

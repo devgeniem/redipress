@@ -651,16 +651,13 @@ abstract class QueryBuilder {
      * @return array Escaped strings.
      */
     protected function escape_clause_terms( $terms ) : array {
-
-        if ( ! empty( $terms ) ) {
-            if ( ! is_array( $terms ) ) {
-                $terms = [ $terms ];
-            }
-
-            $terms = array_map( function( $term ) {
-                return \str_replace( '-', '\\-', $term );
-            }, $terms );
+        if ( ! is_array( $terms ) ) {
+            $terms = [ $terms ];
         }
+
+        $terms = array_map( function( $term ) {
+            return \str_replace( '-', '\\-', $term );
+        }, $terms );
 
         return $terms;
     }

@@ -111,8 +111,8 @@ function update_value( $doc_id, $field, $value, $score = 1 ) {
  * @return string         Escaped $string.
  */
 function escape_dashes( ?string $string = '' ) : string {
-    if ( ! $string ) {
-        $string = '';
+    if ( ! is_string( $string ) ) {
+        return '';
     }
 
     $string = \str_replace( '-', '\\-', $string );

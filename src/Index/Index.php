@@ -698,8 +698,8 @@ class Index {
      * @return string         Escaped $string.
      */
     public function escape_dashes( ?string $string = '' ) : string {
-        if ( ! $string ) {
-            $string = '';
+        if ( ! is_string( $string ) ) {
+            return '';
         }
 
         $string = \str_replace( '-', '\\-', $string );

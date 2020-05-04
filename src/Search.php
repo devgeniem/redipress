@@ -143,70 +143,97 @@ class Search {
         $reduce_functions = apply_filters( 'redipress/reduce_functions', $reduce_functions );
         $load             = apply_filters( 'redipress/load', [ 'post_object' ] );
 
-        // Form the return field clause
-        $return_fields = array_map( function( string $field ) use ( $reduce_functions ) : array {
-            $return = [
-                'REDUCE',
-                $reduce_functions[ $field ] ?? 'FIRST_VALUE',
-                1,
-                '@' . $field,
-                'AS',
-                $field,
-            ];
+        if ( ! empty( $sortby ) && ! empty( $applies ) && ! empty( $filters ) ) {
+            // Form the return field clause
+            $return_fields = array_map( function( string $field ) use ( $reduce_functions ) : array {
+                $return = [
+                    'REDUCE',
+                    $reduce_functions[ $field ] ?? 'FIRST_VALUE',
+                    1,
+                    '@' . $field,
+                    'AS',
+                    $field,
+                ];
 
-            return $return;
-        }, $return );
+                return $return;
+            }, $return );
 
-        // Form the final query
-        $command = array_merge(
-            [ $this->index, $search_query_string, 'INFIELDS', count( $infields ) ],
-            $infields,
-            array_merge( [ 'LOAD', count( $load ) ], array_map( function( $l ) { return '@' . $l; }, $load ) ),
-            array_merge( [ 'GROUPBY', count( $groupby ) ], array_map( function( $g ) { return '@' . $g; }, $groupby ) ),
-            array_reduce( $return_fields, 'array_merge', [] ),
-            $applies,
-            $filters,
-            array_merge( $sortby ),
-            [ 'LIMIT', $offset, $limit ]
-        );
+            // Form the final query
+            $command = array_merge(
+                [ $this->index, $search_query_string, 'INFIELDS', count( $infields ) ],
+                $infields,
+                array_merge( [ 'LOAD', count( $load ) ], array_map( function( $l ) { return '@' . $l; }, $load ) ),
+                array_merge( [ 'GROUPBY', count( $groupby ) ], array_map( function( $g ) { return '@' . $g; }, $groupby ) ),
+                array_reduce( $return_fields, 'array_merge', [] ),
+                $applies,
+                $filters,
+                array_merge( $sortby ),
+                [ 'LIMIT', $offset, $limit ]
+            );
 
-        // Run the command itself. FT.AGGREGATE is used to allow multiple sortby queries
-        $results = $this->client->raw_command(
-            'FT.AGGREGATE',
-            $command
-        );
+            // Run the command itself. FT.AGGREGATE is used to allow multiple sortby queries
+            $results = $this->client->raw_command(
+                'FT.AGGREGATE',
+                $command
+            );
 
-        if ( ! is_array( $results ) ) {
-            $results = [];
+            if ( ! is_array( $results ) ) {
+                $results = [];
+            }
+
+            // Clean the aggregate output to match usual key-value pairs
+            $results = array_map( function( $result ) {
+                if ( is_array( $result ) ) {
+                    return array_map( function( $item ) {
+                        // If we are dealing with an array, just turn it into a string
+                        if ( is_array( $item ) ) {
+                            return implode( ' ', $item );
+                        }
+                        else {
+                            return $item;
+                        }
+                    }, $result );
+                }
+                else {
+                    return $result;
+                }
+            }, $results );
+
+            // Store the search query string so that in can be debugged easily via WP_Query.
+            $query->redisearch_query = 'FT.AGGREGATE ' . implode( ' ', array_map( function( $comm ) {
+                if ( \strpos( $comm, ' ' ) !== false ) {
+                    return '"' . $comm . '"';
+                }
+                else {
+                    return $comm;
+                }
+            }, $command ) );
         }
+        else {
+            // Form the final query
+            $command = array_merge(
+                [ $this->index, $search_query_string, 'INFIELDS', count( $infields ) ],
+                $infields,
+                [ 'RETURN', count( $return ), $return ],
+                [ 'LIMIT', $offset, $limit ]
+            );
 
-        // Clean the aggregate output to match usual key-value pairs
-        $results = array_map( function( $result ) {
-            if ( is_array( $result ) ) {
-                return array_map( function( $item ) {
-                    // If we are dealing with an array, just turn it into a string
-                    if ( is_array( $item ) ) {
-                        return implode( ' ', $item );
-                    }
-                    else {
-                        return $item;
-                    }
-                }, $result );
-            }
-            else {
-                return $result;
-            }
-        }, $results );
+            // Run the command itself. FT.AGGREGATE is used to allow multiple sortby queries
+            $results = $this->client->raw_command(
+                'FT.SEARCH',
+                $command
+            );
 
-        // Store the search query string so that in can be debugged easily via WP_Query.
-        $query->redisearch_query = 'FT.AGGREGATE ' . implode( ' ', array_map( function( $comm ) {
-            if ( \strpos( $comm, ' ' ) !== false ) {
-                return '"' . $comm . '"';
-            }
-            else {
-                return $comm;
-            }
-        }, $command ) );
+            // Store the search query string so that in can be debugged easily via WP_Query.
+            $query->redisearch_query = 'FT.SEARCH ' . implode( ' ', array_map( function( $comm ) {
+                if ( \strpos( $comm, ' ' ) !== false ) {
+                    return '"' . $comm . '"';
+                }
+                else {
+                    return $comm;
+                }
+            }, $command ) );
+        }
 
         // Run the count post types command
         $counts = $this->client->raw_command(

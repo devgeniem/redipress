@@ -214,7 +214,8 @@ class Search {
             $command = array_merge(
                 [ $this->index, $search_query_string, 'INFIELDS', count( $infields ) ],
                 $infields,
-                [ 'RETURN', count( $return ), $return ],
+                [ 'RETURN', count( $return ) ],
+                $return,
                 [ 'LIMIT', $offset, $limit ]
             );
 
@@ -377,9 +378,15 @@ class Search {
         $results = Utility::format( $results );
 
         return array_map( function( array $result ) : ?\WP_Post {
-            $formatted = Utility::format( $result );
+            if ( empty( $result['post_object'] ) ) {
+                $formatted = Utility::format( $result );
+                $post_obj  = $formatted['post_object'];
+            }
+            else {
+                $post_obj = $result['post_object'];
+            }
 
-            return maybe_unserialize( $formatted['post_object'] );
+            return maybe_unserialize( $post_obj );
         }, $results );
     }
 }

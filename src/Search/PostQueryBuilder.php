@@ -210,6 +210,10 @@ class PostQueryBuilder extends QueryBuilder {
 
         $clause = '';
 
+        if ( $blog_id === 'all' ) {
+            return '';
+        }
+
         if ( ! is_array( $blog_id ) ) {
             $blog_id = [ $blog_id ];
         }

@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2020-05-05
+
+### Added
+- Possibility to use `all` as a parameter for `blog` to query all network sites at once.
+
+### Changed
+- Query to be run with FT.SEARCH if nothing in it requires features of FT.AGGREGATE.
+- If multiple write actions are done during one script execution, they will by default be written in disk only once at the end of the execution.
+
 ## [1.3.1] - 2020-04-28
 
 ### Fixed

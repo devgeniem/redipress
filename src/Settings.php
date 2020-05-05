@@ -41,6 +41,7 @@ class Settings {
 
         // Register settings
         \register_setting( $this->get_slug(), self::PREFIX . 'persist_index' );
+        \register_setting( $this->get_slug(), self::PREFIX . 'write_every' );
         \register_setting( $this->get_slug(), self::PREFIX . 'hostname' );
         \register_setting( $this->get_slug(), self::PREFIX . 'port' );
         \register_setting( $this->get_slug(), self::PREFIX . 'password' );
@@ -67,6 +68,18 @@ class Settings {
             $this->get_slug() . '-general-settings-section',
             [
                 'label_for' => self::PREFIX . 'persist_index',
+            ]
+        );
+
+        // Write the index only once per execution
+        \add_settings_field(
+            $this->get_slug() . '-write-every',
+            __( 'Write the index only once per execution', 'redipress' ),
+            [ $this, 'render_write:once_field' ],
+            $this->get_slug(),
+            $this->get_slug() . '-general-settings-section',
+            [
+                'label_for' => self::PREFIX . 'write_every',
             ]
         );
 
@@ -352,7 +365,24 @@ class Settings {
             <input type="checkbox" name="redipress_persist_index" id="redipress_persist_index" value="1" <?php \checked( 1, $option ) . $this->disabled( $name ); ?>>
             <p class="description" id="persistent-index-description">
                 <?php
-                \esc_html_e( 'Whether the index should be written to disk after every write action or not.', 'redipress' );
+                \esc_html_e( 'Whether to store the index persistently or only in memory.', 'redipress' );
+                ?>
+            </p>
+        <?php
+    }
+
+    /**
+     * Renders the persistent index field.
+     */
+    public function render_write_every() {
+        $name   = 'write_every';
+        $option = self::get( $name );
+        ?>
+            <input type="hidden" name="redipress_write_every" value="0" />
+            <input type="checkbox" name="redipress_write_every" id="redipress_write_every" value="1" <?php \checked( 1, $option ) . $this->disabled( $name ); ?>>
+            <p class="description" id="write-every-description">
+                <?php
+                \esc_html_e( 'Whether the index should be written to disk after every write action or only once per execution.', 'redipress' );
                 ?>
             </p>
         <?php

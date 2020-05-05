@@ -63,6 +63,13 @@ class Index {
     protected const TAG_SEPARATOR = '*';
 
     /**
+     * Whether we will write the index to disk in shutdown hook.
+     *
+     * @var boolean
+     */
+    protected static $written = false;
+
+    /**
      * Construct the index object
      *
      * @param Client $client Client instance.
@@ -908,11 +915,29 @@ class Index {
     public function maybe_write_to_disk( $args = null ) {
         $settings = new Settings();
 
-        // Allow overriding the setting via a filter
-        $filter_writing = apply_filters( 'redipress/write_to_disk', null, $args );
+        // Bail early if we don't want a persisting index.
+        if ( ! $settings->get( 'persist_index' ) ) {
+            return;
+        }
 
-        if ( $filter_writing ?? $settings->get( 'persist_index' ) ) {
-            return $this->write_to_disk();
+        // Write immediately, if we want to do it every time.
+        if ( $settings->get( 'write_every' ) ) {
+            // Allow overriding the settings via a filter
+            $filter_writing = apply_filters( 'redipress/write_to_disk', null, $args );
+
+            if ( $filter_writing ) {
+                return $this->write_to_disk();
+            }
+        }
+        else {
+            if ( self::$written ) {
+                return true;
+            }
+            else {
+                register_shutdown_function( [ $this, 'write_to_disk' ] );
+                self::$written = true;
+                return true;
+            }
         }
     }
 

@@ -66,7 +66,7 @@ class Polylang {
                         // Convert the id query to a slug query.
                         $slug_query = [
                             'taxonomy' => 'language',
-                            'field'    => 'slug', // Since WP 3.5
+                            'field'    => 'slug',
                             'terms'    => [ $term->slug ?? '' ],
                             'operator' => 'IN',
                         ];

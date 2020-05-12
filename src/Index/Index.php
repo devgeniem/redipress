@@ -467,6 +467,11 @@ class Index {
     public function index_single( int $post_id ) {
         $post = get_post( $post_id );
 
+        // Bail early if not found
+        if ( ! $post ) {
+            return;
+        }
+
         $converted = $this->convert_post( $post );
 
         return $this->add_post( $converted, self::get_document_id( $post ) );

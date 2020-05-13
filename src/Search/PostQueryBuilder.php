@@ -282,12 +282,22 @@ class PostQueryBuilder extends QueryBuilder {
             $post_types = is_array( $post_type ) ? $post_type : [ $post_type ];
 
             $post_types = array_map( [ $this, 'escape_dashes' ], $post_types );
-
-            return '@post_type:(' . implode( '|', $post_types ) . ')';
         }
+        // ‘any‘ – retrieves any type except revisions and
+        // types with ‘exclude_from_search’ set to true.
         else {
-            return '';
+            $in_search_post_types = get_post_types( [
+                'exclude_from_search' => false,
+            ], 'names' );
+
+            if ( empty( $in_search_post_types ) ) {
+                return '';
+            }
+
+            $post_types = array_map( [ $this, 'escape_dashes' ], $in_search_post_types );
         }
+
+        return '@post_type:(' . implode( '|', $post_types ) . ')';
     }
 
     /**

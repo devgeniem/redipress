@@ -291,11 +291,16 @@ class Search {
             if ( ! empty( $query->query_vars['pagename'] ) ) {
                 $post_types = [ 'page' ];
             }
+            // ...and if this is a search query from nonexcluded post types
+            elseif ( ! empty( $query->query_vars['s'] ) ) {
+                $post_types = get_post_types( [
+                    'exclude_from_search' => false,
+                ], 'names' );
+            }
             else {
                 $post_types = get_post_types( [
-                    'public'              => true,
-                    'publicly_queryable'  => true,
-                    'exclude_from_search' => false,
+                    'public'             => true,
+                    'publicly_queryable' => true,
                 ], 'names' );
             }
 

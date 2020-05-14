@@ -678,21 +678,12 @@ class PostQueryBuilder extends QueryBuilder {
         // Handle empty orderby
         if ( empty( $query['orderby'] ) ) {
             if ( empty( $query['s'] ) ) {
-                $order = 'date';
+                $query['orderby'] = 'date';
             }
             else {
                 return true;
             }
         }
-
-        $order = $query['order'] ?? 'DESC';
-
-        $sortby = [
-            [
-                'order'   => $order,
-                'orderby' => null,
-            ],
-        ];
 
         // If we have a simple string as the orderby parameter.
         if (
@@ -700,7 +691,13 @@ class PostQueryBuilder extends QueryBuilder {
             is_string( $query['orderby'] ) &&
             strpos( $query['orderby'], ' ' ) === false
         ) {
-            $sortby[0]['orderby'] = $query['orderby'];
+
+            $sortby = [
+                [
+                    'order'   => $query['order'] ?? 'DESC',
+                    'orderby' => $query['orderby'],
+                ],
+            ];
         }
         // If we have an array with key-value pairs
         elseif (

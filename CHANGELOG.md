@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 - Fix Polylang's localized main queries on multisites by using the language slug in term queries instead of the language term id.
-- Set the correct post types for 's' queries.05
+- Set the correct post types for 's' queries.
 
 ### Added
 - Possibility to use `all` as a parameter for `blog` to query all network sites at once.

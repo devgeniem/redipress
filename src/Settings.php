@@ -75,7 +75,7 @@ class Settings {
         \add_settings_field(
             $this->get_slug() . '-write-every',
             __( 'Write the index only once per execution', 'redipress' ),
-            [ $this, 'render_write:once_field' ],
+            [ $this, 'render_write_every' ],
             $this->get_slug(),
             $this->get_slug() . '-general-settings-section',
             [

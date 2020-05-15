@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+- Utility function `delete_doc()`.
+
 ### Fixed
 - Fix Polylang's localized main queries on multisites by using the language slug in term queries instead of the language term id.
 

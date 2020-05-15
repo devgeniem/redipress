@@ -145,3 +145,27 @@ function get_field_type( string $key, array $index ) : ?string {
 
     return $field_type;
 }
+
+/**
+ * Delete document from RediPress index.
+ *
+ * @param string $doc_id Document ID to delete.
+ */
+function delete_doc( $doc_id ) {
+
+    $client = apply_filters( 'redipress/client', null );
+    $index  = Settings::get( 'index' );
+
+    if ( ! empty( $doc_id ) && ! empty( $client ) && ! empty( $index ) ) {
+
+        // Do the delete.
+        $client->raw_command(
+            'FT.DEL',
+            [
+                $index,
+                $doc_id,
+                'DD',
+            ]
+        );
+    }
+}

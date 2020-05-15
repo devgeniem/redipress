@@ -6,9 +6,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [1.4.0] - 2020-05-15
 
-### Added
-- Utility function `delete_doc()`.
-
 ### Fixed
 - Fix Polylang's localized main queries on multisites by using the language slug in term queries instead of the language term id.
 - Bail early from the indexing function if the given post does not exist.
@@ -17,6 +14,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 - Possibility to use `all` as a parameter for `blog` to query all network sites at once.
+- Utility function `delete_doc()`.
 
 ### Changed
 - Query to be run with FT.SEARCH if nothing in it requires features of FT.AGGREGATE.

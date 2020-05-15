@@ -4,11 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.4.0] - 2020-05-15
 
 ### Fixed
 - Fix Polylang's localized main queries on multisites by using the language slug in term queries instead of the language term id.
+- Bail early from the indexing function if the given post does not exist.
 - Set the correct post types for 's' queries.
+- A bug where ordering a query by post date would fail in certain conditions.
 
 ### Added
 - Possibility to use `all` as a parameter for `blog` to query all network sites at once.

@@ -333,11 +333,6 @@ abstract class QueryBuilder {
 
         $sort = explode( ' ', $terms ) ?: [];
 
-        // Handle asterisks
-        $sort = array_map( function( $word ) {
-            return str_replace( '*', '', $word ) . '*';
-        }, $sort );
-
         // Handle tildes
         $tilde = array_filter( $sort, function( $word ) {
             return strpos( $word, '~' ) === 0;

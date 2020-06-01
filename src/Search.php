@@ -210,13 +210,21 @@ class Search {
             }, $command ) );
         }
         else {
+            /**
+             * Define the scorer
+             *
+             * @see https://oss.redislabs.com/redisearch/Scoring/
+             */
+            $scorer = apply_filters( 'redipress/scorer', 'DISMAX', $query );
+
             // Form the final query
             $command = array_merge(
                 [ $this->index, $search_query_string, 'INFIELDS', count( $infields ) ],
                 $infields,
                 [ 'RETURN', count( $return ) ],
                 $return,
-                [ 'LIMIT', $offset, $limit ]
+                [ 'LIMIT', $offset, $limit ],
+                [ 'SCORER', $scorer ],
             );
 
             // Run the command itself. FT.AGGREGATE is used to allow multiple sortby queries

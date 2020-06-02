@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 - Changed the default scorer for relevancy searches to DISMAX and added a filter (`redipress/scorer`) for changing that.
+- `post_mime_type` field to the core schema and the functions to support querying it.
 
 ## [1.4.1] - 2020-05-20
 

@@ -52,6 +52,7 @@ class PostQueryBuilder extends QueryBuilder {
         'pagename'         => 'post_name',
         'post_type'        => 'post_type',
         'post_parent'      => 'post_parent',
+        'post_mime_type'   => 'post_mime_type',
         'post_status'      => 'post_status',
         'post__in'         => 'post_id',
         'post__not_in'     => 'post_id',
@@ -366,6 +367,26 @@ class PostQueryBuilder extends QueryBuilder {
         }
 
         return '@post_parent:' . $post_parent;
+    }
+
+    /**
+     * WP_Query mime type parameter.
+     *
+     * @return ?string
+     */
+    protected function post_mime_type() : ?string {
+
+        if ( empty( $this->query->query_vars['post_mime_type'] ) ) {
+            return '';
+        }
+
+        $mime_type = $this->query->query_vars['post_mime_type'];
+
+        $mime_types = is_array( $mime_type ) ? $mime_type : [ $mime_type ];
+
+        $mime_types = array_map( [ $this, 'escape_dashes' ], $mime_types );
+
+        return '@post_mime_type:(' . implode( '|', $mime_types ) . ')';
     }
 
     /**

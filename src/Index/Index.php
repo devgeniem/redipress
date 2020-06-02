@@ -663,6 +663,7 @@ class Index {
         // Gather the additional search index
         $search_index = apply_filters( 'redipress/search_index', implode( ' ', $search_index ), $post->ID, $post );
         $search_index = apply_filters( 'redipress/search_index/' . $post->ID, $search_index, $post );
+
         $search_index = apply_filters( 'redipress/index_strings', $search_index, $post );
         $search_index = $this->escape_dashes( $search_index );
 
@@ -796,12 +797,30 @@ class Index {
         }
 
         // Handle the post content
-        $post_content = \wp_strip_all_tags( $post_content, true );
+        $post_content = $this->strip_tags_except_comments( $post_content );
         $post_content = \apply_filters( 'redipress/post_content', $post_content, $post );
         $post_content = apply_filters( 'redipress/index_strings', $post_content, $post );
         $post_content = $this->escape_dashes( $post_content );
 
         return $post_content;
+    }
+
+    /**
+     * Strip tags but save HTML comments.
+     *
+     * @param string $content The content to strip.
+     * @return string
+     */
+    private function strip_tags_except_comments( string $content ) : string {
+        $content = str_replace( '<!--', '=THEREISACOMMENTSTARTINGHERE=', $content );
+        $content = str_replace( '-->', '=THEREISACOMMENTENDINGHERE=', $content );
+
+        $content = \wp_strip_all_tags( $content, true );
+
+        $content = str_replace( '=THEREISACOMMENTSTARTINGHERE=', '<!--', $content );
+        $content = str_replace( '=THEREISACOMMENTENDINGHERE=', '-->', $content );
+
+        return $content;
     }
 
     /**

@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [1.4.0] - 2020-05-15
 
 ### Fixed
-- Fix Polylang's localized main queries on multisites by using the language slug in term queries instead of the language term id.
+- Polylang's localized main queries on multisites by using the language slug in term queries instead of the language term id.
 - Bail early from the indexing function if the given post does not exist.
 - Set the correct post types for 's' queries.
 - A bug where ordering a query by post date would fail in certain conditions.
@@ -68,13 +68,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [1.1.3] - 2020-02-07
 
-### Changed
-- Fix empty query variable handling.
+### Fixed
+- Empty query variable handling.
 
 ## [1.1.2] - 2020-02-07
 
+### Fixed
+- Empty search string handling.
+
 ### Changed
-- Fix empty search string handling.
 - Prevent the query builder from handling empty query variables.
 
 ## [1.1.1] - 2020-02-06

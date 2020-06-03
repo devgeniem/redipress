@@ -115,17 +115,24 @@ class Search {
         // Filter the list of fields that will be returned with the query.
         $return = array_unique( apply_filters( 'redipress/return_fields', $this->query_builder->get_return_fields(), $query ) );
 
-        // Determine the limit and offset parameters.
-        $limit = $query->query_vars['posts_per_page'];
-
-        if ( isset( $query->query_vars['offset'] ) ) {
-            $offset = $query->query_vars['offset'];
-        }
-        elseif ( isset( $query->query_vars['paged'] ) && $query->query_vars['paged'] > 1 ) {
-            $offset = $query->query_vars['posts_per_page'] * ( $query->query_vars['paged'] - 1 );
+        // If we are dealing with a singular view the limit and offset are clear.
+        if ( $query->is_singular() ) {
+            $limit  = 1;
+            $offset = 0;
         }
         else {
-            $offset = 0;
+            // Determine the limit and offset parameters.
+            $limit = $query->query_vars['posts_per_page'];
+
+            if ( isset( $query->query_vars['offset'] ) ) {
+                $offset = $query->query_vars['offset'];
+            }
+            elseif ( isset( $query->query_vars['paged'] ) && $query->query_vars['paged'] > 1 ) {
+                $offset = $query->query_vars['posts_per_page'] * ( $query->query_vars['paged'] - 1 );
+            }
+            else {
+                $offset = 0;
+            }
         }
 
         // Get query parameters

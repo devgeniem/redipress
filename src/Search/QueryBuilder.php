@@ -328,7 +328,16 @@ abstract class QueryBuilder {
         $terms = apply_filters( 'redipress/search_terms/escaped/' . static::TYPE, $terms );
 
         $terms = \preg_replace_callback( '/[^\(\)\| ]+/', function( $word ) {
-            return ! empty( $word[0] ) ? $word[0] . '*' : '';
+            if ( ! empty( $word[0] ) ) {
+                if ( \mb_strlen( $word[0] ) > 1 ) {
+                    return $word[0] . '*';
+                }
+                else {
+                    return '';
+                }
+            }
+
+            return '';
         }, $terms );
 
         $sort = explode( ' ', $terms ) ?: [];

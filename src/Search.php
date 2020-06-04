@@ -350,7 +350,12 @@ class Search {
                     $query->query_vars['post_type'] = implode( ',', $query->query_vars['post_type'] );
                 }
 
-                return apply_filters( 'redipress/no_results', null, $query );
+                if ( Settings::get( 'fallback' ) ) {
+                    return apply_filters( 'redipress/no_results', null, $query );
+                }
+                else {
+                    return apply_filters( 'redipress/no_results', [], $query );
+                }
             }
 
             $count = $raw_results->results[0];

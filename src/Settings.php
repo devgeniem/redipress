@@ -42,6 +42,7 @@ class Settings {
         // Register settings
         \register_setting( $this->get_slug(), self::PREFIX . 'persist_index' );
         \register_setting( $this->get_slug(), self::PREFIX . 'write_every' );
+        \register_setting( $this->get_slug(), self::PREFIX . 'fallback' );
         \register_setting( $this->get_slug(), self::PREFIX . 'hostname' );
         \register_setting( $this->get_slug(), self::PREFIX . 'port' );
         \register_setting( $this->get_slug(), self::PREFIX . 'password' );
@@ -80,6 +81,18 @@ class Settings {
             $this->get_slug() . '-general-settings-section',
             [
                 'label_for' => self::PREFIX . 'write_every',
+            ]
+        );
+
+        // Fallback to MySQL if no results have been found from RediSearch
+        \add_settings_field(
+            $this->get_slug() . '-fallback',
+            __( 'Fallback to MySQL if no results have been found from RediSearch', 'redipress' ),
+            [ $this, 'render_fallback' ],
+            $this->get_slug(),
+            $this->get_slug() . '-general-settings-section',
+            [
+                'label_for' => self::PREFIX . 'fallback',
             ]
         );
 
@@ -383,6 +396,23 @@ class Settings {
             <p class="description" id="write-every-description">
                 <?php
                 \esc_html_e( 'Whether the index should be written to disk after every write action or only once per execution.', 'redipress' );
+                ?>
+            </p>
+        <?php
+    }
+
+    /**
+     * Renders the fallback field.
+     */
+    public function render_fallback() {
+        $name   = 'fallback';
+        $option = self::get( $name );
+        ?>
+            <input type="hidden" name="redipress_fallback" value="0" />
+            <input type="checkbox" name="redipress_fallback" id="redipress_fallback" value="1" <?php \checked( 1, $option ) . $this->disabled( $name ); ?>>
+            <p class="description" id="fallback-description">
+                <?php
+                \esc_html_e( 'Whether to fallback to MySQL when no results are found from RediSearch or not.', 'redipress' );
                 ?>
             </p>
         <?php

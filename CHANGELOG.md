@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [1.5.1] - 2020-06-04
 
+### Added
+- A setting (`fallback`) to disable the MySQL fallback if no results are found in RediSearch.
+
 ### Changed
 - Wildcards won't be added to the end of the keywords if the keyword is just one character in length.
 

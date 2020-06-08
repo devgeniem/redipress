@@ -77,6 +77,11 @@ class Search {
 
         // Add search filters
         add_filter( 'posts_pre_query', [ $this, 'posts_pre_query' ], 10, 2 );
+
+        // Reverse filter for getting the Search instance.
+        add_filter( 'redipress/search_instance', function( $value ) {
+            return $this;
+        }, 1, 1 );
     }
 
     /**
@@ -135,6 +140,13 @@ class Search {
             }
         }
 
+        if ( $limit > 0 ) {
+            $limits = [ 'LIMIT', $offset, $limit ];
+        }
+        else {
+            $limits = [];
+        }
+
         // Get query parameters
         $sortby           = $this->query_builder->get_sortby() ?: [];
         $applies          = $this->query_builder->get_applies() ?: [];
@@ -175,7 +187,7 @@ class Search {
                 $applies,
                 $filters,
                 array_merge( $sortby ),
-                [ 'LIMIT', $offset, $limit ]
+                $limits
             );
 
             // Run the command itself. FT.AGGREGATE is used to allow multiple sortby queries
@@ -230,7 +242,7 @@ class Search {
                 $infields,
                 [ 'RETURN', count( $return ) ],
                 $return,
-                [ 'LIMIT', $offset, $limit ],
+                $limits,
                 [ 'SCORER', $scorer ],
             );
 

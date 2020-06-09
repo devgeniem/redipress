@@ -152,7 +152,7 @@ class Search {
         $applies          = $this->query_builder->get_applies() ?: [];
         $filters          = $this->query_builder->get_filters() ?: [];
         $reduce_functions = $this->query_builder->get_reduce_functions() ?: [];
-        $groupby          = $this->query_builder->get_groupby();
+        $groupby          = $this->query_builder->get_groupby() ?: [];
 
         // Filters for query parts
         $sortby           = apply_filters( 'redipress/sortby', $sortby );
@@ -162,7 +162,7 @@ class Search {
         $reduce_functions = apply_filters( 'redipress/reduce_functions', $reduce_functions );
         $load             = apply_filters( 'redipress/load', [ 'post_object' ] );
 
-        if ( ! empty( $sortby ) || ! empty( $applies ) || ! empty( $filters ) ) {
+        if ( ! empty( $sortby ) || ! empty( $applies ) || ! empty( $filters ) || ! empty( $groupby ) ) {
             // Form the return field clause
             $return_fields = array_map( function( string $field ) use ( $reduce_functions ) : array {
                 $return = [

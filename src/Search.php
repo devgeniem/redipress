@@ -144,7 +144,7 @@ class Search {
             $limits = [ 'LIMIT', $offset, $limit ];
         }
         else {
-            $limits = [];
+            $limits = [ 'LIMIT', 0, 100000 ];
         }
 
         // Get query parameters

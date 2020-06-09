@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 - A bug where group by clauses set via filter would not cause an FT.AGGREGATE call on their own.
+- A bug where `"posts_per_page" => -1` query argument would result in too few results.
 
 ## [1.5.2] - 2020-06-05
 

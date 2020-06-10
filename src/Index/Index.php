@@ -692,7 +692,7 @@ class Index {
             'post_content'   => $post_content,
             'post_type'      => $this->escape_dashes( $post->post_type ),
             'post_parent'    => $post->post_parent,
-            'post_parent'    => $post->post_mime_type,
+            'post_mime_type' => $post->post_mime_type,
             'post_status'    => $post_status,
             'post_object'    => serialize( $post_object ),
             'permalink'      => get_permalink( $post->ID ),

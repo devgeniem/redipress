@@ -48,8 +48,8 @@ class PostQueryBuilder extends QueryBuilder {
         'blog'                => 'blog_id',
         'p'                   => 'post_id',
         'name'                => 'post_name',
-        'page'                => null,
         'pagename'            => 'post_name',
+        'page'                => null,
         'post_type'           => 'post_type',
         'post_parent'         => 'post_parent',
         'post_parent__in'     => 'post_parent',
@@ -74,8 +74,6 @@ class PostQueryBuilder extends QueryBuilder {
         'meta_key'            => null,
         'weight'              => null,
         'reduce_functions'    => null,
-        'rest_route'          => null,
-        'ignore_sticky_posts' => null,
     ];
 
     /**
@@ -123,6 +121,8 @@ class PostQueryBuilder extends QueryBuilder {
             'meta_type',
             'update_post_meta_cache',
             'update_post_term_cache',
+            'ignore_sticky_posts',
+            'rest_route',
         ], $ignore_added_query_vars ) );
 
         $this->ignore_query_vars = apply_filters( 'redipress/ignore_query_vars/' . static::TYPE, $this->ignore_query_vars );
@@ -361,6 +361,19 @@ class PostQueryBuilder extends QueryBuilder {
         }
 
         $name = $this->query->query_vars['name'];
+
+        if ( isset(
+            $this->query->query_vars['pagename'],
+            $this->query->query_vars['post_type'],
+            $this->query->query['pagename']
+        ) ) {
+            $post = \get_page_by_path( $this->query->query['pagename'] );
+
+            if ( $post ) {
+                $this->add_search_field( 'post_id' );
+                return '@post_id:' . $post->ID;
+            }
+        }
 
         if ( $name !== 'any' ) {
             $names = is_array( $name ) ? $name : [ $name ];

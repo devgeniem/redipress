@@ -10,9 +10,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Support for `author__in`, `author__not_in`, `post_parent__in` and `post_parent__not_in` queries.
 
 ### Fixed
-- A bug where empty post content could cause some posts not to be indexed.
 - REST API compability.
+- A bug where empty post content could cause some posts not to be indexed.
 - A bug regarding WP_Query calls with `'post_type' => 'any'`.
+- A bug where wrong posts with the post name in a hierarchical post type would sometimes be returned.
+- Wrong number of results was shown in the DustPress Debugger.
 
 ## [1.5.4] - 2020-06-10
 

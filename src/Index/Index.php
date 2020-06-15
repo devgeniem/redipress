@@ -808,10 +808,14 @@ class Index {
     /**
      * Strip tags but save HTML comments.
      *
-     * @param string $content The content to strip.
+     * @param null|string $content The content to strip.
      * @return string
      */
-    private function strip_tags_except_comments( string $content ) : string {
+    private function strip_tags_except_comments( ?string $content ) : string {
+        if ( ! $content ) {
+            return '';
+        }
+
         $content = str_replace( '<!--', '=THEREISACOMMENTSTARTINGHERE=', $content );
         $content = str_replace( '-->', '=THEREISACOMMENTENDINGHERE=', $content );
 

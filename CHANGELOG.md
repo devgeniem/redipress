@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [1.6.0] - 2020-06-15
 
 ### Added
-- Support or `author__in`, `author__not-in`
+- Support for `author__in`, `author__not_in`, `post_parent__in` and `post_parent__not_in` queries.
 
 ### Fixed
 - A bug where empty post content could cause some posts not to be indexed.

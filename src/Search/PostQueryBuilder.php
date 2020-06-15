@@ -123,6 +123,7 @@ class PostQueryBuilder extends QueryBuilder {
             'update_post_term_cache',
             'ignore_sticky_posts',
             'rest_route',
+            'fields',
         ], $ignore_added_query_vars ) );
 
         $this->ignore_query_vars = apply_filters( 'redipress/ignore_query_vars/' . static::TYPE, $this->ignore_query_vars );

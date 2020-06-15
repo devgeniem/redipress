@@ -392,6 +392,10 @@ class Search {
 
             $query->using_redisearch = true;
 
+            if ( isset( $query->query['fields'] ) && $query->query['fields'] === 'ids' ) {
+                $results = \array_column( $results, 'ID' );
+            }
+
             return array_values( $results );
         }
         else {

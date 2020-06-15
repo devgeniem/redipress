@@ -7,7 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [1.6.0] - 2020-06-15
 
 ### Added
-- Support for `author__in`, `author__not_in`, `post_parent__in` and `post_parent__not_in` queries.
+- Support for `author__in`, `author__not_in`, `post_parent__in` and `post_parent__not_in` WP_Query arguments.
+- Support for WP_Query's `fields` argument.
 
 ### Fixed
 - REST API compability.

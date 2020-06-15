@@ -291,7 +291,7 @@ class PostQueryBuilder extends QueryBuilder {
             $post_types = array_map( [ $this, 'escape_dashes' ], $post_types );
         }
         // ‘any‘ – retrieves any type except revisions and
-        // types with ‘exclude_from_search’ set to true.
+        // types with ‘exclude_from_search’ set to false.
         else {
             $in_search_post_types = get_post_types( [
                 'exclude_from_search' => false,

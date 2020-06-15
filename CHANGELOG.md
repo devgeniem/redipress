@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2020-06-15
+
+### Added
+- Support or `author__in`, `author__not-in`
+
+### Fixed
+- A bug where empty post content could cause some posts not to be indexed.
+- REST API compability.
+- A bug regarding WP_Query calls with `'post_type' => 'any'`.
+
 ## [1.5.4] - 2020-06-10
 
 ### Fixed

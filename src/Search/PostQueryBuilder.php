@@ -363,21 +363,6 @@ class PostQueryBuilder extends QueryBuilder {
 
         $name = $this->query->query_vars['name'];
 
-
-        // Handle CPT posts.
-        if ( isset(
-            $this->query->query_vars['name'],
-            $this->query->query_vars['post_type']
-        ) ) {
-
-            $post = \get_page_by_path( $this->query->query['name'], OBJECT, $this->query->query_vars['post_type'] );
-
-            if ( $post ) {
-                $this->add_search_field( 'post_id' );
-                return '@post_id:' . $post->ID;
-            }
-        }
-
         // Handle pages.
         if ( isset(
             $this->query->query_vars['pagename'],
@@ -386,6 +371,20 @@ class PostQueryBuilder extends QueryBuilder {
         ) ) {
 
             $post = \get_page_by_path( $this->query->query['pagename'] );
+
+            if ( $post ) {
+                $this->add_search_field( 'post_id' );
+                return '@post_id:' . $post->ID;
+            }
+        }
+
+        // Handle CPT posts.
+        if ( isset(
+            $this->query->query_vars['name'],
+            $this->query->query_vars['post_type']
+        ) ) {
+
+            $post = \get_page_by_path( $this->query->query['name'], OBJECT, $this->query->query_vars['post_type'] );
 
             if ( $post ) {
                 $this->add_search_field( 'post_id' );

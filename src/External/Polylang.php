@@ -51,34 +51,21 @@ class Polylang {
             ) {
 
                 // Current lang.
-                $lang        = $query->query['lang'];
-                $tax_queries = $query->get( 'tax_query' ) ?? [];
+                $lang_slug = $query->query['lang'] ?? $query->query_vars['lang'];
 
-                // Fail fast.
-                if ( empty( $lang ) || empty( $tax_queries ) ) {
-                    return $posts;
+                if ( ! empty( $lang_slug ) ) {
+
+                    // Convert the id query to a slug query.
+                    $slug_query = [
+                        'taxonomy' => 'language',
+                        'field'    => 'slug',
+                        'terms'    => [ $lang_slug ],
+                        'operator' => 'IN',
+                    ];
+
+                    // Recreate the tax queries.
+                    $query->tax_query = new \WP_Tax_Query( [ $slug_query] );
                 }
-
-                // Find the PLL language query and replace the id with the slug.
-                foreach ( $tax_queries as $idx => $tax_query ) {
-
-                    if ( $taxonomy === 'language' && $field === 'term_taxonomy_id' ) {
-
-                        // Convert the id query to a slug query.
-                        $slug_query = [
-                            'taxonomy' => 'language',
-                            'field'    => 'slug',
-                            'terms'    => [ $lang ],
-                            'operator' => 'IN',
-                        ];
-
-                        // Replace the query.
-                        $tax_queries[ $idx ] = $slug_query;
-                    }
-                }
-
-                // Recreate the tax queries.
-                $query->tax_query = new \WP_Tax_Query( $tax_queries );
             }
         }
 

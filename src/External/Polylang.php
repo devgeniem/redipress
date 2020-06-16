@@ -64,11 +64,6 @@ class Polylang {
 
                     if ( $taxonomy === 'language' && $field === 'term_taxonomy_id' ) {
 
-                        // Bail early if the term is not found for some reason.
-                        if ( ! $term ) {
-                            continue;
-                        }
-
                         // Convert the id query to a slug query.
                         $slug_query = [
                             'taxonomy' => 'language',
@@ -105,7 +100,7 @@ class Polylang {
                 return '';
             }
 
-            $slug = $query->query['lang'] ?? $query->query_vars['lang'];
+            $slug = $query->query['lang'];
 
             $term_clause = [
                 [

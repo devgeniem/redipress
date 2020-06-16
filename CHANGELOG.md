@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [rest-api-fix] - 2020-06-16
+## [main-query-polylang-hotfix] - 2020-06-16
 
 ### Fixed
 - A bug where main query lang taxonomy query failed in certain circumstances.

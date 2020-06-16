@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 - A bug where main query lang taxonomy query failed in certain circumstances.
+- A bug where post_parent query var value 0 resulted query to skip post_parent query variable.
 
 ## [1.6.0] - 2020-06-15
 

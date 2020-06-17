@@ -143,14 +143,16 @@ abstract class QueryBuilder {
         }
 
         $return = array_filter( array_map( function( string $query_var ) : string {
+
+            // Skip ignored query vars.
             if (
                 in_array( $query_var, $this->ignore_query_vars, true ) ||
-                empty( $this->query->query_vars[ $query_var ] )
+                ! isset( $this->query->query_vars[ $query_var ] )
             ) {
                 return false;
             }
 
-            if ( ! empty( $this->query_vars[ $query_var ] ) && is_string( $this->query_vars[ $query_var ] ) ) {
+            if ( isset( $this->query_vars[ $query_var ] ) && is_string( $this->query_vars[ $query_var ] ) ) {
                 $this->add_search_field( $query_var );
             }
 
@@ -182,7 +184,7 @@ abstract class QueryBuilder {
             // Special treatment for numeric fields.
             elseif ( $field_type === 'NUMERIC' ) {
 
-                if ( empty( $this->query_vars[ $query_var ] ) || empty( $this->query->query_vars[ $query_var ] ) ) {
+                if ( ! isset( $this->query_vars[ $query_var ] ) || ! isset( $this->query->query_vars[ $query_var ] ) ) {
                     return false;
                 }
 

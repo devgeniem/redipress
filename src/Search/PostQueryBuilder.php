@@ -279,31 +279,29 @@ class PostQueryBuilder extends QueryBuilder {
      * @return ?string
      */
     protected function post_type() : ?string {
-
-        if ( empty( $this->query->query_vars['post_type'] ) ) {
-            return false;
-        }
-
         $post_type = $this->query->query_vars['post_type'];
 
-        if ( $post_type !== 'any' ) {
-            $post_types = is_array( $post_type ) ? $post_type : [ $post_type ];
+        if ( $post_type === 'any' ) {
+            $post_types = get_post_types( [ 'exclude_from_search' => false ] );
 
-            $post_types = array_map( [ $this, 'escape_dashes' ], $post_types );
-        }
-        // ‘any‘ – retrieves any type except revisions and
-        // types with ‘exclude_from_search’ set to false.
-        else {
-            $in_search_post_types = get_post_types( [
-                'exclude_from_search' => false,
-            ], 'names' );
-
-            if ( empty( $in_search_post_types ) ) {
-                return '';
+            if ( empty( $post_types ) ) {
+                return false;
             }
-
-            $post_types = array_map( [ $this, 'escape_dashes' ], $in_search_post_types );
         }
+        elseif ( ! empty( $post_type ) && ! is_array( $post_type ) ) {
+            $post_types = [ $post_type ];
+        }
+        elseif ( $this->is_attachment ) {
+            $post_types = [ 'attachment' ];
+        }
+        elseif ( $this->is_page ) {
+            $post_types = [ 'page' ];
+        }
+        elseif ( empty( $post_type ) ) {
+            $post_types = [ 'post' ];
+        }
+
+        $post_types = array_map( [ $this, 'escape_dashes' ], $post_types );
 
         return '@post_type:(' . implode( '|', $post_types ) . ')';
     }

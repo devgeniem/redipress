@@ -1184,7 +1184,7 @@ abstract class QueryBuilder {
      */
     protected function terms_to_ids( array $terms, string $taxonomy, string $field = 'slug' ) : array {
         return array_map( function( $term ) use ( $taxonomy, $field ) {
-            $term_obj = get_term_by( $field, $term, $taxonomy );
+            $term_obj = \get_term_by( $field, $term, $taxonomy );
 
             return $term_obj->term_id;
         }, $terms );

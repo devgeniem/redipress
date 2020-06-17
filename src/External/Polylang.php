@@ -49,25 +49,31 @@ class Polylang {
                     intval( $blog_var ) !== $blog_id
                 )
             ) {
+
+                // Current lang.
+                $lang        = $query->query['lang'];
                 $tax_queries = $query->get( 'tax_query' ) ?? [];
 
-                if ( empty( $tax_queries ) ) {
+                // Fail fast.
+                if ( empty( $lang ) || empty( $tax_queries ) ) {
                     return $posts;
                 }
 
                 // Find the PLL language query and replace the id with the slug.
                 foreach ( $tax_queries as $idx => $tax_query ) {
-                    $taxonomy = $tax_query['taxonomy'] ?? '';
-                    $field    = $tax_query['field'] ?? '';
 
                     if ( $taxonomy === 'language' && $field === 'term_taxonomy_id' ) {
-                        $term      = \get_term( $tax_query['terms'] );
+
+                        // Bail early if the term is not found for some reason.
+                        if ( ! $term ) {
+                            continue;
+                        }
 
                         // Convert the id query to a slug query.
                         $slug_query = [
                             'taxonomy' => 'language',
                             'field'    => 'slug',
-                            'terms'    => [ $term->slug ?? '' ],
+                            'terms'    => [ $lang ],
                             'operator' => 'IN',
                         ];
 
@@ -99,7 +105,7 @@ class Polylang {
                 return '';
             }
 
-            $slug = $query->query['lang'];
+            $slug = $query->query['lang'] ?? $query->query_vars['lang'];
 
             $term_clause = [
                 [

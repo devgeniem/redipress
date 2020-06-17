@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 - A bug where main query lang taxonomy query failed in certain circumstances.
+- A bug where the response formatting function crashed with non-key-value lists.
 
 ## [1.6.0] - 2020-06-15
 

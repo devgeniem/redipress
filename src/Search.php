@@ -318,16 +318,10 @@ class Search {
             if ( ! empty( $query->query_vars['pagename'] ) ) {
                 $post_types = [ 'page' ];
             }
-            // ...and if this is a search, query from nonexcluded post types
-            elseif ( ! empty( $query->query_vars['s'] ) ) {
-                $post_types = get_post_types( [
-                    'exclude_from_search' => false,
-                ], 'names' );
-            }
+            // ...and if not, query from nonexcluded post types
             else {
                 $post_types = get_post_types( [
-                    'public'             => true,
-                    'publicly_queryable' => true,
+                    'exclude_from_search' => false,
                 ], 'names' );
             }
 
@@ -397,6 +391,10 @@ class Search {
             $query->max_num_pages = ceil( $count / $query->query_vars['posts_per_page'] );
 
             $query->using_redisearch = true;
+
+            if ( isset( $query->query['fields'] ) && $query->query['fields'] === 'ids' ) {
+                $results = \array_column( $results, 'ID' );
+            }
 
             return array_values( $results );
         }

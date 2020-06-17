@@ -43,33 +43,37 @@ class PostQueryBuilder extends QueryBuilder {
      * @var array
      */
     protected $query_vars = [
-        'paged'            => null,
-        's'                => null,
-        'blog'             => 'blog_id',
-        'p'                => 'post_id',
-        'name'             => 'post_name',
-        'page'             => null,
-        'pagename'         => 'post_name',
-        'post_type'        => 'post_type',
-        'post_parent'      => 'post_parent',
-        'post_mime_type'   => 'post_mime_type',
-        'post_status'      => 'post_status',
-        'post__in'         => 'post_id',
-        'post__not_in'     => 'post_id',
-        'category__in'     => 'taxonomy_id_category',
-        'category__not_in' => 'taxonomy_id_category',
-        'category__and'    => 'taxonomy_id_category',
-        'category_name'    => 'taxonomy_category',
-        'meta_query'       => null,
-        'tax_query'        => null,
-        'date_query'       => null,
-        'order'            => null,
-        'orderby'          => null,
-        'posts_per_page'   => null,
-        'offset'           => null,
-        'meta_key'         => null,
-        'weight'           => null,
-        'reduce_functions' => null,
+        'paged'               => null,
+        's'                   => null,
+        'blog'                => 'blog_id',
+        'p'                   => 'post_id',
+        'name'                => 'post_name',
+        'pagename'            => 'post_name',
+        'page'                => null,
+        'post_type'           => 'post_type',
+        'post_parent'         => 'post_parent',
+        'post_parent__in'     => 'post_parent',
+        'post_parent__not_in' => 'post_parent',
+        'post_mime_type'      => 'post_mime_type',
+        'post_status'         => 'post_status',
+        'post__in'            => 'post_id',
+        'post__not_in'        => 'post_id',
+        'author__in'          => 'post_author',
+        'author__not_in'      => 'post_author',
+        'category__in'        => 'taxonomy_id_category',
+        'category__not_in'    => 'taxonomy_id_category',
+        'category__and'       => 'taxonomy_id_category',
+        'category_name'       => 'taxonomy_category',
+        'meta_query'          => null,
+        'tax_query'           => null,
+        'date_query'          => null,
+        'order'               => null,
+        'orderby'             => null,
+        'posts_per_page'      => null,
+        'offset'              => null,
+        'meta_key'            => null,
+        'weight'              => null,
+        'reduce_functions'    => null,
     ];
 
     /**
@@ -117,6 +121,9 @@ class PostQueryBuilder extends QueryBuilder {
             'meta_type',
             'update_post_meta_cache',
             'update_post_term_cache',
+            'ignore_sticky_posts',
+            'rest_route',
+            'fields',
         ], $ignore_added_query_vars ) );
 
         $this->ignore_query_vars = apply_filters( 'redipress/ignore_query_vars/' . static::TYPE, $this->ignore_query_vars );
@@ -285,7 +292,7 @@ class PostQueryBuilder extends QueryBuilder {
             $post_types = array_map( [ $this, 'escape_dashes' ], $post_types );
         }
         // ‘any‘ – retrieves any type except revisions and
-        // types with ‘exclude_from_search’ set to true.
+        // types with ‘exclude_from_search’ set to false.
         else {
             $in_search_post_types = get_post_types( [
                 'exclude_from_search' => false,
@@ -302,6 +309,48 @@ class PostQueryBuilder extends QueryBuilder {
     }
 
     /**
+     * WP_Query author__in parameter.
+     *
+     * @return string Redisearch query condition.
+     */
+    protected function author__in() : string {
+
+        if ( empty( $this->query->query_vars['author__in'] ) ) {
+            return false;
+        }
+
+        $author__in = $this->query->query_vars['author__in'];
+        $clause     = '';
+
+        if ( ! empty( $author__in ) && is_array( $author__in ) ) {
+            $clause = '@post_author:(' . implode( '|', $author__in ) . ')';
+        }
+
+        return $clause;
+    }
+
+    /**
+     * WP_Query author__not_in parameter.
+     *
+     * @return string Redisearch query condition.
+     */
+    protected function author__not_in() : string {
+
+        if ( empty( $this->query->query_vars['author__not_in'] ) ) {
+            return false;
+        }
+
+        $author__not_in = $this->query->query_vars['author__not_in'];
+        $clause         = '';
+
+        if ( ! empty( $author__not_in ) && is_array( $author__not_in ) ) {
+            $clause = '-@post_author:(' . implode( '|', $author__not_in ) . ')';
+        }
+
+        return $clause;
+    }
+
+    /**
      * WP_Query name parameter.
      *
      * @return ?string
@@ -313,6 +362,35 @@ class PostQueryBuilder extends QueryBuilder {
         }
 
         $name = $this->query->query_vars['name'];
+
+        // Handle pages.
+        if ( isset(
+            $this->query->query_vars['pagename'],
+            $this->query->query_vars['post_type'],
+            $this->query->query['pagename']
+        ) ) {
+
+            $post = \get_page_by_path( $this->query->query['pagename'] );
+
+            if ( $post ) {
+                $this->add_search_field( 'post_id' );
+                return '@post_id:' . $post->ID;
+            }
+        }
+
+        // Handle CPT posts.
+        if ( isset(
+            $this->query->query_vars['name'],
+            $this->query->query_vars['post_type']
+        ) ) {
+
+            $post = \get_page_by_path( $this->query->query['name'], OBJECT, $this->query->query_vars['post_type'] );
+
+            if ( $post ) {
+                $this->add_search_field( 'post_id' );
+                return '@post_id:' . $post->ID;
+            }
+        }
 
         if ( $name !== 'any' ) {
             $names = is_array( $name ) ? $name : [ $name ];
@@ -367,6 +445,48 @@ class PostQueryBuilder extends QueryBuilder {
         }
 
         return '@post_parent:' . $post_parent;
+    }
+
+    /**
+     * WP_Query post_parent__in parameter.
+     *
+     * @return string Redisearch query condition.
+     */
+    protected function post_parent__in() : string {
+
+        if ( empty( $this->query->query_vars['post_parent__in'] ) ) {
+            return false;
+        }
+
+        $post_parent__in = $this->query->query_vars['post_parent__in'];
+        $clause     = '';
+
+        if ( ! empty( $post_parent__in ) && is_array( $post_parent__in ) ) {
+            $clause = '@post_parent:(' . implode( '|', $post_parent__in ) . ')';
+        }
+
+        return $clause;
+    }
+
+    /**
+     * WP_Query post_parent__not_in parameter.
+     *
+     * @return string Redisearch query condition.
+     */
+    protected function post_parent__not_in() : string {
+
+        if ( empty( $this->query->query_vars['post_parent__not_in'] ) ) {
+            return false;
+        }
+
+        $post_parent__not_in = $this->query->query_vars['post_parent__not_in'];
+        $clause         = '';
+
+        if ( ! empty( $post_parent__not_in ) && is_array( $post_parent__not_in ) ) {
+            $clause = '-@post_parent:(' . implode( '|', $post_parent__not_in ) . ')';
+        }
+
+        return $clause;
     }
 
     /**

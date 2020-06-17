@@ -330,9 +330,15 @@ class Index {
             $language = apply_filters( 'redipress/post_language', $post->lang ?? null, $post );
             $language = apply_filters( 'redipress/post_language/' . $post->ID, $language, $post );
 
+            // Sanity check.
+            if ( ! $post instanceof \WP_Post ) {
+                $progress->tick();
+                return;
+            }
+
             $converted = $this->convert_post( $post );
 
-            $this->add_post( $converted, self::get_document_id( $post ), $language );
+            return $this->add_post( $converted, self::get_document_id( $post ), $language );
 
             if ( ! empty( $progress ) ) {
                 $progress->tick();
@@ -442,9 +448,15 @@ class Index {
             $language = apply_filters( 'redipress/post_language', $post->lang ?? null, $post );
             $language = apply_filters( 'redipress/post_language/' . $post->ID, $language, $post );
 
+            // Sanity check.
+            if ( ! $post instanceof \WP_Post ) {
+                $progress->tick();
+                return;
+            }
+
             $converted = $this->convert_post( $post );
 
-            $this->add_post( $converted, self::get_document_id( $post ), $language );
+            return $this->add_post( $converted, self::get_document_id( $post ), $language );
 
             if ( ! empty( $progress ) ) {
                 $progress->tick();
@@ -495,6 +507,10 @@ class Index {
             wp_is_post_revision( $post_id ) ||
             defined( 'DOING_AUTOSAVE' )
         ) {
+            return;
+        }
+
+        if ( ! $post instanceof \WP_Post ) {
             return;
         }
 
@@ -808,10 +824,14 @@ class Index {
     /**
      * Strip tags but save HTML comments.
      *
-     * @param string $content The content to strip.
+     * @param null|string $content The content to strip.
      * @return string
      */
-    private function strip_tags_except_comments( string $content ) : string {
+    private function strip_tags_except_comments( ?string $content ) : string {
+        if ( ! $content ) {
+            return '';
+        }
+
         $content = str_replace( '<!--', '=THEREISACOMMENTSTARTINGHERE=', $content );
         $content = str_replace( '-->', '=THEREISACOMMENTENDINGHERE=', $content );
 

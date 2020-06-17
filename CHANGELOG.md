@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2020-06-15
+
+### Added
+- Support for `author__in`, `author__not_in`, `post_parent__in` and `post_parent__not_in` WP_Query arguments.
+- Support for WP_Query's `fields` argument.
+
+### Fixed
+- REST API compability.
+- A bug where empty post content could cause some posts not to be indexed.
+- A bug regarding WP_Query calls with `'post_type' => 'any'`.
+- A bug where wrong posts with the post name in a hierarchical post type would sometimes be returned.
+- Wrong number of results were shown in the DustPress Debugger.
+- A bug where main query lang taxonomy query failed in certain circumstances.
+- A bug where the response formatting function crashed with non-key-value lists.
+- A bug where query_var value 0 resulted in skipping the query.
+
 ## [1.5.4] - 2020-06-10
 
 ### Fixed

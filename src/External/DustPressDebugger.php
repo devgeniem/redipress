@@ -32,14 +32,14 @@ class DustPressDebugger {
                 \DustPress\Debugger::set_debugger_data( 'RediPress', [
                     'query'   => $query->redisearch_query,
                     'params'  => $query->query_vars,
-                    'results' => count( $results ),
+                    'results' => ( count( $results ) - 1 ),
                 ]);
                 break;
             case 'users':
                 \DustPress\Debugger::set_debugger_data( 'RediPress', [
                     'query'   => $query->request,
                     'params'  => $query->query_vars,
-                    'results' => count( $results ),
+                    'results' => ( count( $results ) - 1 ),
                 ]);
                 break;
         }

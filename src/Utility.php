@@ -45,6 +45,11 @@ class Utility {
             return $source;
         }
 
+        // If we are dealing with an odd number of items, it's not a key-value object.
+        if ( count( $source ) % 2 === 1 ) {
+            return $source;
+        }
+
         // Split the array into chunks of two
         $chunks = array_chunk( $source, 2 );
 

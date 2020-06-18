@@ -300,6 +300,9 @@ class PostQueryBuilder extends QueryBuilder {
         elseif ( empty( $post_type ) ) {
             $post_types = [ 'post' ];
         }
+        else {
+            return '';
+        }
 
         $post_types = array_map( [ $this, 'escape_dashes' ], $post_types );
 

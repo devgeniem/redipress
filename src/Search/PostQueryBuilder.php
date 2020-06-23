@@ -288,7 +288,10 @@ class PostQueryBuilder extends QueryBuilder {
                 return false;
             }
         }
-        elseif ( ! empty( $post_type ) && ! is_array( $post_type ) ) {
+        elseif ( ! empty( $post_type ) && is_array( $post_type ) ) {
+            $post_types = $post_type;
+        }
+        elseif ( ! empty( $post_type ) ) {
             $post_types = [ $post_type ];
         }
         elseif ( $this->query->is_attachment ) {

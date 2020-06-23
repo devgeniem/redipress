@@ -300,11 +300,8 @@ class PostQueryBuilder extends QueryBuilder {
         elseif ( $this->query->is_page ) {
             $post_types = [ 'page' ];
         }
-        elseif ( empty( $post_type ) ) {
-            $post_types = [ 'post' ];
-        }
         else {
-            return '';
+            $post_types = [ 'post' ];
         }
 
         $post_types = array_map( [ $this, 'escape_dashes' ], $post_types );

@@ -13,7 +13,7 @@ use Geniem\RediPress\Index\Index;
  * @param mixed $post_id The ID to fetch.
  * @return WP_Post|null The post to fetch or null if not found.
  */
-function get_post( $post_id ) { //}: ?\WP_Post {
+function get_post( $post_id ) {
     $settings = new Settings();
     $client   = apply_filters( 'redipress/client', null );
 
@@ -22,6 +22,15 @@ function get_post( $post_id ) { //}: ?\WP_Post {
     $doc_id = Index::get_document_id( \get_post( $post_id ), $post_id );
 
     $result = $client->raw_command( 'FT.GET', [ $index, $doc_id ] );
+
+    $query = (object) [
+        'redisearch_query' => "FT.GET ${index} ${doc_id}",
+        'query_vars'       => [
+            'post_id' => $post_id,
+        ],
+    ];
+
+    \do_action( 'redipress/debug_query', $query, [ 1, $result ], 'posts' );
 
     // If nothing is found, just return null
     if ( ! $result ) {

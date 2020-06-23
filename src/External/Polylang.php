@@ -38,7 +38,7 @@ class Polylang {
             if ( is_singular() ) {
 
                 // Current lang.
-                $lang_slug = $query->query['lang'] ?? $query->query_vars['lang'];
+                $lang_slug = $query->query['lang'] ?? $query->query_vars['lang'] ?? null;
 
                 if ( ! empty( $lang_slug ) ) {
 

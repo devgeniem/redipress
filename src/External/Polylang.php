@@ -130,7 +130,7 @@ class Polylang {
                 return '';
             }
 
-            $slug = $query->query['lang'];
+            $slug = $query->query['lang'] ?? $query->query_vars['lang'];
 
             $term_clause = [
                 [

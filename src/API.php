@@ -19,7 +19,9 @@ function get_post( $post_id ) { //}: ?\WP_Post {
 
     $index = Settings::get( 'index' );
 
-    $result = $client->raw_command( 'FT.GET', [ $index, $post_id ] );
+    $doc_id = Index::get_document_id( \get_post( $post_id ), $post_id );
+
+    $result = $client->raw_command( 'FT.GET', [ $index, $doc_id ] );
 
     // If nothing is found, just return null
     if ( ! $result ) {

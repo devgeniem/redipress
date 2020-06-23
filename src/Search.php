@@ -298,6 +298,13 @@ class Search {
             return null;
         }
 
+        // We don't want to mess with the singular queries.
+        if ( $query->is_singular() ) {
+            add_filter( 'posts_results', [ $this, 'posts_results_single' ], 10, 2 );
+
+            return null;
+        }
+
         // If we are on a multisite and have not explicitly defined that
         // we want to do stuff with other sites, use the current site
         if ( is_multisite() ) {
@@ -382,6 +389,19 @@ class Search {
         else {
             return null;
         }
+    }
+
+    /**
+     * Get the single post from RediSearch for customized features
+     *
+     * @param array     $posts The original posts array.
+     * @param \WP_Query $query The WP_Query instance.
+     * @return array
+     */
+    public function posts_results_single( array $posts, \WP_Query $query ) : array {
+        remove_filter( 'posts_results', [ $this, 'posts_results_single' ], 10 );
+
+        return array_map( '\\Geniem\\RediPress\\get_post', array_column( $posts, 'ID' ) );
     }
 
     /**

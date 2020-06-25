@@ -678,6 +678,7 @@ abstract class QueryBuilder {
      * @return string
      */
     protected function create_meta_query( array $query, string $operator = 'AND' ) : ?string {
+        global $wpdb;
 
         $relation = $query['relation'] ?? $operator;
         unset( $query['relation'] );
@@ -689,10 +690,25 @@ abstract class QueryBuilder {
             foreach ( $query as $name => $clause ) {
                 if ( ! empty( $clause['key'] ) ) {
                     if ( ! isset( $clause['value'] ) ) {
-                        continue;
-                    }
+                        $prefix = $wpdb->base_prefix;
 
-                    $query = $this->create_meta_clause( $clause );
+                        // This is the place to convert the checks of whether the user belongs to a blog or not into RediPress style.
+                        if ( preg_match( "/^${prefix}(\d+?)_?capabilities$/", $clause['key'], $matches ) && $clause['compare'] === 'EXISTS' ) {
+                            $query = $this->create_meta_query([
+                                [
+                                    'key'     => 'blogs',
+                                    'value'   => $matches[1],
+                                    'compare' => 'IN',
+                                ],
+                            ]);
+                        }
+                        else {
+                            continue;
+                        }
+                    }
+                    else {
+                        $query = $this->create_meta_clause( $clause );
+                    }
 
                     if ( is_null( $query ) ) {
                         return null;
@@ -788,8 +804,10 @@ abstract class QueryBuilder {
     protected function create_meta_clause( array $clause ) : ?string {
         global $wpdb;
 
+        $prefix = $wpdb->base_prefix;
+
         // Filter out capability queries as they are handled differently
-        if ( preg_match( '/^wp_\d+?_capabilities$/', $clause['key'] ) ) {
+        if ( preg_match( "/^${prefix}(\d+?)_?capabilities$/", $clause['key'] ) ) {
             return '';
         }
 

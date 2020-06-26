@@ -395,6 +395,8 @@ class Index {
         \do_action( 'redipress/before_index_all', $request );
         \do_action( 'redipress/before_index_missing', $request );
 
+        \WP_CLI::success( 'Checking for already existing posts in the database...' );
+
         // phpcs:disable
         if ( $request instanceof \WP_REST_Request ) {
             $limit  = $request->get_param( 'limit' );
@@ -402,22 +404,41 @@ class Index {
             $query  = $wpdb->prepare( "SELECT ID FROM $wpdb->posts LIMIT %d OFFSET %d", $limit, $offset );
         }
         else {
-            $query  = "SELECT ID FROM $wpdb->posts";
+            if ( ! empty( $query_args ) ) {
+                $where = ' WHERE ';
+
+                foreach ( $query_args as $key => $value ) {
+                    $where .= $key . ' = "' . $value .'" ';
+                }
+            }
+            else {
+                $where = '';
+            }
+
+            $query  = "SELECT ID FROM $wpdb->posts$where";
         }
         $ids = $wpdb->get_results( $query ) ?? [];
         // phpcs:enable
 
         $count = count( $ids );
 
-        $posts = array_filter( $ids, function( $row ) {
-            $post = \get_post( $row->ID );
+        $progress = \WP_CLI\Utils\make_progress_bar( __( 'Checking existing posts', 'redipress' ), $count );
 
-            $present = \Geniem\RediPress\get_post( self::get_document_id( $post ) );
+        $posts = array_filter( $ids, function( $row ) use ( $progress ) {
+            $present = \Geniem\RediPress\get_post( $row->ID );
+
+            $progress->tick();
 
             return empty( $present );
         });
 
-        $posts = array_map( function( $id ) {
+        $progress->finish();
+
+        $progress = \WP_CLI\Utils\make_progress_bar( __( 'Getting post data', 'redipress' ), count( $posts ) );
+
+        $posts = array_map( function( $id ) use ( $progress ) {
+            $progress->tick();
+
             return \get_post( $id );
         }, $posts );
 

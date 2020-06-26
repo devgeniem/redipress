@@ -338,11 +338,13 @@ class Index {
 
             $converted = $this->convert_post( $post );
 
-            return $this->add_post( $converted, self::get_document_id( $post ), $language );
+            $return = $this->add_post( $converted, self::get_document_id( $post ), $language );
 
             if ( ! empty( $progress ) ) {
                 $progress->tick();
             }
+
+            return $return;
         }, $posts );
 
         \do_action( 'redipress/indexed_all', $result, $request );
@@ -456,11 +458,13 @@ class Index {
 
             $converted = $this->convert_post( $post );
 
-            return $this->add_post( $converted, self::get_document_id( $post ), $language );
+            $return = $this->add_post( $converted, self::get_document_id( $post ), $language );
 
             if ( ! empty( $progress ) ) {
                 $progress->tick();
             }
+
+            return $return;
         }, $posts );
 
         \do_action( 'redipress/indexed_missing', $result, $request );

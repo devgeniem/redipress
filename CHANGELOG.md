@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 - Singular post resolving to use WP_Query instead of our own implementation.
+- Indexing additional fields to use custom static functionality instead of the previous filter-based approach.
 
 ## [1.6.1] - 2020-06-23
 

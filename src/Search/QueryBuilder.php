@@ -179,7 +179,9 @@ abstract class QueryBuilder {
             }
             // Use the designated method if it exists.
             elseif ( method_exists( $this, $query_var ) ) {
-                return $this->{ $query_var }();
+                $return = $this->{ $query_var }();
+
+                return $return;
             }
             // Special treatment for numeric fields.
             elseif ( $field_type === 'NUMERIC' ) {

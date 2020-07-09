@@ -165,6 +165,9 @@ class RediPress {
         else {
             $info = Utility::format( $index );
 
+            // Require the external API functions
+            require_once( __DIR__ . '/API.php' );
+
             if ( (int) $info['num_docs'] === 0 ) {
                 $this->plugin->show_admin_error( __( 'Redisearch index is empty.', 'redipress' ) );
                 return false;
@@ -175,9 +178,6 @@ class RediPress {
 
                 // Initialize searching features, we have everything we need to have here.
                 new Search( $this->connection, $this->index_info );
-
-                // Also require the external API functions
-                require_once( __DIR__ . '/API.php' );
 
                 return true;
             }

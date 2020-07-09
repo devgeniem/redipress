@@ -14,7 +14,8 @@ use Geniem\RediPress\Settings,
     Geniem\RediPress\Utility,
     Smalot\PdfParser\Parser as PdfParser,
     PhpOffice\PhpWord\IOFactory,
-    Geniem\RediPress\Rest;
+    Geniem\RediPress\Rest,
+    WP_CLI\Utils;
 
 /**
  * RediPress index class
@@ -61,6 +62,13 @@ class Index {
      * The default tag separator.
      */
     protected const TAG_SEPARATOR = '*';
+
+    /**
+     * The static array in which external additional values are stored.
+     *
+     * @var array
+     */
+    protected static $additional = [];
 
     /**
      * Whether we will write the index to disk in shutdown hook.
@@ -264,11 +272,18 @@ class Index {
             }
         );
 
-        $raw_schema = apply_filters( 'redipress/raw_schema', array_merge( [ $this->index, 'SCHEMA' ], $raw_schema ) );
+        $raw_schema = apply_filters( 'redipress/raw_schema', array_merge( [ 'SCHEMA' ], $raw_schema ) );
 
-        $return = $this->client->raw_command( 'FT.CREATE', $raw_schema );
+        $options = [
+            'STOPWORDS',
+            '0',
+        ];
 
-        do_action( 'redipress/schema_created', $return, $schema_fields, $raw_schema );
+        $options = apply_filters( 'redipress/index_options', $options );
+
+        $return = $this->client->raw_command( 'FT.CREATE', array_merge( [ $this->index ], $options, $raw_schema ) );
+
+        do_action( 'redipress/schema_created', $return, $options, $schema_fields, $raw_schema );
 
         $this->maybe_write_to_disk( 'schema_created' );
 
@@ -283,6 +298,8 @@ class Index {
      */
     public function index_all( \WP_REST_Request $request = null, array $query_args = [] ) : int {
         global $wpdb;
+
+        define( 'WP_IMPORTING', true );
 
         \do_action( 'redipress/before_index_all', $request );
 
@@ -344,12 +361,14 @@ class Index {
                 $progress->tick();
             }
 
+            $this->free_memory();
+
             return $return;
         }, $posts );
 
         \do_action( 'redipress/indexed_all', $result, $request );
 
-        $this->maybe_write_to_disk( 'indexed_all' );
+        //$this->maybe_write_to_disk( 'indexed_all' );
 
         if ( ! empty( $progress ) ) {
             $progress->finish();
@@ -434,11 +453,7 @@ class Index {
 
         $progress->finish();
 
-        $progress = \WP_CLI\Utils\make_progress_bar( __( 'Getting post data', 'redipress' ), count( $posts ) );
-
-        $posts = array_map( function( $id ) use ( $progress ) {
-            $progress->tick();
-
+        $posts = array_map( function( $id ) {
             return \get_post( $id );
         }, $posts );
 
@@ -484,6 +499,8 @@ class Index {
             if ( ! empty( $progress ) ) {
                 $progress->tick();
             }
+
+            $this->free_memory();
 
             return $return;
         }, $posts );
@@ -614,7 +631,9 @@ class Index {
         $additional_fields = array_diff( $fields, $core_field_names );
 
         $additional_values = array_map( function( $field ) use ( $post ) {
-            $value = apply_filters( 'redipress/additional_field/' . $post->ID . '/' . $field, null, $post );
+            $value = self::get( $post->ID, $field );
+
+            $value = apply_filters( 'redipress/additional_field/' . $post->ID . '/' . $field, $value, $post );
             $value = apply_filters( 'redipress/additional_field/' . $field, $value, $post->ID, $post );
 
             $type = $this->get_field_type( $field );
@@ -656,9 +675,10 @@ class Index {
 
             if ( ! empty( $post->taxonomies[ $taxonomy ] ) ) {
                 $custom_terms = get_terms([
-                    'taxonomy'   => $taxonomy,
-                    'include'    => $post->taxonomies[ $taxonomy ],
-                    'hide_empty' => false,
+                    'taxonomy'               => $taxonomy,
+                    'include'                => $post->taxonomies[ $taxonomy ],
+                    'hide_empty'             => false,
+                    'update_term_meta_cache' => false,
                 ]);
 
                 $terms = array_merge( $terms, $custom_terms );
@@ -702,6 +722,7 @@ class Index {
         }
 
         // Gather the additional search index
+        $search_index = self::get( $post->ID, 'search_index' ) ?: [];
         $search_index = apply_filters( 'redipress/search_index', implode( ' ', $search_index ), $post->ID, $post );
         $search_index = apply_filters( 'redipress/search_index/' . $post->ID, $search_index, $post );
 
@@ -1072,6 +1093,62 @@ class Index {
     }
 
     /**
+     * Store additional data for indexing from outside
+     *
+     * @param mixed  $post_id The post ID.
+     * @param string $field   The field name.
+     * @param mixed  $data    The data.
+     * @param string $method  The method to use with multiple values. Defaults to "use_last". Possibilites: use_last, concat, concat_with_spaces, array_merge, sum, custom (needs filter).
+     * @return void
+     */
+    public static function store( $post_id, string $field, $data, string $method = 'use_last' ) : void {
+        if ( ! isset( self::$additional[ $post_id ] ) ) {
+            self::$additional[ $post_id ] = [];
+        }
+
+        $original = self::$additional[ $post_id ][ $field ];
+
+        switch ( $method ) {
+            case 'use_last':
+                self::$additional[ $post_id ][ $field ] = $data;
+                break;
+            case 'concat':
+                self::$additional[ $post_id ][ $field ] = $original . $data;
+                break;
+            case 'concat_with_spaces':
+                self::$additional[ $post_id ][ $field ] = $original . ' ' . $data;
+                break;
+            case 'array_merge':
+                self::$additional[ $post_id ][ $field ] = array_merge( $original, $data );
+                break;
+            case 'sum':
+                self::$additional[ $post_id ][ $field ] = $original + $data;
+                break;
+            default:
+                self::$additional[ $post_id ][ $field ] = apply_filters( "redipress/additional_field/method/$method", $data, $original );
+                break;
+        }
+    }
+
+    /**
+     * Get additional data for a post by field name
+     *
+     * @param mixed   $post_id The post ID.
+     * @param string  $field   The field name.
+     * @param boolean $purge   Whether to purge the data after reading.
+     * @return mixed
+     */
+    public static function get( $post_id, string $field, bool $purge = true ) {
+        $value = self::$additional[ $post_id ][ $field ] ?? null;
+
+        if ( $value && $purge ) {
+            self::$additional[ $post_id ][ $field ] = null;
+        }
+
+        return $value;
+    }
+
+    /**
      * Get RediSearch field type for a field
      *
      * @param string $key The key for which to fetch the field type.
@@ -1095,5 +1172,16 @@ class Index {
         });
 
         return $field_type;
+    }
+
+    /**
+     * Free memory by emptying WordPress native caches
+     *
+     * @source https://10up.github.io/Engineering-Best-Practices/migrations/
+     *
+     * @return void
+     */
+    protected function free_memory() {
+        Utils\wp_clear_object_cache();
     }
 }

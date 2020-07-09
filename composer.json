@@ -30,6 +30,9 @@
         "smalot/pdfparser": "^0.14",
         "phpoffice/phpword": "^0.16"
     },
+    "conflict": {
+        "devgeniem/acf-codifier": "<1.32"
+    },
     "autoload": {
         "psr-4": {
             "Geniem\\RediPress\\": "src/"

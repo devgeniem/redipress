@@ -548,7 +548,19 @@ class UserIndex {
 
         $raw_command = array_merge( $command, [ 'FIELDS' ], $converted_user );
 
-        return $this->client->raw_command( 'FT.ADD', $raw_command );
+        $return = $this->client->raw_command( 'FT.ADD', $raw_command );
+
+        $this->client->raw_command(
+            'FT.ADDHASH',
+            [
+                $this->index,
+                $id,
+                1,
+                'REPLACE',
+            ]
+        );
+
+        return $return;
     }
 
     /**

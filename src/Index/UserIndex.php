@@ -5,6 +5,7 @@
 
 namespace Geniem\RediPress\Index;
 
+use Geniem\RediPress\CLI\Index;
 use Geniem\RediPress\Settings,
     Geniem\RediPress\Entity\SchemaField,
     Geniem\RediPress\Entity\NumericField,
@@ -357,7 +358,9 @@ class UserIndex {
         $core_field_names  = array_map( [ $this, 'return_field_name' ], $this->core_schema_fields );
         $additional_fields = array_diff( $fields, $core_field_names );
         $additional_values = array_map( function( $field ) use ( $user ) {
-            $value = apply_filters( 'redipress/additional_user_field/' . $user->ID . '/' . $field, null, $user );
+            $value = \Geniem\RediPress\Index\Index::get( 'user_' . $user->ID, $field );
+
+            $value = apply_filters( 'redipress/additional_user_field/' . $user->ID . '/' . $field, $value, $user );
             $value = apply_filters( 'redipress/additional_user_field/' . $field, $value, $user->ID, $user );
             $type  = $this->get_field_type( $field );
 

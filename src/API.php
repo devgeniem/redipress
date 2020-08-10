@@ -53,16 +53,22 @@ function get_post( $post_id ) {
 /**
  * Update a single value in a RediPress document
  *
- * @param string $doc_id Document ID to modify.
- * @param string $field  Field to update.
- * @param string $value  Value to update the field with.
- * @param integer $score Possible weighing score to the value.
+ * @param string  $doc_id Document ID to modify.
+ * @param string  $field  Field to update.
+ * @param string  $value  Value to update the field with.
+ * @param integer $score  Possible weighing score to the value.
+ * @param bool    $users  Whether to make the change to users table.
  * @return array
  */
-function update_value( $doc_id, $field, $value, $score = 1 ) {
+function update_value( $doc_id, $field, $value, $score = 1, $users = false ) {
     $client = apply_filters( 'redipress/client', null );
 
-    $index = Settings::get( 'index' );
+    if ( $users ) {
+        $index = Settings::get( 'user_index' );
+    }
+    else {
+        $index = Settings::get( 'index' );
+    }
 
     $raw_schema = $client->raw_command( 'FT.INFO', [ $index ] );
 

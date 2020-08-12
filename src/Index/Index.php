@@ -1118,7 +1118,7 @@ class Index {
             self::$additional[ $post_id ] = [];
         }
 
-        $original = self::$additional[ $post_id ][ $field ];
+        $original = self::$additional[ $post_id ][ $field ] ?? '';
 
         switch ( $method ) {
             case 'use_last':

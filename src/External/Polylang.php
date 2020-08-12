@@ -85,8 +85,8 @@ class Polylang {
                         $taxonomy = $tax_query['taxonomy'] ?? '';
                         $field    = $tax_query['field'] ?? '';
 
-                        if ( $taxonomy === 'language' && $field === 'term_taxonomy_id' ) {
-                            $term      = \get_term( $tax_query['terms'] );
+                        if ( $taxonomy === 'language' && ! empty( $field ) ) {
+                            $term = \get_term_by( $field, $tax_query['terms'], 'language' );
 
                             // Bail early if the term is not found for some reason.
                             if ( ! $term ) {

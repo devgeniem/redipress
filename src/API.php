@@ -30,8 +30,6 @@ function get_post( $post_id ) {
         ],
     ];
 
-    \do_action( 'redipress/debug_query', $query, [ 1, $result ], 'posts' );
-
     // If nothing is found, just return null
     if ( ! $result ) {
         return null;

@@ -4,11 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [1.7.0-beta] - 2020-06-23
+## [1.7.0] - 2020-06-23
 
 ### Changed
 - Singular post resolving to use WP_Query instead of our own implementation.
 - Indexing additional fields to use custom static functionality instead of the previous filter-based approach.
+- Make the default stop words list to be empty. It can be altered or returned to RediSearch default list via a filter.
+- Define `WP_IMPORTING` constant when indexing.
+
 
 ## [1.6.1] - 2020-06-23
 

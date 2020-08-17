@@ -12,7 +12,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Make the default stop words list to be empty. It can be altered or returned to RediSearch default list via a filter.
 - Define `WP_IMPORTING` constant when indexing.
 
-
 ## [1.6.1] - 2020-06-23
 
 ### Fixed

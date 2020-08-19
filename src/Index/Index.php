@@ -722,7 +722,7 @@ class Index {
         }
 
         // Gather the additional search index
-        $search_index = self::get( $post->ID, 'search_index' ) ?: [];
+        $search_index = array_merge( $search_index, (array) self::get( $post->ID, 'search_index' ) );
         $search_index = apply_filters( 'redipress/search_index', implode( ' ', $search_index ), $post->ID, $post );
         $search_index = apply_filters( 'redipress/search_index/' . $post->ID, $search_index, $post );
 

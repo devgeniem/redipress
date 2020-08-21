@@ -816,9 +816,16 @@ abstract class QueryBuilder {
         // Find out the type of the field we are dealing with.
         $field_type = $this->get_field_type( $clause['key'] );
 
+        $tag_prefix = false;
+
         // If the field doesn't have a type, it doesn't exist and we want to bail out.
         if ( ! $field_type ) {
-            return null;
+            $field_type = $this->get_field_type( 'taxonomy_ ' . $clause['key'] );
+            $tax_prefix = true;
+
+            if ( ! $field_type ) {
+                return null;
+            }
         }
 
         $compare = $clause['compare'] ?? '=';
@@ -849,7 +856,7 @@ abstract class QueryBuilder {
 
         if ( $field_type === 'TAG' ) {
             $taxonomy = $clause['key'];
-            $field    = 'name';
+            $field    = $clause['field'] ?? 'name';
             $terms    = $clause['value'];
 
             switch ( $compare ) {
@@ -872,7 +879,7 @@ abstract class QueryBuilder {
                     'terms'    => $terms,
                     'operator' => $operator,
                 ],
-            ], 'AND', false );
+            ], 'AND', $tag_prefix );
         }
         else {
             // Map compare types to functions

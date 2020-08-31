@@ -816,7 +816,7 @@ abstract class QueryBuilder {
         // Find out the type of the field we are dealing with.
         $field_type = $this->get_field_type( $clause['key'] );
 
-        $tag_prefix = false;
+        $tax_prefix = false;
 
         // If the field doesn't have a type, it doesn't exist and we want to bail out.
         if ( ! $field_type ) {
@@ -879,7 +879,7 @@ abstract class QueryBuilder {
                     'terms'    => $terms,
                     'operator' => $operator,
                 ],
-            ], 'AND', $tag_prefix );
+            ], 'AND', $tax_prefix );
         }
         else {
             // Map compare types to functions

@@ -820,7 +820,7 @@ abstract class QueryBuilder {
 
         // If the field doesn't have a type, it doesn't exist and we want to bail out.
         if ( ! $field_type ) {
-            $field_type = $this->get_field_type( 'taxonomy_ ' . $clause['key'] );
+            $field_type = $this->get_field_type( 'taxonomy_' . $clause['key'] );
             $tax_prefix = true;
 
             if ( ! $field_type ) {

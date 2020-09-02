@@ -127,8 +127,7 @@ class Index {
         add_action( 'delete_post', [ $this, 'delete' ], 10, 1 );
 
         // Register taxonomy actions
-        add_action( 'added_term_relationship', [ $this, 'index_single' ], 50, 1 );
-        add_action( 'deleted_term_relationship', [ $this, 'index_single' ], 50, 1 );
+        add_action( 'set_object_terms', [ $this, 'index_single' ], 50, 3 );
 
         $this->define_core_fields();
     }
@@ -519,7 +518,7 @@ class Index {
     /**
      * Index a single post by its ID.
      *
-     * @param integer $post_id The post ID to index.
+     * @param integer $post_id  The post ID to index.
      * @return mixed
      */
     public function index_single( int $post_id ) {
@@ -685,24 +684,16 @@ class Index {
             }
 
             // Add the terms
-            $term_string = implode( self::get_tag_separator(), array_map( function( $term ) {
-                return $term->name;
-            }, $terms ) );
+            $term_string = implode( self::get_tag_separator(), array_column( $terms, 'name' ) );
 
             // Add the terms
-            $search_term_string = implode( ' ', array_map( function( $term ) {
-                return $term->name;
-            }, $terms ) );
+            $search_term_string = implode( ' ', array_column( $terms, 'name' ) );
 
             // Add the terms
-            $id_string = implode( self::get_tag_separator(), array_map( function( $term ) {
-                return $term->term_id;
-            }, $terms ) );
+            $id_string = implode( self::get_tag_separator(), array_column( $terms, 'term_id' ) );
 
             // Add the terms
-            $slug_string = implode( self::get_tag_separator(), array_map( function( $term ) {
-                return $term->slug;
-            }, $terms ) );
+            $slug_string = implode( self::get_tag_separator(), array_column( $terms, 'slug' ) );
 
             if ( ! empty( $term_string ) ) {
                 $tax[ 'taxonomy_' . $taxonomy ] = $term_string;

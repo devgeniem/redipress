@@ -27,8 +27,8 @@
         "predis/predis": "^1.1",
         "johnpbloch/wordpress": "^5.0",
         "php": "^7.1",
-        "smalot/pdfparser": "^0.14",
-        "phpoffice/phpword": "^0.16"
+        "smalot/pdfparser": "^0.16.2",
+        "phpoffice/phpword": "^0.17"
     },
     "conflict": {
         "devgeniem/acf-codifier": "<1.32"

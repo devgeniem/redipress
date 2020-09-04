@@ -309,8 +309,13 @@ class Search {
         // we want to do stuff with other sites, use the current site
         if ( is_multisite() ) {
             if ( empty( $query->query['blog'] ) ) {
-                $query->query['blog']      = [ \get_current_blog_id() ];
-                $query->query_vars['blog'] = [ \get_current_blog_id() ];
+                if ( ! empty( $query->query_vars['blog'] ) ) {
+                    $query->query['blog'] = $query->query_vars['blog'];
+                }
+                else {
+                    $query->query['blog']      = [ \get_current_blog_id() ];
+                    $query->query_vars['blog'] = [ \get_current_blog_id() ];
+                }
             }
             else {
                 $query->query_vars['blog'] = $query->query['blog'];

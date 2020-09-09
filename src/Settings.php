@@ -43,6 +43,7 @@ class Settings {
         \register_setting( $this->get_slug(), self::PREFIX . 'persist_index' );
         \register_setting( $this->get_slug(), self::PREFIX . 'write_every' );
         \register_setting( $this->get_slug(), self::PREFIX . 'fallback' );
+        \register_setting( $this->get_slug(), self::PREFIX . 'disable_post_author_search' );
         \register_setting( $this->get_slug(), self::PREFIX . 'hostname' );
         \register_setting( $this->get_slug(), self::PREFIX . 'port' );
         \register_setting( $this->get_slug(), self::PREFIX . 'password' );
@@ -94,6 +95,15 @@ class Settings {
             [
                 'label_for' => self::PREFIX . 'fallback',
             ]
+        );
+
+        // Include author name in search field
+        \add_settings_field(
+            $this->get_slug() . '-disable-post-author-search',
+            __( 'Disable including author name in search', 'redipress' ),
+            [ $this, 'render_disable_post_author_search_field' ],
+            $this->get_slug(),
+            $this->get_slug() . '-general-settings-section'
         );
 
         // Index management buttons
@@ -535,6 +545,23 @@ class Settings {
             <input type="text" name="redipress_user_index" id="redipress_user_index" value="<?php echo \esc_attr( $option ) ?: 'users'; ?>" <?php $this->disabled( $name ); ?>>
             <p class="description" id="user-index-name-description">
                 <?php \esc_html_e( 'RediSearch user index name, must be unique within the database.', 'redipress' ); ?>
+            </p>
+        <?php
+    }
+
+    /**
+     * Renders the include author name in search field.
+     */
+    public function render_disable_post_author_search_field() {
+        $name   = 'disable_post_author_search';
+        $option = self::get( $name );
+        ?>
+            <input type="hidden" name="redipress_disable_post_author_search" value="1" />
+            <input type="checkbox" name="redipress_disable_post_author_search" id="redipress_disable_post_author_search" value="1" <?php \checked( 1, $option ) . $this->disabled( $name ); ?>>
+            <p class="description" id="disable-post-author-search-description">
+                <?php
+                \esc_html_e( 'Whether to disable including post author display name in the search index or not.', 'redipress' );
+                ?>
             </p>
         <?php
     }

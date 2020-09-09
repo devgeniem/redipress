@@ -610,7 +610,9 @@ class Index {
 
         $args['post_author'] = apply_filters( 'redipress/post_author', $post_author, $post->ID, $post );
 
-        $search_index[] = $args['post_author'];
+        if ( ! $settings->get( 'disable_post_author_search' ) ) {
+            $search_index[] = $args['post_author'];
+        }
 
         // Get the post date
         $args['post_date'] = strtotime( $post->post_date ) ?: null;

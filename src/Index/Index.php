@@ -805,15 +805,16 @@ class Index {
                         if ( ! empty( $file_content ) ) {
                             switch ( $post->post_mime_type ) {
                                 case static::SUPPORTED_MIME_TYPES['pdf']:
-                                    try {
-                                        $parser       = new PdfParser();
-                                        $pdf          = $parser->parseContent( $file_content );
-                                        $post_content = $pdf->getText();
+                                    if ( ! $settings->get( 'disable_pdf_indexing' ) ) {
+                                        try {
+                                            $parser       = new PdfParser();
+                                            $pdf          = $parser->parseContent( $file_content );
+                                            $post_content = $pdf->getText();
+                                        }
+                                        catch( \Exception $e ) {
+                                            error_log( 'RediPress PDF indexing error: ' . $e->getMessage() );
+                                        }
                                     }
-                                    catch( \Exception $e ) {
-                                        error_log( 'RediPress PDF indexing error: ' . $e->getMessage() );
-                                    }
-                                    break;
                                 case static::SUPPORTED_MIME_TYPES['docx']:
                                 case static::SUPPORTED_MIME_TYPES['doc']:
                                 case static::SUPPORTED_MIME_TYPES['rtf']:

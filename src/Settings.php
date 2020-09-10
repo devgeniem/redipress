@@ -44,6 +44,7 @@ class Settings {
         \register_setting( $this->get_slug(), self::PREFIX . 'write_every' );
         \register_setting( $this->get_slug(), self::PREFIX . 'fallback' );
         \register_setting( $this->get_slug(), self::PREFIX . 'disable_post_author_search' );
+        \register_setting( $this->get_slug(), self::PREFIX . 'disable_pdf_indexing' );
         \register_setting( $this->get_slug(), self::PREFIX . 'hostname' );
         \register_setting( $this->get_slug(), self::PREFIX . 'port' );
         \register_setting( $this->get_slug(), self::PREFIX . 'password' );
@@ -102,6 +103,15 @@ class Settings {
             $this->get_slug() . '-disable-post-author-search',
             __( 'Disable including author name in search', 'redipress' ),
             [ $this, 'render_disable_post_author_search_field' ],
+            $this->get_slug(),
+            $this->get_slug() . '-general-settings-section'
+        );
+
+        // Disable PDF indexing
+        \add_settings_field(
+            $this->get_slug() . '-disable-pdf-indexing',
+            __( 'Disable PDF indexing', 'redipress' ),
+            [ $this, 'render_disable_pdf_indexing' ],
             $this->get_slug(),
             $this->get_slug() . '-general-settings-section'
         );
@@ -563,6 +573,23 @@ class Settings {
                 \esc_html_e( 'Whether to disable including post author display name in the search index or not.', 'redipress' );
                 ?>
             </p>
+        <?php
+    }
+
+    /**
+     * Renders the disable PDF text indexing.
+     */
+    public function render_disable_pdf_indexing() {
+        $name   = 'disable_pdf_indexing';
+        $option = self::get( $name );
+        ?>
+        <input type="hidden" name="redipress_disable_pdf_indexing" value="1" />
+        <input type="checkbox" name="redipress_disable_pdf_indexing" id="redipress_disable_pdf_indexing" value="1" <?php \checked( 1, $option ) . $this->disabled( $name ); ?>>
+        <p class="description" id="disable-pdf-indexing-description">
+            <?php
+            \esc_html_e( 'Whether to disable PDF indexing for attachments or not.', 'redipress' );
+            ?>
+        </p>
         <?php
     }
 

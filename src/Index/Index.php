@@ -367,7 +367,7 @@ class Index {
 
         \do_action( 'redipress/indexed_all', $result, $request );
 
-        //$this->maybe_write_to_disk( 'indexed_all' );
+        $this->maybe_write_to_disk( 'indexed_all' );
 
         if ( ! empty( $progress ) ) {
             $progress->finish();

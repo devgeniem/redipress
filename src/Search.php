@@ -162,7 +162,7 @@ class Search {
         $reduce_functions = apply_filters( 'redipress/reduce_functions', $reduce_functions );
         $load             = apply_filters( 'redipress/load', [ 'post_object' ] );
 
-        if ( ! empty( $sortby ) || ! empty( $applies ) || ! empty( $filters ) || ! empty( $groupby ) ) {
+        if ( ! empty( $sortby ) || ! empty( $applies ) || ! empty( $filters ) ) {
             // Form the return field clause
             $return_fields = array_map( function( string $field ) use ( $reduce_functions ) : array {
                 $return = [

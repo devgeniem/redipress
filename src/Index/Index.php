@@ -127,7 +127,7 @@ class Index {
         add_action( 'delete_post', [ $this, 'delete' ], 10, 1 );
 
         // Register taxonomy actions
-        add_action( 'set_object_terms', [ $this, 'index_single' ], 50, 3 );
+        add_action( 'set_object_terms', [ $this, 'index_single' ], 50, 1 );
 
         $this->define_core_fields();
     }
@@ -529,6 +529,8 @@ class Index {
             return;
         }
 
+        \do_action( 'redipress/before_index_post', $post );
+
         $converted = $this->convert_post( $post );
 
         return $this->add_post( $converted, self::get_document_id( $post ) );
@@ -554,6 +556,8 @@ class Index {
         if ( ! $post instanceof \WP_Post ) {
             return;
         }
+
+        \do_action( 'redipress/before_index_post', $post );
 
         $converted = $this->convert_post( $post );
 
@@ -1144,10 +1148,10 @@ class Index {
      * @param boolean $purge   Whether to purge the data after reading.
      * @return mixed
      */
-    public static function get( $post_id, string $field, bool $purge = true ) {
+    public static function get( $post_id, string $field, bool $purge = false ) {
         $value = self::$additional[ $post_id ][ $field ] ?? null;
 
-        if ( $value && $purge ) {
+        if ( $value && ( $purge || defined( 'WP_IMPORTING' ) ) ) {
             self::$additional[ $post_id ][ $field ] = null;
         }
 

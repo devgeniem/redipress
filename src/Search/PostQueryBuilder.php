@@ -20,7 +20,7 @@ class PostQueryBuilder extends QueryBuilder {
      *
      * @var array
      */
-    protected $groupby = [ 'post_id' ];
+    protected $groupby = [];
 
     /**
      * Return fields

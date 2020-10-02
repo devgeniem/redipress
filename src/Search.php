@@ -238,7 +238,13 @@ class Search {
              *
              * @see https://oss.redislabs.com/redisearch/Scoring/
              */
-            $scorer = apply_filters( 'redipress/scorer', 'DISMAX', $query );
+            $scorer       = apply_filters( 'redipress/scorer', 'TFIDF', $query );
+            $scorer_array = [];
+
+            // The default scorer (TFIDF) doesn't require the argument.
+            if ( ! empty( $scorer ) && $scorer !== 'TFIDF' ) {
+                $scorer_array = [ 'SCORER', $scorer ];
+            }
 
             // Form the final query
             $command = array_merge(
@@ -247,7 +253,7 @@ class Search {
                 [ 'RETURN', count( $return ) ],
                 $return,
                 $limits,
-                [ 'SCORER', $scorer ],
+                $scorer_array,
             );
 
             // Run the command itself. FT.AGGREGATE is used to allow multiple sortby queries

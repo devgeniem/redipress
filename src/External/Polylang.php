@@ -74,7 +74,7 @@ class Polylang {
             ) {
                 $tax_queries = $query->get( 'tax_query' ) ?? [];
 
-                if ( empty( $tax_queries ) ) {
+                if ( empty( $tax_queries) || ! is_array( $tax_queries ) ) {
                     return $posts;
                 }
 

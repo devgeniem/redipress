@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 - A bug where `FT.INFO` would crash on formatting when `MAXTEXTFIELDS` list was present.
+- A bug where taxonomies with dashes in their names would cause the queries to crash.
 
 ## [1.8.2] - 2020-10-02
 

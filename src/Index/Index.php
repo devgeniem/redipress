@@ -718,6 +718,17 @@ class Index {
             }
         }
 
+        // Change dashes from taxonomy slugs to underscores
+        foreach ( $tax as $key => $value ) {
+            if ( strpos( $key, '-' ) !== false ) {
+                $new_key = str_replace( '-', '_', $key );
+
+                $tax[ $new_key ] = $value;
+
+                unset( $tax[ $key ] );
+            }
+        }
+
         // Gather the additional search index
         $search_index = array_merge( $search_index, (array) self::get( $post->ID, 'search_index' ) );
         $search_index = apply_filters( 'redipress/search_index', implode( ' ', $search_index ), $post->ID, $post );

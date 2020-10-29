@@ -228,6 +228,8 @@ class Index {
         $taxonomies = get_taxonomies();
 
         foreach ( $taxonomies as $taxonomy ) {
+            $taxonomy = str_replace( '-', '_', $taxonomy );
+
             $this->core_schema_fields[] = new TagField([
                 'name'      => 'taxonomy_' . $taxonomy,
                 'separator' => self::get_tag_separator(),

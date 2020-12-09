@@ -407,6 +407,14 @@ abstract class QueryBuilder {
         // Create weight clauses for taxonomy terms
         if ( ! empty( $weight['taxonomy'] ) ) {
             foreach ( $weight['taxonomy'] as $taxonomy => $terms ) {
+                if ( strpos( $weight['taxonomy'][ $taxonomy ], '-' ) !== false ) {
+                    $new_taxonomy = str_replace( '-', '_', $weight['taxonomy'][ $taxonomy ] );
+
+                    unset( $weight['taxonomy'][ $taxonomy ] );
+
+                    $weight['taxonomy'][ $new_taxonomy ] = $terms;
+                }
+
                 $return = array_merge(
                     $return,
                     array_map(
@@ -547,6 +555,10 @@ abstract class QueryBuilder {
             $clause['terms'] = $this->escape_clause_terms( $clause['terms'] );
 
             if ( ! empty( $clause['taxonomy'] ) ) {
+                if ( strpos( $clause['taxonomy'], '-' ) !== false ) {
+                    $clause['taxonomy'] = str_replace( '-', '_', $clause['taxonomy'] );
+                }
+
                 switch ( $clause['field'] ) {
                     case 'name':
                         // Form clause by operator.
@@ -820,6 +832,10 @@ abstract class QueryBuilder {
 
         // If the field doesn't have a type, it doesn't exist and we want to bail out.
         if ( ! $field_type ) {
+            if ( strpos( $clause['key'], '-' ) !== false ) {
+                $clause['key'] = str_replace( '-', '_', $clause['key'] );
+            }
+
             $field_type = $this->get_field_type( 'taxonomy_' . $clause['key'] );
             $tax_prefix = true;
 

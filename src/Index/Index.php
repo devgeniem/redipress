@@ -228,6 +228,8 @@ class Index {
         $taxonomies = get_taxonomies();
 
         foreach ( $taxonomies as $taxonomy ) {
+            $taxonomy = str_replace( '-', '_', $taxonomy );
+
             $this->core_schema_fields[] = new TagField([
                 'name'      => 'taxonomy_' . $taxonomy,
                 'separator' => self::get_tag_separator(),
@@ -715,6 +717,17 @@ class Index {
 
             if ( in_array( $taxonomy, $wanted_taxonomies, true ) && ! empty( $term_string ) ) {
                 $search_index[] = $search_term_string;
+            }
+        }
+
+        // Change dashes from taxonomy slugs to underscores
+        foreach ( $tax as $key => $value ) {
+            if ( strpos( $key, '-' ) !== false ) {
+                $new_key = str_replace( '-', '_', $key );
+
+                $tax[ $new_key ] = $value;
+
+                unset( $tax[ $key ] );
             }
         }
 

@@ -57,6 +57,10 @@ class Utility {
 
         // Turn the chunks into key-value pairs
         foreach ( $chunks as $chunk ) {
+            if ( ! isset ( $chunk[1] ) ) {
+                return $chunk;
+            }
+
             $key = $chunk[0];
 
             if ( is_array( $chunk[1] ) ) {

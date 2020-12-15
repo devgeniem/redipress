@@ -189,8 +189,9 @@ class Index {
             new TextField([
                 'name' => 'post_author',
             ]),
-            new NumericField([
+            new TextField([
                 'name' => 'post_author_id',
+                'sortable' => true,
             ]),
             new TextField([
                 'name'     => 'post_id',

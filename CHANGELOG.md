@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 - `post_author` field changed from Numeric to Text. *REQUIRES INDEX RECREATION AND REINDEXING*
+- Polylang integration to query all languages if empty `lang` string is given.
 
 ### Fixed
 - `author` parameter queries.

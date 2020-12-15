@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - The ability for 3rd party addons to fetch the ID of the post being currently indexed.
 
+### Fixed
+- `author` parameter queries.
+
 ## [1.8.4] - 2020-10-29
 
 ### Fixed

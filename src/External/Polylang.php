@@ -129,6 +129,11 @@ class Polylang {
 
             $slug = $query->query['lang'] ?? $query->query_vars['lang'];
 
+            // If we have an empty slug, we don't need to modify the query.
+            if ( empty( $slug ) ) {
+                return '';
+            }
+
             $term_clause = [
                 [
                     'field'    => 'slug',

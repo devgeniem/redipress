@@ -58,8 +58,9 @@ class PostQueryBuilder extends QueryBuilder {
         'post_status'         => 'post_status',
         'post__in'            => 'post_id',
         'post__not_in'        => 'post_id',
-        'author__in'          => 'post_author',
-        'author__not_in'      => 'post_author',
+        'author'              => 'post_author_id',
+        'author__in'          => 'post_author_id',
+        'author__not_in'      => 'post_author_id',
         'category__in'        => 'taxonomy_id_category',
         'category__not_in'    => 'taxonomy_id_category',
         'category__and'       => 'taxonomy_id_category',
@@ -310,12 +311,31 @@ class PostQueryBuilder extends QueryBuilder {
     }
 
     /**
+     * WP_Query author parameter.
+     *
+     * @return string Redisearch query condition.
+     */
+    protected function author() : string {
+        if ( empty( $this->query->query_vars['author'] ) ) {
+            return false;
+        }
+
+        $author = $this->query->query_vars['author'];
+        $clause     = '';
+
+        if ( ! empty( $author ) && is_string( $author ) ) {
+            $clause = '@post_author_id:(' . $author . ')';
+        }
+
+        return $clause;
+    }
+
+    /**
      * WP_Query author__in parameter.
      *
      * @return string Redisearch query condition.
      */
     protected function author__in() : string {
-
         if ( empty( $this->query->query_vars['author__in'] ) ) {
             return false;
         }
@@ -324,7 +344,7 @@ class PostQueryBuilder extends QueryBuilder {
         $clause     = '';
 
         if ( ! empty( $author__in ) && is_array( $author__in ) ) {
-            $clause = '@post_author:(' . implode( '|', $author__in ) . ')';
+            $clause = '@post_author_id:(' . implode( '|', $author__in ) . ')';
         }
 
         return $clause;
@@ -336,7 +356,6 @@ class PostQueryBuilder extends QueryBuilder {
      * @return string Redisearch query condition.
      */
     protected function author__not_in() : string {
-
         if ( empty( $this->query->query_vars['author__not_in'] ) ) {
             return false;
         }
@@ -345,7 +364,7 @@ class PostQueryBuilder extends QueryBuilder {
         $clause         = '';
 
         if ( ! empty( $author__not_in ) && is_array( $author__not_in ) ) {
-            $clause = '-@post_author:(' . implode( '|', $author__not_in ) . ')';
+            $clause = '-@post_author_id:(' . implode( '|', $author__not_in ) . ')';
         }
 
         return $clause;
@@ -357,7 +376,6 @@ class PostQueryBuilder extends QueryBuilder {
      * @return ?string
      */
     protected function name() : ?string {
-
         if ( empty( $this->query->query_vars['name'] ) ) {
             return false;
         }

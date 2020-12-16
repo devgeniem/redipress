@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2020-12-16
+
+### Added
+- The ability for 3rd party addons to fetch the ID of the post being currently indexed.
+
+### Changed
+- `post_author` field changed from Numeric to Text. *REQUIRES INDEX RECREATION AND REINDEXING*
+- Polylang integration to query all languages if empty `lang` string is given.
+
+### Fixed
+- `author` parameter queries.
+
 ## [1.8.4] - 2020-10-29
 
 ### Fixed

@@ -78,6 +78,13 @@ class Index {
     protected static $written = false;
 
     /**
+     * ID of the post we are indexing.
+     *
+     * @var integer|null
+     */
+    protected static $indexing = null;
+
+    /**
      * Construct the index object
      *
      * @param Client $client Client instance.
@@ -182,8 +189,9 @@ class Index {
             new TextField([
                 'name' => 'post_author',
             ]),
-            new NumericField([
+            new TextField([
                 'name' => 'post_author_id',
+                'sortable' => true,
             ]),
             new TextField([
                 'name'     => 'post_id',
@@ -345,6 +353,8 @@ class Index {
         $posts = apply_filters( 'redipress/custom_posts', $posts );
 
         $result = array_map( function( $post ) use ( $progress ) {
+            self::$indexing = $post->ID;
+
             $language = apply_filters( 'redipress/post_language', $post->lang ?? null, $post );
             $language = apply_filters( 'redipress/post_language/' . $post->ID, $language, $post );
 
@@ -363,6 +373,8 @@ class Index {
             }
 
             $this->free_memory();
+
+            self::$indexing = null;
 
             return $return;
         }, $posts );
@@ -484,6 +496,8 @@ class Index {
         }
 
         $result = array_map( function( $post ) use ( $progress ) {
+            self::$indexing = $post->ID;
+
             $language = apply_filters( 'redipress/post_language', $post->lang ?? null, $post );
             $language = apply_filters( 'redipress/post_language/' . $post->ID, $language, $post );
 
@@ -502,6 +516,8 @@ class Index {
             }
 
             $this->free_memory();
+
+            self::$indexing = null;
 
             return $return;
         }, $posts );
@@ -531,11 +547,17 @@ class Index {
             return;
         }
 
+        self::$indexing = $post->ID;
+
         \do_action( 'redipress/before_index_post', $post );
 
         $converted = $this->convert_post( $post );
 
-        return $this->add_post( $converted, self::get_document_id( $post ) );
+        $return = $this->add_post( $converted, self::get_document_id( $post ) );
+
+        self::$indexing = null;
+
+        return $return;
     }
 
     /**
@@ -559,6 +581,8 @@ class Index {
             return;
         }
 
+        self::$indexing = $post->ID;
+
         \do_action( 'redipress/before_index_post', $post );
 
         $converted = $this->convert_post( $post );
@@ -568,6 +592,8 @@ class Index {
         do_action( 'redipress/new_post_added', $result, $post );
 
         $this->maybe_write_to_disk( 'new_post_added' );
+
+        self::$indexing = null;
 
         return $result;
     }
@@ -737,7 +763,7 @@ class Index {
         $search_index = apply_filters( 'redipress/search_index/' . $post->ID, $search_index, $post );
 
         $search_index = apply_filters( 'redipress/index_strings', $search_index, $post );
-        $search_index = $this->escape_dashes( $search_index );
+        $search_index = trim( $this->escape_dashes( $search_index ) );
 
         // Filter the post object that will be added to the database serialized.
         $post_object = apply_filters( 'redipress/post_object', $post );
@@ -1133,18 +1159,34 @@ class Index {
 
         switch ( $method ) {
             case 'use_last':
+                if ( is_array( $data ) ) {
+                    $data = array_pop( $data );
+                }
+
                 self::$additional[ $post_id ][ $field ] = $data;
                 break;
             case 'concat':
+                if ( is_array( $data ) ) {
+                    $data = implode( '', $data );
+                }
+
                 self::$additional[ $post_id ][ $field ] = $original . $data;
                 break;
             case 'concat_with_spaces':
+                if ( is_array( $data ) ) {
+                    $data = implode( ' ', $data );
+                }
+
                 self::$additional[ $post_id ][ $field ] = $original . ' ' . $data;
                 break;
             case 'array_merge':
                 self::$additional[ $post_id ][ $field ] = array_merge( $original, $data );
                 break;
             case 'sum':
+                if ( is_array( $data ) ) {
+                    $data = array_sum( $data );
+                }
+
                 self::$additional[ $post_id ][ $field ] = $original + $data;
                 break;
             default:
@@ -1169,6 +1211,15 @@ class Index {
         }
 
         return $value;
+    }
+
+    /**
+     * Returns the ID of the post that we are currently indexing.
+     *
+     * @return integer|null
+     */
+    public static function indexing() : ?int {
+        return self::$indexing;
     }
 
     /**

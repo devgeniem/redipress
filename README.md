@@ -31,6 +31,7 @@ RediPress is also built with extensive amount of hooks and filters to customize 
 - [Third party plugins](#third-party-plugins)
   - [Advanced Custom Fields](#advanced-custom-fields)
   - [Polylang](#polylang)
+- [Troubleshooting](#troubleshooting)
 
 <!-- /code_chunk_output -->
 
@@ -45,7 +46,11 @@ RediPress is also built with extensive amount of hooks and filters to customize 
 3. Define the connection parameters either in the admin panel or as constants in your code (recommended).
 4. If you are planning to include custom posts or additional fields in the search index, it should be done now.
 5. Create the index schema to RediSearch. It can be done either in the admin panel or through WP-CLI with command `wp redipress create`.
-6. Run the actual indexing. It can as well be done either in the admin panel or through WP-CLI. Running the command `wp redipress index` is a recommended way to run the initial indexing.
+6. Run the actual indexing. It can as well be done either in the admin panel or through WP-CLI. Running the command `wp redipress index` is a recommended way to run the initial indexing. If the indexing stops you can continue indexing by running the command `wp redipress index posts missing`.
+
+### Indexing multisite installations
+
+You can use the same commands with multisite: `wp redipress create` and `wp redipress index`. For multisite you have to specify site url with the `--url` parameter in order for RediPress to function properly. Example `wp redipress index --url=subsite.domain.test`.
 
 ## Usage
 
@@ -225,3 +230,7 @@ There is a lot of functionality in [ACF Codifier](https://github.com/devgeniem/a
 ### Polylang
 
 RediPress supports Polylang out of the box. Other multi-language plugins may require some coding to work.
+
+## Troubleshooting
+
+If you run into problems you can try dropping all indeces by running `wp redipress drop`. After this re-index.

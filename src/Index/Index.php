@@ -1179,6 +1179,19 @@ class Index {
                 self::$additional[ $post_id ][ $field ] = $original . ' ' . $data;
                 break;
             case 'array_merge':
+                if ( ! is_array( $original ) ) {
+                    if ( empty( $original ) ) {
+                        $original = [];
+                    }
+                    else {
+                        $original = [ $original ];
+                    }
+                }
+
+                if ( ! is_array( $data ) ) {
+                    $data = [ $data ];
+                }
+
                 self::$additional[ $post_id ][ $field ] = array_merge( $original, $data );
                 break;
             case 'sum':

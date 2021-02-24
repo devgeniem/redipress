@@ -31,7 +31,7 @@
         "phpoffice/phpword": "^0.17"
     },
     "conflict": {
-        "devgeniem/acf-codifier": "<1.35.2"
+        "devgeniem/acf-codifier": "<1.36.0"
     },
     "autoload": {
         "psr-4": {

@@ -238,7 +238,7 @@ If you run into problems you can try dropping all indeces by running `wp redipre
 ## Delete posts from the index
 
 If you need to delete posts from the index by `blog_id` or `post_type` then you can use cli command `wp redipress delete`.
-Limit for the delete is by default `100` but you can change that with parameter `--limit`.
+Limit for the delete is `100` by default but you can change that with a parameter `--limit`.
 
 ### Example usage
 ```bash

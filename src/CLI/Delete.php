@@ -68,7 +68,7 @@ class Delete implements Command {
      *
      * @param int $args The query args.
      * @param int $query_vars Query limit.
-     * @return bool
+     * @return boolean
      */
     public function delete_posts( $query_vars, $limit ) {
 
@@ -148,7 +148,7 @@ class Delete implements Command {
     /**
      * Delete index.
      *
-     * @param [type] $doc_id
+     * @param string $doc_id RediSearch doc_id.
      * @return void
      */
     protected function delete_index( $doc_id ) {
@@ -166,8 +166,6 @@ class Delete implements Command {
                 ]
             );
         }
-
-        return true;
     }
 
     /**
@@ -190,7 +188,8 @@ class Delete implements Command {
         $last_idx = count( $query_vars ) - 1;
         $idx      = 0;
 
-        // Implode query_vars.
+        // Loop through query_vars and
+        // add valid query_vars to the where clause.
         if ( is_array( $query_vars ) ) {
 
             foreach ( $query_vars as $key => $var ) {

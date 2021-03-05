@@ -234,3 +234,13 @@ RediPress supports Polylang out of the box. Other multi-language plugins may req
 ## Troubleshooting
 
 If you run into problems you can try dropping all indeces by running `wp redipress drop`. After this re-index.
+
+## Delete posts from the index
+
+If you need to delete posts from the index by `blog_id` or `post_type` then you can use cli command `wp redipress delete`.
+Limit for the delete is by default `100` but you can change that with parameter `--limit`.
+
+### Example usage
+```bash
+wp redipress delete --blog_id=1 --post_type=post --limit=500
+```

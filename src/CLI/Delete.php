@@ -49,8 +49,8 @@ class Delete implements Command {
             }
         }
 
-        // Default limit to 50.
-        $limit = $assoc_args['limit'] ?? '50';
+        // Default limit to 100.
+        $limit = $assoc_args['limit'] ?? '100';
 
         // Blog_id and post_type.
         if ( ! empty( $query_vars ) ) {

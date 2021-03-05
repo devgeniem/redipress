@@ -31,20 +31,34 @@ class Delete implements Command {
      */
     public function run( array $args = [], array $assoc_args = [] ) : bool {
 
-        // Safely get all the parameters.
-        $args = [
-            'blog_id'   => $assoc_args['blog_id'] ?? '',
-            'post_type' => $assoc_args['post_type'] ?? '',
-            'limit'     => $assoc_args['limit'] ?? '50',
+        // Only these arguments will be used.
+        $allowed_args = [
+            'blog_id',
+            'post_type',
         ];
 
-        // Blog_id and post_type.
-        if ( ! empty( $args['blog_id'] ) || ! empty( $args['post_type'] ) || ! empty( $args['limit'] ) ) {
+        // Loop thourgh arguments and set allowed args to $query_vars.
+        if ( ! empty( $assoc_args ) && is_array( $assoc_args ) ) {
+            foreach ( $assoc_args as $key => $value ) {
 
-            return $this->delete_posts( $args );
+                // If parameter is allowed and not empty value.
+                if ( in_array( $key, $allowed_args ) && ! empty( $value ) ) {
+
+                    $query_vars[ $key ] = $value;
+                }
+            }
         }
 
-        WP_CLI::error( 'Delete didn\'t execute' );
+        // Default limit to 50.
+        $limit = $assoc_args['limit'] ?? '50';
+
+        // Blog_id and post_type.
+        if ( ! empty( $query_vars ) ) {
+
+            return $this->delete_posts( $query_vars, $limit );
+        }
+
+        WP_CLI::error( 'Delete didn\'t execute. Please insert some of these parameters: ' . implode( ' ', $allowed_args ) );
 
         return false;
     }
@@ -53,9 +67,10 @@ class Delete implements Command {
      * Index single post
      *
      * @param int $args The query args.
+     * @param int $query_vars Query limit.
      * @return bool
      */
-    public function delete_posts( $args ) {
+    public function delete_posts( $query_vars, $limit ) {
 
         // Get the posts.
         // Do the RediSearch query.
@@ -63,13 +78,13 @@ class Delete implements Command {
             'FT.SEARCH',
             [
                 $this->index,
-                $this->build_where( $args ),
+                $this->build_where( $query_vars ),
                 'RETURN',
                 1,
                 'post_id',
                 'LIMIT',
                 '0', // Limit from
-                $args['limit'], // Limit max
+                $limit, // Limit max
             ],
         );
 
@@ -158,21 +173,41 @@ class Delete implements Command {
     /**
      * Build where clause for the query.
      *
-     * @param string $blog_id Blog id. 
-     * @param string $post_type Post type as a string.
-     * @param string $limit Limit.
-     * @return string Where clause as a string.
+     * @param string $query_vars Query variables.
+     * @return string RediSearch where clause as a string.
      */
-    public function build_where( $args ) {
+    public function build_where( $query_vars ) {
 
+        // Init.
         $where = '';
 
-        if ( ! empty( $args['post_type'] ) ) {
-            $where = '@post_type:' . $args['post_type'];
+        // Fail fast.
+        if ( empty( $query_vars ) ) {
+            return $where;
         }
 
-        if ( ! empty( $args['blog_id'] ) ) {
-            $where = $where . ' @blog_id:(' . $args['blog_id'] . ')';
+        // Count not empty values.
+        $last_idx = count( $query_vars ) - 1;
+        $idx      = 0;
+
+        // Implode query_vars.
+        if ( is_array( $query_vars ) ) {
+
+            foreach ( $query_vars as $key => $var ) {
+
+                if ( ! empty( $var ) ) {
+
+                    // Add the clause.
+                    $where = $where . '@' . $key . ':(' . $var . ')';
+
+                    // Add space if not the last query parameter.
+                    if ( $idx !== $last_idx ) {
+                        $where = $where . ' ';
+                    }
+
+                    $idx++;
+                }
+            }
         }
 
         return $where;

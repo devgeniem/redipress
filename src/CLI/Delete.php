@@ -64,7 +64,7 @@ class Delete implements Command {
     }
 
     /**
-     * Index single post
+     * Delete posts from the index.
      *
      * @param int $args The query args.
      * @param int $query_vars Query limit.
@@ -72,33 +72,14 @@ class Delete implements Command {
      */
     public function delete_posts( $query_vars, $limit ) {
 
-        // Get the posts.
-        // Do the RediSearch query.
-        $posts = $this->client->raw_command(
-            'FT.SEARCH',
-            [
-                $this->index,
-                $this->build_where( $query_vars ),
-                'RETURN',
-                1,
-                'post_id',
-                'LIMIT',
-                '0', // Limit from
-                $limit, // Limit max
-            ],
-        );
-
-        // We need to get indexes of the doc_ids to be removed
-        $doc_id_indexes = $this->get_valid_doc_id_indexes( $posts );
+        $doc_ids = $this->get_doc_ids( $query_vars, $limit );
 
         $removed_doc_ids = [];
 
         // Loop through doc_ids to be removed and
-        // do the delete from redisearch index.
-        if ( ! empty( $doc_id_indexes ) && is_array( $doc_id_indexes ) ) {
-            foreach ( $doc_id_indexes as $doc_id_index ) {
-
-                $doc_id = $posts[ $doc_id_index ];
+        // do the delete from RediSearch index.
+        if ( ! empty( $doc_ids ) && is_array( $doc_ids ) ) {
+            foreach ( $doc_ids as $doc_id ) {
 
                 $this->delete_index( $doc_id );
                 $removed_doc_ids[] = $doc_id;
@@ -120,29 +101,35 @@ class Delete implements Command {
     }
 
     /**
-     * Get valid list of indexes.
-     * $post[0] = doc_id
-     * $post[1] = post_data with blog_id and post_id.
+     * Get doc ids.
      *
-     * @param array $posts An array of posts with doc_id[0], 
-     * @return array Return an array of posts.
+     * @param int $args The query args.
+     * @param int $query_vars Query limit.
+     * @return array An array of doc ids.
      */
-    public function get_valid_doc_id_indexes( $posts ) {
+    protected function get_doc_ids( $query_vars, $limit ) {
 
-        $doc_id_indexes = [];
+        // Get the posts.
+        // Do the RediSearch query.
+        $doc_ids = $this->client->raw_command(
+            'FT.SEARCH',
+            [
+                $this->index,
+                $this->build_where( $query_vars ),
+                'RETURN',
+                1,
+                'post_id',
+                'LIMIT',
+                '0', // Limit from
+                $limit, // Limit max
+                'NOCONTENT', // NOCONTENT return only doc ids.
+            ],
+        );
 
-        // RediPress returns at first doc_id and after that the data.
-        if ( ! empty( $posts ) && is_array( $posts ) ) {
-            foreach ( $posts as $key => $post ) {
+        // The first item is a count of the results.
+        unset( $doc_ids[0] );
 
-                // Check if valid post and add doc_id index to the deleted $doc_id_indexes.
-                if ( ! empty( $post ) && is_array( $post ) ) {
-                    $doc_id_indexes[] = (int) $key - 1;
-                }
-            }
-        }
-
-        return $doc_id_indexes;
+        return $doc_ids;
     }
 
     /**

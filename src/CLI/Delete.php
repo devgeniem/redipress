@@ -31,34 +31,16 @@ class Delete implements Command {
      */
     public function run( array $args = [], array $assoc_args = [] ) : bool {
 
-        // Only these arguments will be used.
-        $allowed_args = [
-            'blog_id',
-            'post_type',
-        ];
-
-        // Loop thourgh arguments and set allowed args to $query_vars.
-        if ( ! empty( $assoc_args ) && is_array( $assoc_args ) ) {
-            foreach ( $assoc_args as $key => $value ) {
-
-                // If parameter is allowed and not empty value.
-                if ( in_array( $key, $allowed_args ) && ! empty( $value ) ) {
-
-                    $query_vars[ $key ] = $value;
-                }
-            }
-        }
-
         // Default limit to 100.
         $limit = $assoc_args['limit'] ?? '100';
 
         // Blog_id and post_type.
-        if ( ! empty( $query_vars ) ) {
+        if ( ! empty( $assoc_args ) ) {
 
-            return $this->delete_posts( $query_vars, $limit );
+            return $this->delete_posts( $assoc_args, $limit );
         }
 
-        WP_CLI::error( 'Delete didn\'t execute. Please insert some of these parameters: ' . implode( ' ', $allowed_args ) );
+        WP_CLI::error( 'Delete didn\'t execute. Please insert some parameter.' );
 
         return false;
     }

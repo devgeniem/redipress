@@ -40,7 +40,7 @@ class Delete implements Command {
             return $this->delete_posts( $assoc_args, $limit );
         }
 
-        WP_CLI::error( 'Delete didn\'t execute. Please insert some parameter.' );
+        WP_CLI::error( 'RediPress: "delete" command doesn\'t accept more than one parameter.' );
 
         return false;
     }
@@ -59,7 +59,7 @@ class Delete implements Command {
         $removed_doc_ids = [];
 
         // Loop through doc_ids to be removed and
-        // do the delete from RediSearch index.
+        // run the delete command in RediSearch index.
         if ( ! empty( $doc_ids ) && is_array( $doc_ids ) ) {
             foreach ( $doc_ids as $doc_id ) {
 
@@ -69,7 +69,7 @@ class Delete implements Command {
         }
         // Fail.
         else {
-            WP_CLI::error( 'There wasn\'t anything to delete' );
+            WP_CLI::error( 'No posts found on the given criteria.' );
         }
 
         // Success message.
@@ -83,7 +83,7 @@ class Delete implements Command {
     }
 
     /**
-     * Get doc ids.
+     * Get the doc ids.
      *
      * @param int $args The query args.
      * @param int $query_vars Query limit.
@@ -108,14 +108,14 @@ class Delete implements Command {
             ],
         );
 
-        // The first item is a count of the results.
+        // The first item is the count of the results.
         unset( $doc_ids[0] );
 
         return $doc_ids;
     }
 
     /**
-     * Delete index.
+     * Delete from the index.
      *
      * @param string $doc_id RediSearch doc_id.
      * @return void
@@ -140,7 +140,7 @@ class Delete implements Command {
     /**
      * Build where clause for the query.
      *
-     * @param string $query_vars Query variables.
+     * @param array $query_vars Query variables.
      * @return string RediSearch where clause as a string.
      */
     public function build_where( $query_vars ) {

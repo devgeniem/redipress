@@ -900,6 +900,9 @@ class Index {
         $post_content = apply_filters( 'redipress/index_strings', $post_content, $post );
         $post_content = $this->escape_dashes( $post_content );
 
+        // Remove tabs.
+        $post_content = \str_replace( '\t', '', $post_content );
+
         return $post_content;
     }
 

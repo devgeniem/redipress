@@ -325,7 +325,7 @@ abstract class QueryBuilder {
         $terms = apply_filters( 'redipress/search_terms/' . static::TYPE, $terms );
 
         // Escape dashes
-        $terms = str_replace( '-', '\\-', $terms );
+        $terms = $this->escape_string( $terms );
 
         // Filter for escaped search terms
         $terms = apply_filters( 'redipress/search_terms/escaped', $terms );
@@ -1241,17 +1241,12 @@ abstract class QueryBuilder {
     }
 
     /**
-     * Escape dashes from string
+     * Escape the string
      *
      * @param  string $string Unescaped string.
      * @return string         Escaped $string.
      */
-    public function escape_dashes( ?string $string = '' ) : string {
-        if ( ! $string ) {
-            $string = '';
-        }
-
-        $string = \str_replace( '-', '\-', $string );
-        return $string;
+    public function escape_string( ?string $string = '' ) : string {
+        return Utility::escape_string( $string );
     }
 }

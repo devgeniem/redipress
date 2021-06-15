@@ -119,4 +119,25 @@ class Utility {
 
         return null;
     }
+
+    /**
+     * Escape a string
+     *
+     * @param string|null $string The string to escape.
+     * @return array
+     */
+    public static function escape_string( ?string $string = '' ) : string {
+        if ( empty( $string ) ) {
+            return '';
+        }
+
+        return \str_replace( [
+            '-',
+            '.',
+        ],
+        [
+            '\\-',
+            '\\.',
+        ], $string );
+    }
 }

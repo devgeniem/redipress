@@ -680,9 +680,9 @@ class Index {
                 $value = (int) $value;
             }
 
-            // Escape dashes in all but numeric fields
+            // Escape the string in all but numeric fields
             if ( $type !== 'NUMERIC' ) {
-                $value = $this->escape_dashes( $value );
+                $value = $this->escape_string( $value );
             }
 
             return $value;
@@ -763,18 +763,18 @@ class Index {
         $search_index = apply_filters( 'redipress/search_index/' . $post->ID, $search_index, $post );
 
         $search_index = apply_filters( 'redipress/index_strings', $search_index, $post );
-        $search_index = trim( $this->escape_dashes( $search_index ) );
+        $search_index = trim( $this->escape_string( $search_index ) );
 
         // Filter the post object that will be added to the database serialized.
         $post_object = apply_filters( 'redipress/post_object', $post );
 
         $post_title = apply_filters( 'redipress/post_title', $post->post_title );
         $post_title = apply_filters( 'redipress/index_strings', $post_title, $post );
-        $post_title = $this->escape_dashes( $post_title );
+        $post_title = $this->escape_string( $post_title );
 
         $post_excerpt = apply_filters( 'redipress/post_excerpt', $post->post_excerpt );
         $post_excerpt = apply_filters( 'redipress/index_strings', $post_excerpt, $post );
-        $post_excerpt = $this->escape_dashes( $post_excerpt );
+        $post_excerpt = $this->escape_string( $post_excerpt );
 
         $post_content = $this->get_post_content( $post );
 
@@ -783,12 +783,12 @@ class Index {
         // Get rest of the fields
         $rest = [
             'post_id'        => $post->ID,
-            'post_name'      => $this->escape_dashes( $post->post_name ),
+            'post_name'      => $this->escape_string( $post->post_name ),
             'post_title'     => $post_title,
             'post_author_id' => $post->post_author,
             'post_excerpt'   => $post_excerpt,
             'post_content'   => $post_content,
-            'post_type'      => $this->escape_dashes( $post->post_type ),
+            'post_type'      => $this->escape_string( $post->post_type ),
             'post_parent'    => $post->post_parent,
             'post_mime_type' => $post->post_mime_type,
             'post_status'    => $post_status,
@@ -813,13 +813,8 @@ class Index {
      * @param  string $string Unescaped string.
      * @return string         Escaped $string.
      */
-    public function escape_dashes( ?string $string = '' ) : string {
-        if ( ! is_string( $string ) ) {
-            return '';
-        }
-
-        $string = \str_replace( '-', '\\-', $string );
-        return $string;
+    public function escape_string( ?string $string = '' ) : string {
+        return Utility::escape_string( $string );
     }
 
     /**
@@ -898,7 +893,7 @@ class Index {
         $post_content = $this->strip_tags_except_comments( $post_content );
         $post_content = \apply_filters( 'redipress/post_content', $post_content, $post );
         $post_content = apply_filters( 'redipress/index_strings', $post_content, $post );
-        $post_content = $this->escape_dashes( $post_content );
+        $post_content = $this->escape_string( $post_content );
 
         // Replace unwanted characters with space to keep spaces for example after a line break.
         $post_content = str_replace( '\t', ' ', $post_content );

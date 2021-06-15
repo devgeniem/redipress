@@ -85,7 +85,7 @@ function update_value( $doc_id, $field, $value, $score = 1, $users = false ) {
 
     // Escape dashes in all but numeric fields
     if ( $type !== 'NUMERIC' ) {
-        $value = escape_dashes( $value );
+        $value = escape_string( $value );
     }
 
     $result_add = $client->raw_command(
@@ -125,13 +125,8 @@ function update_value( $doc_id, $field, $value, $score = 1, $users = false ) {
  * @param  string $string Unescaped string.
  * @return string         Escaped $string.
  */
-function escape_dashes( ?string $string = '' ) : string {
-    if ( ! is_string( $string ) ) {
-        return '';
-    }
-
-    $string = \str_replace( '-', '\\-', $string );
-    return $string;
+function escape_string( ?string $string = '' ) : string {
+    return Utility::escape_string( $string );
 }
 
 /**

@@ -383,7 +383,7 @@ class UserIndex {
 
             // Escape dashes in all but numeric fields
             if ( $type !== 'NUMERIC' ) {
-                $value = $this->escape_dashes( $value );
+                $value = $this->escape_string( $value );
             }
 
             return $value;
@@ -399,7 +399,7 @@ class UserIndex {
         $search_index = apply_filters( 'redipress/user_search_index', implode( ' ', $search_index ), $user->ID, $user );
         $search_index = apply_filters( 'redipress/user_search_index/' . $user->ID, $search_index, $user );
         $search_index = apply_filters( 'redipress/user_index_strings', $search_index, $user );
-        $search_index = $this->escape_dashes( $search_index );
+        $search_index = $this->escape_string( $search_index );
 
         // Filter the post object that will be added to the database serialized.
         $user_object = apply_filters( 'redipress/user_object', $user );
@@ -407,37 +407,37 @@ class UserIndex {
 
         $user_login = apply_filters( 'redipress/user_login', $user->user_login );
         $user_login = apply_filters( 'redipress/user_index_strings', $user->user_login, $user );
-        $user_login = $this->escape_dashes( $user_login );
+        $user_login = $this->escape_string( $user_login );
 
         $user_nicename = apply_filters( 'redipress/user_nicename', $user->user_nicename );
         $user_nicename = apply_filters( 'redipress/user_index_strings', $user->user_nicename, $user );
-        $user_nicename = $this->escape_dashes( $user_nicename );
+        $user_nicename = $this->escape_string( $user_nicename );
 
         $user_email = apply_filters( 'redipress/user_email', $user->user_email );
         $user_email = apply_filters( 'redipress/user_index_strings', $user->user_email, $user );
-        $user_email = $this->escape_dashes( $user_email );
+        $user_email = $this->escape_string( $user_email );
 
         $user_url = apply_filters( 'redipress/user_url', $user->user_url );
-        $user_url = $this->escape_dashes( $user_url );
+        $user_url = $this->escape_string( $user_url );
 
         $user_registered = apply_filters( 'redipress/user_registered', $user->user_registered );
         $user_registered = strtotime( $user_registered ) ?: null;
 
         $display_name = apply_filters( 'redipress/display_name', $user->display_name );
         $display_name = apply_filters( 'redipress/user_index_strings', $user->display_name, $user );
-        $display_name = $this->escape_dashes( $display_name );
+        $display_name = $this->escape_string( $display_name );
 
         $nickname = apply_filters( 'redipress/nickname', $user->nickname );
         $nickname = apply_filters( 'redipress/user_index_strings', $user->nickname, $user );
-        $nickname = $this->escape_dashes( $nickname );
+        $nickname = $this->escape_string( $nickname );
 
         $first_name = apply_filters( 'redipress/first_name', $user->first_name );
         $first_name = apply_filters( 'redipress/user_index_strings', $user->first_name, $user );
-        $first_name = $this->escape_dashes( $first_name );
+        $first_name = $this->escape_string( $first_name );
 
         $last_name = apply_filters( 'redipress/last_name', $user->last_name );
         $last_name = apply_filters( 'redipress/user_index_strings', $user->last_name, $user );
-        $last_name = $this->escape_dashes( $last_name );
+        $last_name = $this->escape_string( $last_name );
 
         if ( \is_multisite() ) {
             $blogs = \get_blogs_of_user( $user->ID, true );
@@ -527,13 +527,8 @@ class UserIndex {
      * @param  string $string Unescaped string.
      * @return string         Escaped $string.
      */
-    public function escape_dashes( ?string $string = '' ) : string {
-        if ( ! $string ) {
-            $string = '';
-        }
-
-        $string = \str_replace( '-', '\\-', $string );
-        return $string;
+    public function escape_string( ?string $string = '' ) : string {
+        return Utility::escape_string( $string );
     }
 
     /**

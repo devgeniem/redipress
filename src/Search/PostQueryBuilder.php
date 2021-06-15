@@ -306,7 +306,7 @@ class PostQueryBuilder extends QueryBuilder {
             $post_types = [ 'post' ];
         }
 
-        $post_types = array_map( [ $this, 'escape_dashes' ], $post_types );
+        $post_types = array_map( [ $this, 'escape_string' ], $post_types );
 
         return '@post_type:(' . implode( '|', $post_types ) . ')';
     }
@@ -415,7 +415,7 @@ class PostQueryBuilder extends QueryBuilder {
         if ( $name !== 'any' ) {
             $names = is_array( $name ) ? $name : [ $name ];
 
-            $names = array_map( [ $this, 'escape_dashes' ], $names );
+            $names = array_map( [ $this, 'escape_string' ], $names );
 
             return '@post_name:(' . implode( '|', $names ) . ')';
         }
@@ -524,7 +524,7 @@ class PostQueryBuilder extends QueryBuilder {
 
         $mime_types = is_array( $mime_type ) ? $mime_type : [ $mime_type ];
 
-        $mime_types = array_map( [ $this, 'escape_dashes' ], $mime_types );
+        $mime_types = array_map( [ $this, 'escape_string' ], $mime_types );
 
         return '@post_mime_type:(' . implode( '|', $mime_types ) . ')';
     }

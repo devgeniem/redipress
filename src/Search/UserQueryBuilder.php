@@ -49,6 +49,7 @@ class UserQueryBuilder extends QueryBuilder {
         'meta_query'          => null,
         'order'               => null,
         'orderby'             => null,
+        'groupby'             => null,
         'number'              => null,
         'offset'              => null,
         'meta_key'            => null,

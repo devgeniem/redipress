@@ -483,7 +483,12 @@ abstract class QueryBuilder {
      * @return string
      */
     public function get_groupby() : array {
-        return $this->groupby;
+        if ( ! empty( $this->query->query_vars['groupby'] ) ) {
+            return $this->query->query_vars['groupby'];
+        }
+        else {
+            return $this->groupby;
+        }
     }
 
     /**

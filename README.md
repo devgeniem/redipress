@@ -32,6 +32,7 @@ RediPress is also built with extensive amount of hooks and filters to customize 
   - [Advanced Custom Fields](#advanced-custom-fields)
   - [Polylang](#polylang)
 - [Troubleshooting](#troubleshooting)
+- [WP-CLI](#WP-CLI)
 
 <!-- /code_chunk_output -->
 
@@ -234,3 +235,16 @@ RediPress supports Polylang out of the box. Other multi-language plugins may req
 ## Troubleshooting
 
 If you run into problems you can try dropping all indeces by running `wp redipress drop`. After this re-index.
+
+## WP-CLI
+### command: wp redipress delete
+
+description: Delete posts from the index by the arguments.
+arguments:
+- `document field:` Any field from the document that should match the given value.
+- `limit:` If not defined the default value is 100.
+
+example usage:
+```bash
+wp redipress delete --blog_id=1 --post_type=article --limit=500
+```

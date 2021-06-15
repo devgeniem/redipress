@@ -4,10 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [post-content-remove-tabs] - 2021-06-11
+## [1.11.0] - 2021-06-11
 
 ### Fixed
+- Escape dots in addition to dashes in indexing.
 - Remove tabs from post_content while indexing.
+
+## [1.10.0] - 2021-05-04
+
+### Added
+- A CLI command `wp redipress delete` to delete posts by blog_id and post_type.
+- A WP_Query argument `groupby` added to modify the grouping argument of the RediSearch query.
 
 ## [1.9.1] - 2021-02-24
 

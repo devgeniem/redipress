@@ -70,6 +70,7 @@ class PostQueryBuilder extends QueryBuilder {
         'date_query'          => null,
         'order'               => null,
         'orderby'             => null,
+        'groupby'             => null,
         'posts_per_page'      => null,
         'offset'              => null,
         'meta_key'            => null,

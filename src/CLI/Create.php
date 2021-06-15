@@ -27,7 +27,7 @@ class Create implements Command {
             return $this->create_index( $args[0] );
         }
         elseif ( count( $args ) > 1 ) {
-            WP_CLI::error( 'RediPress: "create" command does accept more than one parameter.' );
+            WP_CLI::error( 'RediPress: "create" command doesn\'t accept more than one parameter.' );
             return false;
         }
     }

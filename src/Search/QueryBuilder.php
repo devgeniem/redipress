@@ -325,7 +325,7 @@ abstract class QueryBuilder {
         $terms = apply_filters( 'redipress/search_terms/' . static::TYPE, $terms );
 
         // Escape dashes
-        $terms = str_replace( '-', '\\-', $terms );
+        $terms = $this->escape_string( $terms );
 
         // Filter for escaped search terms
         $terms = apply_filters( 'redipress/search_terms/escaped', $terms );

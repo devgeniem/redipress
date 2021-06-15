@@ -900,6 +900,14 @@ class Index {
         $post_content = apply_filters( 'redipress/index_strings', $post_content, $post );
         $post_content = $this->escape_dashes( $post_content );
 
+        // Replace unwanted characters with space to keep spaces for example after a line break.
+        $post_content = str_replace( '\t', ' ', $post_content );
+        $post_content = str_replace( '\n', ' ', $post_content );
+        $post_content = str_replace( '\r', ' ', $post_content );
+
+        // Replace multiple whitespaces with a single space
+        $post_content = preg_replace('/\s+/S', ' ', $post_content);
+
         return $post_content;
     }
 

@@ -127,7 +127,7 @@ class Utility {
      * @return string|array
      */
     public static function escape_string( $string = '' ) {
-        if ( empty( $string ) ) {
+        if ( is_null( $string ) ) {
             return '';
         }
 

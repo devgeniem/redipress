@@ -123,10 +123,10 @@ class Utility {
     /**
      * Escape a string
      *
-     * @param string|null $string The string to escape.
-     * @return array
+     * @param string|array|null $string The string or array of strings to escape.
+     * @return string|array
      */
-    public static function escape_string( ?string $string = '' ) : string {
+    public static function escape_string( $string = '' ) {
         if ( empty( $string ) ) {
             return '';
         }

@@ -134,10 +134,14 @@ class Utility {
         return \str_replace( [
             '-',
             '.',
+            '(',
+            ')',
         ],
         [
             '\\-',
             '\\.',
+            '\\(',
+            '\\)',
         ], $string );
     }
 }

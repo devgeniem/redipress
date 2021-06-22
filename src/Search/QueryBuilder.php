@@ -617,10 +617,14 @@ abstract class QueryBuilder {
                     default:
                         // Include hierarchical taxonomy child terms, if wanted
                         if ( $clause['include_children'] ?? false ) {
-                            $clause['terms'] = array_map( function( $id ) use ( $clause ) {
-                                return get_term_children( $id, $clause['taxonomy'] );
-                            }, (array) $clause['terms'] );
-                        }
+                            $clause['terms'] = array_reduce( $clause['terms'], function( $terms, $id ) use ( $clause ) {
+                                $terms[] = $id;
+
+                                $terms = array_merge( $terms, get_term_children( $id, $clause['taxonomy'] ) );
+
+                                return $terms;
+                            }, [] );
+                        }                        }
 
                         // Form clause by operator.
                         if ( $clause['operator'] === 'IN' ) {

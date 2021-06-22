@@ -549,17 +549,17 @@ abstract class QueryBuilder {
         foreach ( $query as $clause ) {
 
             // Operator
-            $operator_uppercase = strtoupper( $clause['operator'] );
+            $operator_uppercase = strtoupper( $clause['operator'] ?? $operator );
 
             // We do not support some operator types, so bail early if some of them is found.
             if ( in_array( $operator_uppercase, $unsupported_operators, true ) ) {
                 return false;
             }
 
-            // Escape clause terms
-            $clause['terms'] = $this->escape_clause_terms( $clause['terms'] );
-
             if ( ! empty( $clause['taxonomy'] ) ) {
+                // Escape clause terms
+                $clause['terms'] = $this->escape_clause_terms( $clause['terms'] );
+
                 if ( strpos( $clause['taxonomy'], '-' ) !== false ) {
                     $clause['taxonomy'] = str_replace( '-', '_', $clause['taxonomy'] );
                 }
@@ -614,6 +614,14 @@ abstract class QueryBuilder {
 
                         // The fallthrough is intentional: we only turn the slugs into ids.
                     case 'term_id':
+                    default:
+                        // Include hierarchical taxonomy child terms, if wanted
+                        if ( $clause['include_children'] ?? false ) {
+                            $clause['terms'] = array_map( function( $id ) use ( $clause ) {
+                                return get_term_children( $id, $clause['taxonomy'] );
+                            }, (array) $clause['terms'] );
+                        }
+
                         // Form clause by operator.
                         if ( $clause['operator'] === 'IN' ) {
                             $queries[] = sprintf(
@@ -633,8 +641,6 @@ abstract class QueryBuilder {
                         $this->add_search_field( 'taxonomy_id_' . $clause['taxonomy'] );
 
                         break;
-                    default:
-                        return false;
                 }
             }
             // If we have multiple clauses in the block, run the function recursively.

@@ -624,7 +624,7 @@ abstract class QueryBuilder {
 
                                 return $terms;
                             }, [] );
-                        }                        }
+                        }
 
                         // Form clause by operator.
                         if ( $clause['operator'] === 'IN' ) {

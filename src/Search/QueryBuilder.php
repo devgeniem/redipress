@@ -920,8 +920,7 @@ abstract class QueryBuilder {
             ];
 
             // Escape dashes from the values
-            $clause['value'] = str_replace( '-', '\\-', $clause['value'] );
-
+            $clause['value'] = Utility::escape_string( $clause['value'] );
 
             // Run the appropriate function if it exists
             if ( method_exists( $this, 'meta_' . $compare_map[ strtoupper( $compare ) ] ) ) {

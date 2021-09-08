@@ -123,21 +123,25 @@ class Utility {
     /**
      * Escape a string
      *
-     * @param string|null $string The string to escape.
-     * @return array
+     * @param string|array|null $string The string or array of strings to escape.
+     * @return string|array
      */
-    public static function escape_string( ?string $string = '' ) : string {
-        if ( empty( $string ) ) {
+    public static function escape_string( $string = '' ) {
+        if ( is_null( $string ) ) {
             return '';
         }
 
         return \str_replace( [
             '-',
             '.',
+            '(',
+            ')',
         ],
         [
             '\\-',
             '\\.',
+            '\\(',
+            '\\)',
         ], $string );
     }
 }

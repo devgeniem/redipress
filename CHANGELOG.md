@@ -4,11 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2021-06-16
+<<<<<<< HEAD
+## [1.12.0] - 2021-09-08
+
+### Added
+- Added support for `include_children` parameter of taxonomy queries.
 
 ### Fixed
-- Force integer value to redis port env on connect
+- Force integer value to Redis port env on connect.
 - Escape brackets in indexing.
+- Taxonomy query clauses did not default to field `term_id` as they should.
 
 ## [1.11.0] - 2021-06-11
 

@@ -100,7 +100,7 @@ class RediPress {
         try {
             $this->connection = $client->connect(
                 Settings::get( 'hostname' ) ?? '127.0.0.1',
-                Settings::get( 'port' ) ?? 6379,
+                intval( Settings::get( 'port' ) ) ?? 6379,
                 0,
                 Settings::get( 'password' ) ?: null
             );

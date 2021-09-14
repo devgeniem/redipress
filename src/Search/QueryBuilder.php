@@ -548,6 +548,11 @@ abstract class QueryBuilder {
 
         foreach ( $query as $clause ) {
 
+            if ( empty( $clause['operator'] ) ) {
+                $queries[] = $this->create_taxonomy_query( $clause, $relation );
+                continue;
+            }
+
             // Operator
             $operator_uppercase = strtoupper( $clause['operator'] ?? $operator );
 

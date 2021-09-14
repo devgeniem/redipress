@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 - `escape_parentheses` setting for the user to choose whether to escape parentheses in search queries or not.
+- User locale field for the ability to query users by their locale.
 
 ### Fixed
 - A bug where setting order by to relevance would cause the query not to work.

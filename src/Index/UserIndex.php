@@ -169,6 +169,10 @@ class UserIndex {
                 'separator' => self::get_tag_separator(),
             ]),
             new TextField([
+                'name'     => 'locale',
+                'sortable' => true,
+            ]),
+            new TextField([
                 'name' => 'search_index',
             ]),
         ];
@@ -406,15 +410,15 @@ class UserIndex {
         $user_object = serialize( $user_object );
 
         $user_login = apply_filters( 'redipress/user_login', $user->user_login );
-        $user_login = apply_filters( 'redipress/user_index_strings', $user->user_login, $user );
+        $user_login = apply_filters( 'redipress/user_index_strings', $user_login, $user );
         $user_login = $this->escape_string( $user_login );
 
         $user_nicename = apply_filters( 'redipress/user_nicename', $user->user_nicename );
-        $user_nicename = apply_filters( 'redipress/user_index_strings', $user->user_nicename, $user );
+        $user_nicename = apply_filters( 'redipress/user_index_strings', $user_nicename, $user );
         $user_nicename = $this->escape_string( $user_nicename );
 
         $user_email = apply_filters( 'redipress/user_email', $user->user_email );
-        $user_email = apply_filters( 'redipress/user_index_strings', $user->user_email, $user );
+        $user_email = apply_filters( 'redipress/user_index_strings', $user_email, $user );
         $user_email = $this->escape_string( $user_email );
 
         $user_url = apply_filters( 'redipress/user_url', $user->user_url );
@@ -424,20 +428,24 @@ class UserIndex {
         $user_registered = strtotime( $user_registered ) ?: null;
 
         $display_name = apply_filters( 'redipress/display_name', $user->display_name );
-        $display_name = apply_filters( 'redipress/user_index_strings', $user->display_name, $user );
+        $display_name = apply_filters( 'redipress/user_index_strings', $display_name, $user );
         $display_name = $this->escape_string( $display_name );
 
         $nickname = apply_filters( 'redipress/nickname', $user->nickname );
-        $nickname = apply_filters( 'redipress/user_index_strings', $user->nickname, $user );
+        $nickname = apply_filters( 'redipress/user_index_strings', $nickname, $user );
         $nickname = $this->escape_string( $nickname );
 
         $first_name = apply_filters( 'redipress/first_name', $user->first_name );
-        $first_name = apply_filters( 'redipress/user_index_strings', $user->first_name, $user );
+        $first_name = apply_filters( 'redipress/user_index_strings', $first_name, $user );
         $first_name = $this->escape_string( $first_name );
 
         $last_name = apply_filters( 'redipress/last_name', $user->last_name );
-        $last_name = apply_filters( 'redipress/user_index_strings', $user->last_name, $user );
+        $last_name = apply_filters( 'redipress/user_index_strings', $last_name, $user );
         $last_name = $this->escape_string( $last_name );
+
+        $locale = apply_filters( 'redipress/user_locale', \get_user_locale( $user->ID ) );
+        $locale = apply_filters( 'redipress/user_index_strings', $locale, $user );
+        $locale = $this->escape_string( $locale );
 
         if ( \is_multisite() ) {
             $blogs = \get_blogs_of_user( $user->ID, true );
@@ -466,6 +474,7 @@ class UserIndex {
             'nickname'        => $nickname,
             'first_name'      => $first_name,
             'last_name'       => $last_name,
+            'locale'          => $locale,
             'search_index'    => $search_index,
             'user_object'     => $user_object,
         ];

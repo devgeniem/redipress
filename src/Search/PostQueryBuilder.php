@@ -948,7 +948,7 @@ class PostQueryBuilder extends QueryBuilder {
                 return false;
             }
             else if ( $clause === true ) {
-                $this->sortby = null;
+                $this->sortby = [];
                 return true;
             }
         }

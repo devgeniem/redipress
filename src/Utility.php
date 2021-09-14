@@ -5,7 +5,7 @@
 
 namespace Geniem\RediPress;
 
-use Geniem\RediPress\Entity\SchemaField;
+use Geniem\RediPress\Settings;
 
 /**
  * RediPress utility class
@@ -131,17 +131,23 @@ class Utility {
             return '';
         }
 
-        return \str_replace( [
+        $search = [
             '-',
             '.',
-            '(',
-            ')',
-        ],
-        [
+        ];
+
+        $replace = [
             '\\-',
             '\\.',
-            '\\(',
-            '\\)',
-        ], $string );
+        ];
+
+        if ( Settings::get( 'escape_parentheses' ) ) {
+            $search[]  = '(';
+            $search[]  = ')';
+            $replace[] = '\\(';
+            $replace[] = '\\)';
+        }
+
+        return \str_replace( $search, $replace, $string );
     }
 }

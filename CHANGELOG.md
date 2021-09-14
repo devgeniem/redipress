@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 
+### Added
+- `escape_parentheses` setting for the user to choose whether to escape parentheses in search queries or not.
+
 ### Fixed
 - A bug where setting order by to relevance would cause the query not to work.
 

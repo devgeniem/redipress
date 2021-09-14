@@ -43,6 +43,7 @@ class Settings {
         \register_setting( $this->get_slug(), self::PREFIX . 'persist_index' );
         \register_setting( $this->get_slug(), self::PREFIX . 'write_every' );
         \register_setting( $this->get_slug(), self::PREFIX . 'fallback' );
+        \register_setting( $this->get_slug(), self::PREFIX . 'escape_parentheses' );
         \register_setting( $this->get_slug(), self::PREFIX . 'disable_post_author_search' );
         \register_setting( $this->get_slug(), self::PREFIX . 'hostname' );
         \register_setting( $this->get_slug(), self::PREFIX . 'port' );
@@ -94,6 +95,18 @@ class Settings {
             $this->get_slug() . '-general-settings-section',
             [
                 'label_for' => self::PREFIX . 'fallback',
+            ]
+        );
+
+        // Escape the parentheses in search query
+        \add_settings_field(
+            $this->get_slug() . '-escape-parentheses',
+            __( 'Escape the parentheses in search query', 'redipress' ),
+            [ $this, 'escape_parentheses' ],
+            $this->get_slug(),
+            $this->get_slug() . '-general-settings-section',
+            [
+                'label_for' => self::PREFIX . 'escape_parentheses',
             ]
         );
 
@@ -423,6 +436,23 @@ class Settings {
             <p class="description" id="fallback-description">
                 <?php
                 \esc_html_e( 'Whether to fallback to MySQL when no results are found from RediSearch or not.', 'redipress' );
+                ?>
+            </p>
+        <?php
+    }
+
+    /**
+     * Renders the escape parentheses field.
+     */
+    public function render_escape_parentheses() {
+        $name   = 'escape_parentheses';
+        $option = self::get( $name );
+        ?>
+            <input type="hidden" name="redipress_escape_parentheses" value="0" />
+            <input type="checkbox" name="redipress_escape_parentheses" id="redipress_escape_parentheses" value="1" <?php \checked( 1, $option ) . $this->disabled( $name ); ?>>
+            <p class="description" id="escape-parentheses-description">
+                <?php
+                \esc_html_e( 'Whether to escape parentheses in search queries or not.', 'redipress' );
                 ?>
             </p>
         <?php

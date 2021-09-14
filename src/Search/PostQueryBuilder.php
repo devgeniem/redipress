@@ -947,6 +947,10 @@ class PostQueryBuilder extends QueryBuilder {
             if ( ! $clause ) {
                 return false;
             }
+            else if ( $clause === true ) {
+                $this->sortby = null;
+                return true;
+            }
         }
 
         $this->sortby = array_merge(

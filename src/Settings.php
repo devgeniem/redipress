@@ -102,7 +102,7 @@ class Settings {
         \add_settings_field(
             $this->get_slug() . '-escape-parentheses',
             __( 'Escape the parentheses in search query', 'redipress' ),
-            [ $this, 'escape_parentheses' ],
+            [ $this, 'render_escape_parentheses' ],
             $this->get_slug(),
             $this->get_slug() . '-general-settings-section',
             [

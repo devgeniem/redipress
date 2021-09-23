@@ -625,7 +625,13 @@ abstract class QueryBuilder {
                             $clause['terms'] = array_reduce( $clause['terms'], function( $terms, $id ) use ( $clause ) {
                                 $terms[] = $id;
 
-                                $terms = array_merge( $terms, get_term_children( $id, $clause['taxonomy'] ) );
+                                $children = get_term_children( $id, $clause['taxonomy'] );
+
+                                if ( ! is_array( $children ) ) {
+                                        $children = [];
+                                }
+
+                                $terms = array_merge( $terms, $children );
 
                                 return $terms;
                             }, [] );

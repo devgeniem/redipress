@@ -35,6 +35,9 @@ class Index {
         'odt'  => 'application/vnd.oasis.opendocument.text',
     ];
 
+    /**
+     * References for hooks used in this class for easier usage
+     */
     const HOOKS = [
         'schedule_partial_index'       => 'redipress/cron/schedule_partial_index',
         'schedule_partial_index_limit' => 'redipress/cron/schedule_partial_index/limit',

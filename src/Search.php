@@ -431,7 +431,7 @@ class Search {
         return array_map( function( array $result ) : ?\WP_Post {
             if ( empty( $result['post_object'] ) ) {
                 $formatted = Utility::format( $result );
-                $post_obj  = $formatted['post_object'];
+                $post_obj  = $formatted['post_object'] ?? null;
             }
             else {
                 $post_obj = $result['post_object'];

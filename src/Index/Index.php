@@ -313,7 +313,7 @@ class Index {
      */
     public function schedule_partial_index( $offset = null ) {
 
-        // If this was created by a user via the admin just schedule without running the actual import
+        // If this was created by a user via the admin just schedule without running the actual index
         if ( $offset instanceof \WP_REST_Request ) {
 
             // Make sure we don't create new cron jobs if one is already running
@@ -330,7 +330,7 @@ class Index {
             return \wp_schedule_single_event( time(), static::HOOKS['schedule_partial_index'], [ $offset ], true );
         }
 
-        // Run import
+        // Run index
         $offset = \is_int( $offset ) ? $offset : 0;
         $count  = $this->index_all([
             'limit'  => \apply_filters( static::HOOKS['schedule_partial_index_limit'], 400 ),

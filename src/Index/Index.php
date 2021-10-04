@@ -773,17 +773,11 @@ class Index {
             // Add the terms
             $slug_string = implode( self::get_tag_separator(), array_column( $terms, 'slug' ) );
 
-            if ( ! empty( $term_string ) ) {
-                $tax[ 'taxonomy_' . $taxonomy ] = $term_string;
-            }
+            $tax[ 'taxonomy_' . $taxonomy ] = $term_string ?? '';
 
-            if ( ! empty( $id_string ) ) {
-                $tax[ 'taxonomy_id_' . $taxonomy ] = $id_string;
-            }
+            $tax[ 'taxonomy_id_' . $taxonomy ] = $id_string ?? '';
 
-            if ( ! empty( $slug_string ) ) {
-                $tax[ 'taxonomy_slug_' . $taxonomy ] = $slug_string;
-            }
+            $tax[ 'taxonomy_slug_' . $taxonomy ] = $slug_string ?? '';
 
             if ( in_array( $taxonomy, $wanted_taxonomies, true ) && ! empty( $term_string ) ) {
                 $search_index[] = $search_term_string;

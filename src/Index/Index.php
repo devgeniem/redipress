@@ -36,6 +36,14 @@ class Index {
     ];
 
     /**
+     * References for hooks used in this class for easier usage
+     */
+    const HOOKS = [
+        'schedule_partial_index'       => 'redipress/cron/schedule_partial_index',
+        'schedule_partial_index_limit' => 'redipress/cron/schedule_partial_index/limit',
+    ];
+
+    /**
      * RediPress wrapper for the Predis client
      *
      * @var Client
@@ -99,12 +107,7 @@ class Index {
         // Register AJAX functions
         Rest::register_api_call( '/create_index', [ $this, 'create' ], 'POST' );
         Rest::register_api_call( '/drop_index', [ $this, 'drop' ], 'DELETE' );
-        Rest::register_api_call( '/index_all', [ $this, 'index_all' ], 'POST', [
-            'limit'     => [
-                'description' => 'How many items to index at a time.',
-                'type'        => 'integer',
-                'required'    => true,
-            ],
+        Rest::register_api_call( '/schedule_index_all', [ $this, 'schedule_partial_index' ], 'POST', [
             'offset'    => [
                 'description' => 'Offset to start indexing items from',
                 'type'        => 'integer',
@@ -112,6 +115,9 @@ class Index {
                 'default'     => 0,
             ],
         ]);
+
+        // Register event hook for partial indexing
+        \add_action( static::HOOKS['schedule_partial_index'], [ $this, 'schedule_partial_index' ], 50, 1 );
 
         // Reverse filter for getting the Index instance.
         add_filter( 'redipress/index_instance', function( $value ) {
@@ -300,23 +306,61 @@ class Index {
     }
 
     /**
-     * Index all posts to the RediSearch database
+     * Create a wp cron event chain to index all posts.
      *
-     * @param  \WP_REST_Request|null $request Rest request details or null if not rest api request.
-     * @return int                            Amount of items indexed.
+     * @param  int|WP_Rest_Request $args Int for offset or WP_Rest_Request on first run.
+     * @return true|false|WP_Error       Result of next wp_schedule_single_event call or true on final run.
      */
-    public function index_all( \WP_REST_Request $request = null, array $query_args = [] ) : int {
+    public function schedule_partial_index( $offset = null ) {
+
+        // If this was created by a user via the admin just schedule without running the actual index
+        if ( $offset instanceof \WP_REST_Request ) {
+
+            // Make sure we don't create new cron jobs if one is already running
+            $cron = \get_option( 'cron' );
+            foreach ( $cron as $timestamp => $events ) {
+                foreach ( $events as $hook => $args ) {
+                    if ( $hook === static::HOOKS['schedule_partial_index'] ) {
+                        return true;
+                    }
+                }
+            }
+
+            $offset = $offset->get_param( 'offset' ) ?? 0;
+            return \wp_schedule_single_event( time(), static::HOOKS['schedule_partial_index'], [ $offset ], true );
+        }
+
+        // Run index
+        $offset = \is_int( $offset ) ? $offset : 0;
+        $count  = $this->index_all([
+            'limit'  => \apply_filters( static::HOOKS['schedule_partial_index_limit'], 400 ),
+            'offset' => $offset,
+        ]);
+
+        // Schedule next run with new offset or if no posts left return true
+        if ( $count ) {
+            return \wp_schedule_single_event( time(), static::HOOKS['schedule_partial_index'], [ $offset + $count ], true );
+        }
+        else {
+            return true;
+        }
+    }
+
+    /**
+     * Index all or a part of posts to the RediSearch database
+     *
+     * @param  array|null $args Array containing Limit & offset details or null if not doing a partial index.
+     * @return int              Amount of items indexed.
+     */
+    public function index_all( array $args = null, array $query_args = [] ) : int {
         global $wpdb;
 
         define( 'WP_IMPORTING', true );
 
         \do_action( 'redipress/before_index_all', $request );
-
         // phpcs:disable
-        if ( $request instanceof \WP_REST_Request ) {
-            $limit  = $request->get_param( 'limit' );
-            $offset = $request->get_param( 'offset' );
-            $query  = $wpdb->prepare( "SELECT ID FROM $wpdb->posts LIMIT %d OFFSET %d", $limit, $offset );
+        if ( $args['limit'] !== null && $args['offset'] !== null ) {
+            $query  = $wpdb->prepare( "SELECT ID FROM $wpdb->posts LIMIT %d OFFSET %d", $args['limit'], $args['offset'] );
         }
         else {
             if ( ! empty( $query_args ) ) {
@@ -1271,6 +1315,8 @@ class Index {
      * @return void
      */
     protected function free_memory() {
-        Utils\wp_clear_object_cache();
+        if ( function_exists( 'Utils\\wp_clear_object_cache' ) ) {
+            Utils\wp_clear_object_cache();
+        }
     }
 }

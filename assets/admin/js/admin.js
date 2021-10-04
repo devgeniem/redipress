@@ -120,40 +120,13 @@ class RediPressAdmin {
         if ( confirm( __( 'This can take a while. Are you sure?', 'redipress' ) ) ) {
             this.cached.$redipress_index_info.text( __( 'Indexing...', 'redipress' ) );
             const offset = this.cached.$redipress_index_progress.val();
-            const max    = this.cached.$redipress_index_progress.prop( 'max' );
+            const formData = new FormData();
+            formData.set( 'offset', offset );
 
-            this.index_part( offset, max ).then( () => {
-                this.cached.$redipress_index_info.text( __( 'Indexing finished.', 'redipress' ) );
+            this.restApiCall( '/schedule_index_all', 'POST', formData ).then( () => {
+                this.cached.$redipress_index_info.text( __( 'Indexing started...', 'redipress' ) );
             }).catch( ( error ) => this.errorHander( error ) );
         }
-    }
-
-    /**
-     * Index a subset of posts
-     *
-     * @param  {Number} offset Offset to start indexing from.
-     * @param  {Number} max    Maximum index in database.
-     * @return {Promise}       Promise that resolves when all are done.
-     */
-    index_part( offset, max ) {
-        const limit    = 100;
-        const formData = new FormData();
-        formData.set( 'offset', offset );
-        formData.set( 'limit', limit );
-
-        return new Promise( ( resolve, reject ) => {
-            this.restApiCall( '/index_all', 'POST', formData ).then( () => {
-                offset += limit;
-                this.cached.$redipress_index_progress.prop( 'value', offset );
-                this.cached.$redipress_current_index.text( offset );
-                if ( offset < max ) {
-                    this.index_part( offset, max );
-                }
-                else {
-                    resolve();
-                }
-            }).catch( ( error ) => this.errorHander( error ) );
-        });
     }
 
     /**

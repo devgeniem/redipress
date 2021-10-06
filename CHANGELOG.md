@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Ability to weigh posts based on their recency.
 - `redipress/taxonomies` filter for the ability to select which taxonomies are indexed for which post.
 
+### Changed
+- Required PHP-version to 7.4.
+
 ### Fixed
 - A bug where taxonomy terms didn't get deleted from a post's index.
 - Running index from the admin side.

@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 
+### Added
+- `redipress/taxonomies` filter for the ability to select which taxonomies are indexed for which post.
+
 ### Fixed
 - A bug where taxonomy terms didn't get deleted from a post's index.
 - Running index from the admin side.

@@ -151,6 +151,24 @@ new WP_Query([
 ]);
 ```
 
+##### Post date
+
+Weights can also be defined for post dates based on steps relative to the current time. The steps must be in order starting from most recent, but the weighs can obviously be in opposite order as well. The steps themselves must be in a format understood by PHP's `strtotime` function.
+
+```php
+new WP_Query([
+    'post_type' => 'any',
+    'orderby'   => 'relevance',
+    'weight'    => [
+        'post_date' => [
+            '-1 day' => 5.0,
+            '-2 days' => 3.0,
+            '-7 days' => 2.0,
+        ],
+    ],
+]);
+```
+
 #### Fuzzy matching
 
 RediPress supports fuzzy matching of search terms with the `s` parameter. The setting for the Levenshtein distance can be either `1`, `2` or `3`. This can also be set in the admin panel.

@@ -373,7 +373,7 @@ abstract class QueryBuilder {
 
         // Create weight clauses for post types
         if ( ! empty( $weight['post_type'] ) ) {
-            $return = array_map(
+            $return[] = array_map(
                 function( $weight, $post_type ) : string {
                     return sprintf(
                         '(~@post_type:%s => {$weight: %s})',
@@ -388,7 +388,7 @@ abstract class QueryBuilder {
 
         // Create weight clauses for authors
         if ( ! empty( $weight['author'] ) ) {
-            $return = array_merge(
+            $return[] = array_merge(
                 $return,
                 array_map(
                     function( $weight, $author ) : string {
@@ -415,7 +415,7 @@ abstract class QueryBuilder {
                     $weight['taxonomy'][ $new_taxonomy ] = $terms;
                 }
 
-                $return = array_merge(
+                $return[] = array_merge(
                     $return,
                     array_map(
                         function( $weight, $term ) use ( $taxonomy ) : string {
@@ -436,7 +436,7 @@ abstract class QueryBuilder {
         // Create weight clauses for meta values
         if ( ! empty( $weight['meta'] ) ) {
             foreach ( $weight['meta'] as $meta_key => $values ) {
-                $return = array_merge(
+                $return[] = array_merge(
                     $return,
                     array_filter( array_map(
                         function( $weight, $meta_value ) use ( $meta_key ) : ?string {
@@ -458,6 +458,32 @@ abstract class QueryBuilder {
                         $values,
                         array_keys( $values )
                     ) )
+                );
+            }
+        }
+
+        // Create weight clauses for post date
+        if ( ! empty( $weight['post_date'] ) ) {
+            foreach ( $weight['post_date'] as $meta_key => $values ) {
+                $previous = time();
+
+                $return[] = array_map(
+                    function( $weight, $step ) use ( &$previous ) : string {
+                        $timestamp = strtotime( $step );
+
+                        $return = sprintf(
+                            '(~@post_date:[%d %d] => {$weight: %s})',
+                            $timestamp,
+                            $previous,
+                            $weight
+                        );
+
+                        $previous = $timestamp;
+
+                        return $return;
+                    },
+                    $weight['post_date'],
+                    array_keys( $weight['post_date'] )
                 );
             }
         }

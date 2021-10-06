@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## Unreleased
 
 ### Added
+- Ability to weigh posts based on their recency.
 - `redipress/taxonomies` filter for the ability to select which taxonomies are indexed for which post.
 
 ### Fixed

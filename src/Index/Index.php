@@ -357,9 +357,9 @@ class Index {
 
         define( 'WP_IMPORTING', true );
 
-        \do_action( 'redipress/before_index_all', $request );
+        \do_action( 'redipress/before_index_all', $request ?? null );
         // phpcs:disable
-        if ( $args['limit'] !== null && $args['offset'] !== null ) {
+        if ( ! empty( $args['limit'] ) && ! empty( $args['offset'] ) ) {
             $query  = $wpdb->prepare( "SELECT ID FROM $wpdb->posts LIMIT %d OFFSET %d", $args['limit'], $args['offset'] );
         }
         else {
@@ -367,7 +367,7 @@ class Index {
                 $where = ' WHERE ';
 
                 foreach ( $query_args as $key => $value ) {
-                    $where .= $key . ' = "' . $value .'" ';
+                    $where .= $key . ' = "' . $value . '" ';
                 }
             }
             else {
@@ -423,7 +423,7 @@ class Index {
             return $return;
         }, $posts );
 
-        \do_action( 'redipress/indexed_all', $result, $request );
+        \do_action( 'redipress/indexed_all', $result, $request ?? null );
 
         $this->maybe_write_to_disk( 'indexed_all' );
 

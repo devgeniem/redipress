@@ -290,6 +290,12 @@ class Index {
         $raw_schema = apply_filters( 'redipress/raw_schema', array_merge( [ 'SCHEMA' ], $raw_schema ) );
 
         $options = [
+            'ON',
+            'HASH',
+            'PREFIX',
+            '1',
+            $this->index . ':',
+            'MAXTEXTFIELDS',
             'STOPWORDS',
             '0',
         ];
@@ -1027,26 +1033,11 @@ class Index {
      * @return mixed
      */
     public function add_post( array $converted_post, $id, string $language = null ) {
-        $command = [ $this->index, $id, 1, 'REPLACE' ];
+        $command = [ $this->index . ':' . $id ];
 
-        if ( ! empty( $language ) && $this->is_language_supported( $language ) ) {
-            $command[] = 'LANGUAGE';
-            $command[] = $language;
-        }
+        $raw_command = array_merge( $command, $converted_post );
 
-        $raw_command = array_merge( $command, [ 'FIELDS' ], $converted_post );
-
-        $return = $this->client->raw_command( 'FT.ADD', $raw_command );
-
-        $this->client->raw_command(
-            'FT.ADDHASH',
-            [
-                $this->index,
-                $id,
-                1,
-                'REPLACE',
-            ]
-        );
+        $return = $this->client->raw_command( 'HSET', $raw_command );
 
         return $return;
     }
@@ -1058,7 +1049,7 @@ class Index {
      * @return mixed
      */
     public function delete_post( $id ) {
-        $return = $this->client->raw_command( 'FT.DEL', [ $this->index, $id, 'DD' ] );
+        $return = $this->client->raw_command( 'HDEL', [ $this->index . ':' . $id ] );
 
         do_action( 'redipress/post_deleted', $id, $return );
 
@@ -1075,7 +1066,7 @@ class Index {
      */
     public function delete_by_field( string $field_name, $value ) : int {
         // TODO: handle numeric fields.
-        $return = $this->client->raw_command( 'FT.SEARCH', [ $this->index, '@' . $field_name .':(' . $value . ')' ] );
+        $return = $this->client->raw_command( 'FT.SEARCH', [ $this->index, '@' . $field_name . ':(' . $value . ')' ] );
 
         // Nothing found.
         if ( empty( $return ) || (string) $return[0] === '0' ) {

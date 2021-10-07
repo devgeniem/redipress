@@ -122,7 +122,7 @@ class RediPress {
         $modules = $this->connection->raw_command( 'MODULE', [ 'LIST' ] );
 
         $redisearch = array_reduce( $modules, function( $carry, $item = null ) {
-            if ( $carry === true || ( ! empty( $item[1] ) && $item[1] === 'ft' ) ) {
+            if ( $carry === true || ( ! empty( $item[1] ) && $item[1] === 'search' ) ) {
                 return true;
             }
             else {

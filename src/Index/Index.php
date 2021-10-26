@@ -893,6 +893,7 @@ class Index {
                                             error_log( 'RediPress PDF indexing error: ' . $e->getMessage() );
                                         }
                                     }
+                                    break;
                                 case static::SUPPORTED_MIME_TYPES['docx']:
                                 case static::SUPPORTED_MIME_TYPES['doc']:
                                 case static::SUPPORTED_MIME_TYPES['rtf']:

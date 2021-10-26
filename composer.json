@@ -25,13 +25,13 @@
     ],
     "require": {
         "predis/predis": "^1.1",
-        "johnpbloch/wordpress": "^5.0",
         "php": ">=7.3",
         "smalot/pdfparser": "^0.16.2",
         "phpoffice/phpword": "^0.17"
     },
     "conflict": {
-        "devgeniem/acf-codifier": "<1.36.0"
+        "devgeniem/acf-codifier": "<1.36.0",
+        "johnpbloch/wordpress": "<5.0"
     },
     "autoload": {
         "psr-4": {

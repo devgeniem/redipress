@@ -338,7 +338,7 @@ abstract class QueryBuilder {
                 case 1:
                     return $word[0];
                 default:
-                    return $word[0] . '*';
+                    return \mb_strlen( $word[0] ) > 2 ? $word[0] . '*' : $word[0];
             }
         }, $terms );
 

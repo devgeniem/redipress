@@ -1,6 +1,8 @@
 import 'core-js/fn/promise'; // Promise polyfill
 import 'whatwg-fetch'; // fetch polyfill
 
+import '../styles/admin.scss';
+
 const $ = window.jQuery;
 const { __, _x, _n, _nx } = wp.i18n;
 

@@ -9,7 +9,8 @@ const minifyJs = true;
 const postCss = {
     loader: 'postcss-loader',
     options: {
-        sourceMap: true
+        sourceMap: true,
+        options: {},
     }
 };
 

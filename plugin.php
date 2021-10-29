@@ -86,6 +86,9 @@ class RediPressPlugin {
             wp_set_script_translations( 'RediPress', 'redipress' );
 
             wp_enqueue_script( 'RediPress' );
+
+            // Enqueue admin styles
+            \wp_enqueue_style( 'RediPress-css', $this->url . 'assets/dist/admin.css' );
         });
 
         // Whether we are on debug mode or not

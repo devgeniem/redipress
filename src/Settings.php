@@ -31,13 +31,13 @@ class Settings {
      */
     public function __construct( array $index_info = null ) {
         $this->index_info = $index_info;
-        \add_action( 'admin_init', [ $this, 'configure' ] );
+        \add_action( 'admin_init', \Closure::fromCallable( [ $this, 'configure' ] ) );
     }
 
     /**
      * Configure the admin page using the Settings API.
      */
-    public function configure() {
+    private function configure() {
 
         // Register settings
         \register_setting( $this->get_slug(), self::PREFIX . 'persist_index' );
@@ -58,7 +58,7 @@ class Settings {
         \add_settings_section(
             $this->get_slug() . '-general-settings-section',
             __( 'General settings', 'redipress' ),
-            [ $this, 'render_general_settings_section' ],
+            \Closure::fromCallable( [ $this, 'render_general_settings_section' ] ),
             $this->get_slug()
         );
 
@@ -66,7 +66,7 @@ class Settings {
         \add_settings_field(
             $this->get_slug() . '-persist-index',
             __( 'Persistent index', 'redipress' ),
-            [ $this, 'render_persist_index_field' ],
+            \Closure::fromCallable( [ $this, 'render_persist_index_field' ] ),
             $this->get_slug(),
             $this->get_slug() . '-general-settings-section',
             [
@@ -78,7 +78,7 @@ class Settings {
         \add_settings_field(
             $this->get_slug() . '-write-every',
             __( 'Write the index only once per execution', 'redipress' ),
-            [ $this, 'render_write_every' ],
+            \Closure::fromCallable( [ $this, 'render_write_every' ] ),
             $this->get_slug(),
             $this->get_slug() . '-general-settings-section',
             [
@@ -90,7 +90,7 @@ class Settings {
         \add_settings_field(
             $this->get_slug() . '-fallback',
             __( 'Fallback to MySQL if no results have been found from RediSearch', 'redipress' ),
-            [ $this, 'render_fallback' ],
+            \Closure::fromCallable( [ $this, 'render_fallback' ] ),
             $this->get_slug(),
             $this->get_slug() . '-general-settings-section',
             [
@@ -102,7 +102,7 @@ class Settings {
         \add_settings_field(
             $this->get_slug() . '-escape-parentheses',
             __( 'Escape the parentheses in search query', 'redipress' ),
-            [ $this, 'render_escape_parentheses' ],
+            \Closure::fromCallable( [ $this, 'render_escape_parentheses' ] ),
             $this->get_slug(),
             $this->get_slug() . '-general-settings-section',
             [
@@ -114,7 +114,7 @@ class Settings {
         \add_settings_field(
             $this->get_slug() . '-disable-post-author-search',
             __( 'Disable including author name in search', 'redipress' ),
-            [ $this, 'render_disable_post_author_search_field' ],
+            \Closure::fromCallable( [ $this, 'render_disable_post_author_search_field' ] ),
             $this->get_slug(),
             $this->get_slug() . '-general-settings-section'
         );
@@ -123,7 +123,7 @@ class Settings {
         \add_settings_field(
             $this->get_slug() . '-index-buttons',
             __( 'Index', 'redipress' ),
-            [ $this, 'render_index_management' ],
+            \Closure::fromCallable( [ $this, 'render_index_management' ] ),
             $this->get_slug(),
             $this->get_slug() . '-general-settings-section'
         );
@@ -132,7 +132,7 @@ class Settings {
         \add_settings_section(
             $this->get_slug() . '-redis-settings-section',
             __( 'Redis settings', 'redipress' ),
-            [ $this, 'render_redis_settings_section' ],
+            \Closure::fromCallable( [ $this, 'render_redis_settings_section' ] ),
             $this->get_slug()
         );
 
@@ -140,7 +140,7 @@ class Settings {
         \add_settings_field(
             $this->get_slug() . '-hostname',
             __( 'Hostname', 'redipress' ),
-            [ $this, 'render_hostname_field' ],
+            \Closure::fromCallable( [ $this, 'render_hostname_field' ] ),
             $this->get_slug(),
             $this->get_slug() . '-redis-settings-section',
             [
@@ -152,7 +152,7 @@ class Settings {
         \add_settings_field(
             $this->get_slug() . '-port',
             __( 'Port', 'redipress' ),
-            [ $this, 'render_port_field' ],
+            \Closure::fromCallable( [ $this, 'render_port_field' ] ),
             $this->get_slug(),
             $this->get_slug() . '-redis-settings-section',
             [
@@ -164,7 +164,7 @@ class Settings {
         \add_settings_field(
             $this->get_slug() . '-password',
             __( 'Password', 'redipress' ),
-            [ $this, 'render_password_field' ],
+            \Closure::fromCallable( [ $this, 'render_password_field' ] ),
             $this->get_slug(),
             $this->get_slug() . '-redis-settings-section',
             [
@@ -176,7 +176,7 @@ class Settings {
         \add_settings_field(
             $this->get_slug() . '-index-name',
             __( 'Index name', 'redipress' ),
-            [ $this, 'render_index_name_field' ],
+            \Closure::fromCallable( [ $this, 'render_index_name_field' ] ),
             $this->get_slug(),
             $this->get_slug() . '-redis-settings-section',
             [
@@ -188,7 +188,7 @@ class Settings {
         \add_settings_field(
             $this->get_slug() . '-use-user-query',
             __( 'Use user query', 'redipress' ),
-            [ $this, 'render_use_user_query_field' ],
+            \Closure::fromCallable( [ $this, 'render_use_user_query_field' ] ),
             $this->get_slug(),
             $this->get_slug() . '-redis-settings-section',
             [
@@ -200,7 +200,7 @@ class Settings {
         \add_settings_field(
             $this->get_slug() . '-user-index-name',
             __( 'User index name', 'redipress' ),
-            [ $this, 'render_user_index_name_field' ],
+            \Closure::fromCallable( [ $this, 'render_user_index_name_field' ] ),
             $this->get_slug(),
             $this->get_slug() . '-redis-settings-section',
             [
@@ -212,7 +212,7 @@ class Settings {
         \add_settings_section(
             $this->get_slug() . '-post-types-section',
             __( 'Post types', 'redipress' ),
-            [ $this, 'render_post_types_section' ],
+            \Closure::fromCallable( [ $this, 'render_post_types_section' ] ),
             $this->get_slug()
         );
 
@@ -229,7 +229,7 @@ class Settings {
         \add_settings_field(
             $this->get_slug() . '-post-types',
             __( 'Post types', 'redipress' ),
-            [ $this, 'render_post_types_field' ],
+            \Closure::fromCallable( [ $this, 'render_post_types_field' ] ),
             $this->get_slug(),
             $this->get_slug() . '-post-types-section',
             [
@@ -244,7 +244,7 @@ class Settings {
         \add_settings_section(
             $this->get_slug() . '-taxonomies-section',
             __( 'Taxonomies', 'redipress' ),
-            [ $this, 'render_taxonomies_section' ],
+            \Closure::fromCallable( [ $this, 'render_taxonomies_section' ] ),
             $this->get_slug()
         );
 
@@ -261,7 +261,7 @@ class Settings {
         \add_settings_field(
             $this->get_slug() . '-taxonomies',
             __( 'Taxonomies', 'redipress' ),
-            [ $this, 'render_taxonomies_field' ],
+            \Closure::fromCallable( [ $this, 'render_taxonomies_field' ] ),
             $this->get_slug(),
             $this->get_slug() . '-taxonomies-section',
             [
@@ -278,7 +278,7 @@ class Settings {
      *
      * @return array
      */
-    public function get_post_types() : array {
+    private function get_post_types() : array {
         $post_types = \get_post_types([
             'public'              => true,
             'exclude_from_search' => false,
@@ -298,7 +298,7 @@ class Settings {
      *
      * @return array
      */
-    public function get_taxonomies() : array {
+    private function get_taxonomies() : array {
         $taxonomies = \get_taxonomies([
             'public' => true,
         ], 'object' );
@@ -359,9 +359,19 @@ class Settings {
      * Render the plugin's admin page.
      */
     public function render_page() {
+        $active_tab = $_GET['tab'] ?? 'analytics';
         ?>
             <div class="wrap" id="redipress-settings">
                 <h1><?php echo $this->get_page_title(); ?></h1>
+                <div class="nav-tab-wrapper">
+                    <a href="?page=redipress&tab=analytics" class="nav-tab <?php echo $active_tab == 'analytics' ? 'nav-tab-active' : ''; ?>">
+                        <?php \esc_html_e( 'Analytics', 'redipress' ); ?>
+                    </a>
+                    <a href="?page=redipress&tab=settings" class="nav-tab <?php echo $active_tab == 'settings' ? 'nav-tab-active' : ''; ?>">
+                        <?php \esc_html_e( 'Settings', 'redipress' ); ?>
+                    </a>
+                </div>
+
                 <?php if ( ! empty( filter_input( INPUT_GET, 'updated', FILTER_SANITIZE_STRING ) ) ) : ?>
                     <div id="setting-error-settings_updated" class="updated settings-error notice is-dismissible">
                         <p><strong><?php \esc_html_e( 'Settings saved.' ); ?></strong></p>
@@ -370,21 +380,184 @@ class Settings {
                         </button>
                     </div>
                 <?php endif; ?>
-                <form action="options.php" method="POST">
-                    <?php
-                        \settings_fields( $this->get_slug() );
-                        \do_settings_sections( $this->get_slug() );
-                        \submit_button( __( 'Save' ) );
-                    ?>
-                </form>
+
+                <?php
+                if ( $active_tab === 'analytics' ) :
+                    $this->render_analytics_layout();
+                elseif ( $active_tab === 'settings' ) :
+                    $this->render_settings_layout();
+                endif;
+                ?>
             </div>
+        <?php
+    }
+
+    /**
+     * Render the analytics layout.
+     */
+    private function render_analytics_layout() {
+        ?>
+        <div class="redipress-analytics">
+            <div class="redipress-columns">
+                <div class="redipress-column is-one-third">
+                    <?php $this->render_most_popular_search_results(); ?>
+                </div>
+                <div class="redipress-column is-one-third">
+                    <?php $this->render_most_popular_search_terms(); ?>
+                </div>
+                <div class="redipress-column is-one-third">
+                    <?php $this->render_unsuccessful_searches(); ?>
+                </div>
+            </div>
+        </div>
+        <?php
+    }
+
+    /**
+     * Render the most popular search results table.
+     */
+    private function render_most_popular_search_results() {
+        ?>
+        <h2><?php \esc_html_e( 'Most popular search results', 'redipress' ); ?></h2>
+        <table class="wp-list-table widefat fixed striped">
+            <thead>
+                <tr>
+                    <th>
+                        <?php \esc_html_e( 'Result', 'redipress' ); ?>
+                    </th>
+                    <th class="table-col-narrow has-text-right">
+                        <?php \esc_html_e( '#', 'redipress' ); ?>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <a href="/path-to-page/" target="_blank">Result title</a>
+                    </td>
+                    <td class="table-col-narrow has-text-right">
+                        123
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <a href="/path-to-page-2/" target="_blank">Result title 2</a>
+                    </td>
+                    <td class="table-col-narrow has-text-right">
+                        100
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <?php
+    }
+
+    /**
+     * Render the most popular search terms table.
+     */
+    private function render_most_popular_search_terms() {
+        ?>
+        <h2><?php \esc_html_e( 'Most popular search terms', 'redipress' ); ?></h2>
+        <table class="wp-list-table widefat fixed striped">
+            <thead>
+                <tr>
+                    <th>
+                        <?php \esc_html_e( 'Term', 'redipress' ); ?>
+                    </th>
+                    <th class="table-col-narrow has-text-right">
+                        <?php \esc_html_e( '#', 'redipress' ); ?>
+                    </th>
+                    <th class="table-col-narrow has-text-right">
+                        <?php \esc_html_e( 'Hits', 'redipress' ); ?>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        lorem
+                    </td>
+                    <td class="table-col-narrow has-text-right">
+                        20
+                    </td>
+                    <td class="table-col-narrow has-text-right">
+                        123
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        ipsum
+                    </td>
+                    <td class="table-col-narrow has-text-right">
+                        10
+                    </td>
+                    <td class="table-col-narrow has-text-right">
+                        100
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <?php
+    }
+
+    /**
+     * Render unsuccessful searches table.
+     */
+    private function render_unsuccessful_searches() {
+        ?>
+        <h2><?php \esc_html_e( 'Search terms which returned no results', 'redipress' ); ?></h2>
+        <table class="wp-list-table widefat fixed striped">
+            <thead>
+                <tr>
+                    <th>
+                        <?php \esc_html_e( 'Term', 'redipress' ); ?>
+                    </th>
+                    <th class="table-col-narrow has-text-right">
+                        <?php \esc_html_e( '#', 'redipress' ); ?>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        dolor
+                    </td>
+                    <td class="table-col-narrow has-text-right">
+                        20
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        amet
+                    </td>
+                    <td class="table-col-narrow has-text-right">
+                        10
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <?php
+    }
+
+    /**
+     * Render the settings layout.
+     */
+    private function render_settings_layout() {
+        ?>
+        <form action="options.php" method="POST">
+            <?php
+                \settings_fields( $this->get_slug() );
+                \do_settings_sections( $this->get_slug() );
+                \submit_button( __( 'Save' ) );
+            ?>
+        </form>
         <?php
     }
 
     /**
      * Renders the general settings section.
      */
-    public function render_general_settings_section() {
+    private function render_general_settings_section() {
         ?>
             <p><?php \esc_html_e( 'Section description.', 'redipress' ); ?></p>
         <?php
@@ -393,7 +566,7 @@ class Settings {
     /**
      * Renders the persistent index field.
      */
-    public function render_persist_index_field() {
+    private function render_persist_index_field() {
         $name   = 'persist_index';
         $option = self::get( $name );
         ?>
@@ -410,7 +583,7 @@ class Settings {
     /**
      * Renders the persistent index field.
      */
-    public function render_write_every() {
+    private function render_write_every() {
         $name   = 'write_every';
         $option = self::get( $name );
         ?>
@@ -427,7 +600,7 @@ class Settings {
     /**
      * Renders the fallback field.
      */
-    public function render_fallback() {
+    private function render_fallback() {
         $name   = 'fallback';
         $option = self::get( $name );
         ?>
@@ -444,7 +617,7 @@ class Settings {
     /**
      * Renders the escape parentheses field.
      */
-    public function render_escape_parentheses() {
+    private function render_escape_parentheses() {
         $name   = 'escape_parentheses';
         $option = self::get( $name );
         ?>
@@ -461,8 +634,8 @@ class Settings {
     /**
      * Renders the index manipulation buttons.
      */
-    public function render_index_management() {
-        $current_index = $this->index_info['num_docs'] ?? 0 + $this->index_info['num_terms'] ?? 0;
+    private function render_index_management() {
+        $current_index = $this->index_info['num_docs'] ?? 0 + ( $this->index_info['num_terms'] ?? 0 );
         $max_index     = Index::index_total();
         ?>
             <div>
@@ -486,7 +659,7 @@ class Settings {
     /**
      * Renders the redis settings section.
      */
-    public function render_redis_settings_section() {
+    private function render_redis_settings_section() {
         ?>
             <p><?php \esc_html_e( 'Section description.', 'redipress' ); ?></p>
         <?php
@@ -495,7 +668,7 @@ class Settings {
     /**
      * Renders the hostname field.
      */
-    public function render_hostname_field() {
+    private function render_hostname_field() {
         $name   = 'hostname';
         $option = self::get( $name );
         ?>
@@ -509,7 +682,7 @@ class Settings {
     /**
      * Renders the port field.
      */
-    public function render_port_field() {
+    private function render_port_field() {
         $name   = 'port';
         $option = self::get( $name );
         ?>
@@ -523,7 +696,7 @@ class Settings {
     /**
      * Renders the password field.
      */
-    public function render_password_field() {
+    private function render_password_field() {
         $name   = 'password';
         $option = self::get( $name );
         ?>
@@ -537,7 +710,7 @@ class Settings {
     /**
      * Renders the index name field.
      */
-    public function render_index_name_field() {
+    private function render_index_name_field() {
         $name   = 'index';
         $option = self::get( $name );
         ?>
@@ -551,7 +724,7 @@ class Settings {
     /**
      * Renders the use user query field.
      */
-    public function render_use_user_query_field() {
+    private function render_use_user_query_field() {
         $name   = 'use_user_query';
         $option = self::get( $name );
         ?>
@@ -568,7 +741,7 @@ class Settings {
     /**
      * Renders the user index name field.
      */
-    public function render_user_index_name_field() {
+    private function render_user_index_name_field() {
         $name   = 'user_index';
         $option = self::get( $name );
         ?>
@@ -582,7 +755,7 @@ class Settings {
     /**
      * Renders the include author name in search field.
      */
-    public function render_disable_post_author_search_field() {
+    private function render_disable_post_author_search_field() {
         $name   = 'disable_post_author_search';
         $option = self::get( $name );
         ?>
@@ -599,7 +772,7 @@ class Settings {
     /**
      * Renders the post types section.
      */
-    public function render_post_types_section() {
+    private function render_post_types_section() {
         ?>
             <p><?php \esc_html_e( 'Select the post types that will be included in the search results.', 'redipress' ); ?></p>
         <?php
@@ -608,7 +781,7 @@ class Settings {
     /**
      * Renders the post types field.
      */
-    public function render_post_types_field( $args ) {
+    private function render_post_types_field( $args ) {
         ?>
             <fieldset>
                 <legend class="screen-reader-text"><span><?php \esc_html_e( 'Post types', 'redipress' ); ?></span></legend>
@@ -634,7 +807,7 @@ class Settings {
     /**
      * Renders the taxonomies section.
      */
-    public function render_taxonomies_section() {
+    private function render_taxonomies_section() {
         ?>
             <p><?php \esc_html_e( 'Select the taxonomies that will be included in the search results.', 'redipress' ); ?></p>
         <?php
@@ -643,7 +816,7 @@ class Settings {
     /**
      * Renders the taxonomies field.
      */
-    public function render_taxonomies_field( array $args ) {
+    private function render_taxonomies_field( array $args ) {
         ?>
             <fieldset>
                 <legend class="screen-reader-text"><span><?php \esc_html_e( 'Taxonomies', 'redipress' ); ?></span></legend>

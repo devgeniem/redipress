@@ -1,0 +1,63 @@
+// Column layout
+.redipress-columns {
+    display: block;
+}
+
+.redipress-column {
+    width: 100%;
+    padding: 1rem 0;
+}
+
+@media only screen and (min-width: 768px) {
+    .redipress-columns {
+        display: flex;
+        flex-wrap: wrap;
+        margin: 0 -1rem;
+    }
+
+    .redipress-column {
+        padding: 1rem;
+        box-sizing: border-box;
+
+        &.is-half,
+        &.is-one-third,
+        &.is-one-fourth {
+            width: 50%;
+        }
+    }
+}
+
+@media only screen and (min-width: 1600px) {
+    .redipress-column {
+        &.is-half {
+            width: 50%;
+        }
+
+        &.is-one-third {
+            width: 33.33%;
+        }
+
+        &.is-one-fourth {
+            width: 25%;
+        }
+    }
+}
+
+// Typography utils
+.has-text-left {
+    text-align: left !important;
+}
+
+.has-text-right {
+    text-align: right !important;
+}
+
+.has-text-center {
+    text-align: center !important;
+}
+
+
+// Table styles
+.table-col-narrow {
+    width: 20%;
+}

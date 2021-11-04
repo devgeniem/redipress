@@ -72,6 +72,7 @@ class RediPress {
             'connect',
             'check_redisearch',
             'check_index',
+            'check_schema_integrity',
         ];
 
         if ( Settings::get( 'use_user_query' ) ) {
@@ -182,6 +183,63 @@ class RediPress {
                 return true;
             }
         }
+    }
+
+    /**
+     * Check if the schema has changed after last update.
+     *
+     * @return bool
+     */
+    protected function check_schema_integrity() : bool {
+        add_action( 'wp_loaded',  function() {
+            $index_name = Settings::get( 'index' );
+
+            $raw_info = $this->connection->raw_command( 'FT.INFO', [ $index_name ] );
+
+            $info = Utility::format( $raw_info );
+
+            $index = apply_filters( 'redipress/index_instance', null );
+
+            [ $options, $schema_fields, $raw_schema ] = $index->get_schema_fields();
+
+            $fields = array_map( function( $field ) {
+                unset( $field[1] );
+
+                return array_values( $field );
+            }, $info['fields'] );
+
+            usort( $fields, fn( $a, $b ) => $a[0] <=> $b[0] );
+
+            $schema = array_map( function( $field ) {
+                return array_map( 'strval', $field->get() );
+            }, $schema_fields );
+
+            usort( $schema, fn( $a, $b ) => $a[0] <=> $b[0] );
+
+            $diff = array_diff(
+                \array_map( 'json_encode', $schema ),
+                \array_map( 'json_encode', $fields ),
+            );
+
+            if ( count( $diff ) > 0 ) {
+                array_map( function( $json ) {
+                    $field = json_decode( $json );
+
+                    $this->plugin->show_admin_error(
+                        sprintf(
+                            // translators: %s is the field name.
+                            __(
+                                'Redisearch schema does not contain field %s which has been defined in the theme, or its definition has changed. Consider recreating the schema.',
+                                'redipress'
+                            ),
+                            $field[0],
+                        )
+                    );
+                }, $diff );
+            }
+        }, 1000 );
+
+        return true;
     }
 
     /**

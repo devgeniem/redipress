@@ -20,11 +20,8 @@ class Drop implements Command {
      * @return boolean
      */
     public function run( array $args = [], array $assoc_args = [] ) : bool {
-        if ( count( $args ) === 0 ) {
-            return $this->drop_index( 'posts' );
-        }
-        elseif ( count( $args ) === 1 ) {
-            return $this->drop_index( $args[0] );
+        if ( count( $args ) === 1 ) {
+            return $this->drop_index( $args[0], $assoc_args );
         }
         elseif ( count( $args ) > 1 ) {
             WP_CLI::error( 'RediPress: "drop" command does not accept more than two parameters.' );
@@ -32,13 +29,20 @@ class Drop implements Command {
         }
     }
 
-    public function drop_index( string $index ) {
+    /**
+     * Drop the index
+     *
+     * @param string $index The index to delete.
+     * @throws \Exception If index type is not supported.
+     * @return bool
+     */
+    public function drop_index( string $index, array $assoc_args ) {
         switch ( $index ) {
             case 'posts':
-                $return = apply_filters( 'redipress/drop_index', null );
+                $return = apply_filters( 'redipress/drop_post_index', null, $assoc_args );
                 break;
             case 'users':
-                $return = apply_filters( 'redipress/drop_user_index', null );
+                $return = apply_filters( 'redipress/drop_user_index', null, $assoc_args );
                 break;
             default:
                 throw new \Exception( 'Index type ' . $index . ' is not supported.' );
@@ -64,7 +68,7 @@ class Drop implements Command {
      * @return integer
      */
     public static function get_min_parameters() : int {
-        return 0;
+        return 1;
     }
 
     /**

@@ -203,17 +203,25 @@ class RediPress {
             [ $options, $schema_fields, $raw_schema ] = $index->get_schema_fields();
 
             $fields = array_map( function( $field ) {
+                // Remove some fields so that we can compare the output to our own schema
+                // definitions.
+                unset( $field[0] );
                 unset( $field[1] );
+                unset( $field[2] );
+                unset( $field[4] );
 
                 return array_values( $field );
-            }, $info['fields'] );
+            }, $info['attributes'] );
 
+            // Sort alphabetically by field name.
             usort( $fields, fn( $a, $b ) => $a[0] <=> $b[0] );
 
+            // Convert everything to strings.
             $schema = array_map( function( $field ) {
                 return array_map( 'strval', $field->get() );
             }, $schema_fields );
 
+            // Sort alphabetically by field name.
             usort( $schema, fn( $a, $b ) => $a[0] <=> $b[0] );
 
             $diff = array_diff(

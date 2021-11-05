@@ -58,7 +58,7 @@ class Index {
     protected $index;
 
     /**
-     * Names for core fields
+     * Core fields
      *
      * These are stored for filtering purposes.
      *
@@ -98,7 +98,7 @@ class Index {
      * @param Client $client Client instance.
      */
     public function __construct( Client $client ) {
-        $settings = new Settings();
+        $settings     = new Settings();
         $this->client = $client;
 
         // Get the index name from settings

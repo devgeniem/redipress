@@ -749,7 +749,12 @@ class Index {
         $tax = [];
 
         // Handle the taxonomies
-        $taxonomies = get_object_taxonomies( $post->post_type );
+        if ( post_type_exists( $post->post_type ) ) {
+            $taxonomies = get_object_taxonomies( $post->post_type );
+        }
+        else {
+            $taxonomies = get_taxonomies();
+        }
 
         $taxonomies = apply_filters( 'redipress/taxonomies', $taxonomies, $post->post_type, $post );
 

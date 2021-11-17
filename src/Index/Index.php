@@ -306,6 +306,48 @@ class Index {
     }
 
     /**
+     * Gather the schema fields for multisite index-creation
+     *
+     * @param string $key The run-time key to identify the gathering.
+     * @return void
+     */
+    public function gather_schema_fields( string $key, bool $throw_error = true ) : void {
+        [ $options, $schema_fields ] = $this->get_schema_fields();
+
+        $fields = \get_option( "redipress_gather_fields_$key", [] );
+
+        foreach ( $schema_fields as $field ) {
+            $found = false;
+
+            // If there is a field with the same name within the initial fields, find it
+            foreach ( $fields as &$original_field ) {
+                if ( $field->name === $original_field->name ) {
+                    $original = serialize( $original_field );
+                    $new      = serialize( $field );
+
+                    if ( $original !== $new ) {
+                        if ( $throw_error ) {
+                            die( 'RediPress index creation error: conflicting fields with name ' . $field->name );
+                        }
+
+                        $original_field->conflict = true;
+
+                        $field->conflict = true;
+
+                        $fields[] = $field;
+                    }
+                }
+            }
+
+            if ( ! $found ) {
+                $fields[] = $field;
+            }
+        }
+
+        \update_option( "redipress_gather_fields_$key", $fields, false );
+    }
+
+    /**
      * Create a RediSearch index.
      *
      * @return mixed

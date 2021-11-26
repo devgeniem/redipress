@@ -724,8 +724,8 @@ class Index {
                 $value = (int) $value;
             }
 
-            // Escape the string in all but numeric fields
-            if ( $type !== 'NUMERIC' ) {
+            // Escape the string in all but numeric and tag fields
+            if ( ! in_array( $type, [ 'NUMERIC', 'TAG' ] ) ) {
                 $value = $this->escape_string( $value );
             }
 

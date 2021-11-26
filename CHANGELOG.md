@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - A bug where taxonomy terms didn't get deleted from a post's index.
 - Running index from the admin side.
+- Querying tags that contain dashes.
 
 ## [1.13.0] - 2021-09-24
 

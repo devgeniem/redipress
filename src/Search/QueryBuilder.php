@@ -576,14 +576,14 @@ abstract class QueryBuilder {
                             $queries[] = sprintf(
                                 '(@%s:{%s})',
                                 $prefix ? 'taxonomy_' . $clause['taxonomy'] : $clause['taxonomy'],
-                                implode( '|', (array) $clause['terms'] )
+                                implode( '|', array_map( [ $this, 'enclose_in_quotes' ], (array) $clause['terms'] ) )
                             );
                         }
                         elseif ( $clause['operator'] === 'NOT IN' ) {
                             $queries[] = sprintf(
                                 '-(@%s:{%s})',
                                 $prefix ? 'taxonomy_' . $clause['taxonomy'] : $clause['taxonomy'],
-                                implode( '|', (array) $clause['terms'] )
+                                implode( '|', array_map( [ $this, 'enclose_in_quotes' ], (array) $clause['terms'] ) )
                             );
                         }
 
@@ -596,14 +596,14 @@ abstract class QueryBuilder {
                             $queries[] = sprintf(
                                 '(@%s:{%s})',
                                 $prefix ? 'taxonomy_slug_' . $clause['taxonomy'] : $clause['taxonomy'],
-                                implode( '|', (array) $clause['terms'] )
+                                implode( '|', array_map( [ $this, 'enclose_in_quotes' ], (array) $clause['terms'] ) )
                             );
                         }
                         elseif ( $clause['operator'] === 'NOT IN' ) {
                             $queries[] = sprintf(
                                 '-(@%s:{%s})',
                                 $prefix ? 'taxonomy_slug_' . $clause['taxonomy'] : $clause['taxonomy'],
-                                implode( '|', (array) $clause['terms'] )
+                                implode( '|', array_map( [ $this, 'enclose_in_quotes' ], (array) $clause['terms'] ) )
                             );
                         }
 
@@ -1268,5 +1268,15 @@ abstract class QueryBuilder {
      */
     public function escape_string( ?string $string = '' ) : string {
         return Utility::escape_string( $string );
+    }
+
+    /**
+     * Enclose a string in single quotes
+     *
+     * @param string|null $string The string to enclose.
+     * @return string
+     */
+    public function enclose_in_quotes( ?string $string = '' ) : string {
+        return strlen( $string ) > 0 ? "'$string'" : '';
     }
 }

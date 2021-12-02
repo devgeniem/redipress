@@ -4,7 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [2.0-beta]
+
+### Changed
+- The required RediSearch version is from now on at least 2.2.1.
+
+## [1.14.0] - 2021-12-02
 
 ### Added
 - `redipress/taxonomies` filter for the ability to select which taxonomies are indexed for which post.
@@ -12,6 +17,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - A bug where taxonomy terms didn't get deleted from a post's index.
 - Running index from the admin side.
+- Querying tags that contain dashes.
 
 ## [1.13.0] - 2021-09-24
 

@@ -20,43 +20,38 @@ class Index implements Command {
      * @return boolean
      */
     public function run( array $args = [], array $assoc_args = [] ) : bool {
-        if ( count( $args ) === 0 ) {
-            return $this->index_posts( $assoc_args );
-        }
-        else {
-            switch ( $args[0] ) {
-                case 'posts':
-                    if ( count( $args ) === 1 ) {
-                        return $this->index_posts( $assoc_args );
+        switch ( $args[0] ) {
+            case 'posts':
+                if ( count( $args ) === 1 ) {
+                    return $this->index_posts( $assoc_args );
+                }
+                elseif ( count( $args ) === 2 ) {
+                    if ( is_numeric( $args[1] ) ) {
+                        return $this->index_single( $args[1] );
                     }
-                    elseif ( count( $args ) === 2 ) {
-                        if ( is_numeric( $args[1] ) ) {
-                            return $this->index_single( $args[1] );
-                        }
-                        elseif ( $args[1] === 'missing' ) {
-                            return $this->index_missing( $assoc_args );
-                        }
-                        else {
-                            WP_CLI::error( 'RediPress: "index" does not accept second parameter "' . $args[1] . '"' );
-                            return false;
-                        }
+                    elseif ( $args[1] === 'missing' ) {
+                        return $this->index_missing( $assoc_args );
                     }
-                    break;
-                case 'users':
-                    if ( count( $args ) === 1 ) {
-                        return $this->index_users();
+                    else {
+                        WP_CLI::error( 'RediPress: "index" does not accept second parameter "' . $args[1] . '"' );
+                        return false;
                     }
-                    elseif ( count( $args ) === 2 ) {
-                        if ( is_numeric( $args[1] ) ) {
-                            return $this->index_single_user( $args[1] );
-                        }
-                        else {
-                            WP_CLI::error( 'RediPress: "index" does not accept second parameter "' . $args[1] . '"' );
-                            return false;
-                        }
+                }
+                break;
+            case 'users':
+                if ( count( $args ) === 1 ) {
+                    return $this->index_users();
+                }
+                elseif ( count( $args ) === 2 ) {
+                    if ( is_numeric( $args[1] ) ) {
+                        return $this->index_single_user( $args[1] );
                     }
-                    break;
-            }
+                    else {
+                        WP_CLI::error( 'RediPress: "index" does not accept second parameter "' . $args[1] . '"' );
+                        return false;
+                    }
+                }
+                break;
         }
 
         return false;
@@ -130,7 +125,7 @@ class Index implements Command {
      * @return integer
      */
     public static function get_min_parameters() : int {
-        return 0;
+        return 1;
     }
 
     /**

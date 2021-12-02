@@ -58,7 +58,7 @@ class Index {
     protected $index;
 
     /**
-     * Names for core fields
+     * Core fields
      *
      * These are stored for filtering purposes.
      *
@@ -98,7 +98,7 @@ class Index {
      * @param Client $client Client instance.
      */
     public function __construct( Client $client ) {
-        $settings = new Settings();
+        $settings     = new Settings();
         $this->client = $client;
 
         // Get the index name from settings
@@ -129,7 +129,7 @@ class Index {
         add_filter( 'redipress/cli/index_missing', [ $this, 'index_missing' ], 50, 2 );
         add_action( 'redipress/cli/index_single', [ $this, 'index_single' ], 50, 1 );
         add_filter( 'redipress/create_index', [ $this, 'create' ], 50, 1 );
-        add_filter( 'redipress/drop_index', [ $this, 'drop' ], 50, 1 );
+        add_filter( 'redipress/drop_post_index', [ $this, 'drop' ], 50, 2 );
 
         // Register external actions
         add_action( 'redipress/delete_post', [ $this, 'delete_post' ], 50, 1 );
@@ -159,10 +159,13 @@ class Index {
     /**
      * Drop existing index.
      *
+     * @param boolean $delete_data Whether to delete data in addition to the index or not.
      * @return mixed
      */
-    public function drop() {
-        return $this->client->raw_command( 'FT.DROP', [ $this->index ] );
+    public function drop( bool $delete_data = false ) {
+        $args = $delete_data ? [ 'DD' ] : [];
+
+        return $this->client->raw_command( 'FT.DROPINDEX', [ $this->index, ...$args ] );
     }
 
     /**
@@ -262,29 +265,22 @@ class Index {
     }
 
     /**
-     * Create a RediSearch index.
+     * Get the schema fields
      *
-     * @return mixed
+     * @return array
      */
-    public function create() {
+    public function get_schema_fields() : array {
         // Filter to add possible more fields.
         $schema_fields = apply_filters( 'redipress/schema_fields', $this->core_schema_fields );
 
         // Remove possible duplicate fields
         $schema_fields = array_unique( $schema_fields );
 
-        $raw_schema = array_reduce( $schema_fields,
-            /**
-             * Convert SchemaField objects into raw arrays
-             *
-             * @param array       $carry The array to gather.
-             * @param SchemaField $item  The schema to convert.
-             *
-             * @return array
-             */
-            function( ?array $carry, SchemaField $item = null ) : array {
-                return array_merge( $carry ?? [], $item->get() ?? [] );
-            }
+        $raw_schema = array_reduce(
+            $schema_fields,
+            // Convert SchemaField objects into raw arrays
+            fn( ?array $c, SchemaField $field ) : array => array_merge( $c, $field->get() ),
+            []
         );
 
         $raw_schema = apply_filters( 'redipress/raw_schema', array_merge( [ 'SCHEMA' ], $raw_schema ) );
@@ -302,6 +298,63 @@ class Index {
 
         $options = apply_filters( 'redipress/index_options', $options );
 
+        return [
+            $options,
+            $schema_fields,
+            $raw_schema,
+        ];
+    }
+
+    /**
+     * Gather the schema fields for multisite index-creation
+     *
+     * @param string $key The run-time key to identify the gathering.
+     * @return void
+     */
+    public function gather_schema_fields( string $key, bool $throw_error = true ) : void {
+        [ $options, $schema_fields ] = $this->get_schema_fields();
+
+        $fields = \get_option( "redipress_gather_fields_$key", [] );
+
+        foreach ( $schema_fields as $field ) {
+            $found = false;
+
+            // If there is a field with the same name within the initial fields, find it
+            foreach ( $fields as &$original_field ) {
+                if ( $field->name === $original_field->name ) {
+                    $original = serialize( $original_field );
+                    $new      = serialize( $field );
+
+                    if ( $original !== $new ) {
+                        if ( $throw_error ) {
+                            die( 'RediPress index creation error: conflicting fields with name ' . $field->name );
+                        }
+
+                        $original_field->conflict = true;
+
+                        $field->conflict = true;
+
+                        $fields[] = $field;
+                    }
+                }
+            }
+
+            if ( ! $found ) {
+                $fields[] = $field;
+            }
+        }
+
+        \update_option( "redipress_gather_fields_$key", $fields, false );
+    }
+
+    /**
+     * Create a RediSearch index.
+     *
+     * @return mixed
+     */
+    public function create() {
+        [ $options, $schema_fields, $raw_schema ] = $this->get_schema_fields();
+
         $return = $this->client->raw_command( 'FT.CREATE', array_merge( [ $this->index ], $options, $raw_schema ) );
 
         do_action( 'redipress/schema_created', $return, $options, $schema_fields, $raw_schema );
@@ -314,8 +367,8 @@ class Index {
     /**
      * Create a wp cron event chain to index all posts.
      *
-     * @param  int|WP_Rest_Request $args Int for offset or WP_Rest_Request on first run.
-     * @return true|false|WP_Error       Result of next wp_schedule_single_event call or true on final run.
+     * @param  int|WP_Rest_Request $offset Int for offset or WP_Rest_Request on first run.
+     * @return true|false|WP_Error         Result of next wp_schedule_single_event call or true on final run.
      */
     public function schedule_partial_index( $offset = null ) {
 

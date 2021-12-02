@@ -36,7 +36,6 @@ class Delete implements Command {
 
         // Blog_id and post_type.
         if ( ! empty( $assoc_args ) ) {
-
             return $this->delete_posts( $assoc_args, $limit );
         }
 
@@ -62,7 +61,6 @@ class Delete implements Command {
         // run the delete command in RediSearch index.
         if ( ! empty( $doc_ids ) && is_array( $doc_ids ) ) {
             foreach ( $doc_ids as $doc_id ) {
-
                 $this->delete_index( $doc_id );
                 $removed_doc_ids[] = $doc_id;
             }
@@ -124,14 +122,12 @@ class Delete implements Command {
 
         // Do the delete.
         if ( is_string( $doc_id ) ) {
-
             // Do the delete from index.
             $this->client->raw_command(
-                'FT.DEL',
+                'HDEL',
                 [
                     $this->index,
                     $doc_id,
-                    'DD',
                 ]
             );
         }
@@ -160,11 +156,8 @@ class Delete implements Command {
         // Loop through query_vars and
         // add valid query_vars to the where clause.
         if ( is_array( $query_vars ) ) {
-
             foreach ( $query_vars as $key => $var ) {
-
                 if ( ! empty( $var ) ) {
-
                     // Add the clause.
                     $where = $where . '@' . $key . ':(' . $var . ')';
 

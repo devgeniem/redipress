@@ -368,8 +368,7 @@ class Index {
                 $params = [];
 
                 foreach ( $query_args as $key => $value ) {
-                    $wheres[] = "%s = %s";
-                    $params[] = $key;
+                    $wheres[] = esc_sql( $key ) . ' = %s';
                     $params[] = $value;
                 }
 
@@ -382,8 +381,15 @@ class Index {
 
             $query  = "SELECT ID FROM $wpdb->posts$where";
         }
-        $ids = $wpdb->prepare( $query, ...$params ) ?? [];
+        $q = $wpdb->prepare( $query, ...$params );
+
+        $ids = $wpdb->get_results( $q );
         // phpcs:enable
+
+        if ( empty( $ids ) ) {
+            \WP_CLI::error( 'No posts matching the criteria were found.' );
+            return 0;
+        }
 
         $count = count( $ids );
 

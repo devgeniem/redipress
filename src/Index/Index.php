@@ -311,10 +311,10 @@ class Index {
      * @param  int|WP_Rest_Request $args Int for offset or WP_Rest_Request on first run.
      * @return true|false|WP_Error       Result of next wp_schedule_single_event call or true on final run.
      */
-    public function schedule_partial_index( $offset = null ) {
+    public function schedule_partial_index( $args = null ) {
 
         // If this was created by a user via the admin just schedule without running the actual index
-        if ( $offset instanceof \WP_REST_Request ) {
+        if ( $args instanceof \WP_REST_Request ) {
 
             // Make sure we don't create new cron jobs if one is already running
             $cron = \get_option( 'cron' );
@@ -326,12 +326,12 @@ class Index {
                 }
             }
 
-            $offset = $offset->get_param( 'offset' ) ?? 0;
+            $offset = $args->get_param( 'offset' ) ?? 0;
             return \wp_schedule_single_event( time(), static::HOOKS['schedule_partial_index'], [ $offset ], true );
         }
 
         // Run index
-        $offset = \is_int( $offset ) ? $offset : 0;
+        $offset = \is_int( $args ) ? $args : 0;
         $count  = $this->index_all([
             'limit'  => \apply_filters( static::HOOKS['schedule_partial_index_limit'], 400 ),
             'offset' => $offset,
@@ -364,19 +364,25 @@ class Index {
         }
         else {
             if ( ! empty( $query_args ) ) {
-                $where = ' WHERE ';
+                $wheres = [];
+                $params = [];
 
                 foreach ( $query_args as $key => $value ) {
-                    $where .= $key . ' = "' . $value . '" ';
+                    $wheres[] = "%s = %s";
+                    $params[] = $key;
+                    $params[] = $value;
                 }
+
+                $where = ' WHERE ' . implode( ' AND ', $wheres );
             }
             else {
-                $where = '';
+                $where  = '';
+                $params = [];
             }
 
             $query  = "SELECT ID FROM $wpdb->posts$where";
         }
-        $ids = $wpdb->get_results( $query ) ?? [];
+        $ids = $wpdb->prepare( $query, ...$params ) ?? [];
         // phpcs:enable
 
         $count = count( $ids );

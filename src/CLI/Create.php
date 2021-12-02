@@ -46,13 +46,13 @@ class Create implements Command {
     public function create_index( string $index ) {
         switch ( $index ) {
             case 'posts':
-                $return = apply_filters( 'redipress/create_index', null );
+                $return = apply_filters( 'redipress/index/posts/create', null );
                 break;
             case 'users':
-                $return = apply_filters( 'redipress/create_user_index', null );
+                $return = apply_filters( 'redipress/index/users/create', null );
                 break;
             case 'analytics':
-                $return = apply_filters( 'redipress/analytics/create_index', null );
+                $return = apply_filters( 'redipress/index/analytics/create', null );
                 break;
             default:
                 throw new \Exception( 'Index type ' . $index . ' is not supported.' );

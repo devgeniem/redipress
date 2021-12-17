@@ -18,9 +18,14 @@ use Geniem\RediPress\Settings,
     WP_CLI\Utils;
 
 /**
- * RediPress index class
+ * RediPress post index class
  */
-class PostIndex {
+class PostIndex extends Index {
+
+    /**
+     * The index type
+     */
+    const INDEX_TYPE = 'posts';
 
     /**
      * Which mime types are supported for parsing
@@ -44,48 +49,6 @@ class PostIndex {
     ];
 
     /**
-     * RediPress wrapper for the Predis client
-     *
-     * @var Client
-     */
-    protected $client;
-
-    /**
-     * Index
-     *
-     * @var string
-     */
-    protected $index;
-
-    /**
-     * Core fields
-     *
-     * These are stored for filtering purposes.
-     *
-     * @var array
-     */
-    protected $core_schema_fields = [];
-
-    /**
-     * The default tag separator.
-     */
-    protected const TAG_SEPARATOR = '*';
-
-    /**
-     * The static array in which external additional values are stored.
-     *
-     * @var array
-     */
-    protected static $additional = [];
-
-    /**
-     * Whether we will write the index to disk in shutdown hook.
-     *
-     * @var boolean
-     */
-    protected static $written = false;
-
-    /**
      * ID of the post we are indexing.
      *
      * @var integer|null
@@ -98,11 +61,7 @@ class PostIndex {
      * @param Client $client Client instance.
      */
     public function __construct( Client $client ) {
-        $settings     = new Settings();
-        $this->client = $client;
-
-        // Get the index name from settings
-        $this->index = $settings->get( 'index' );
+        parent::__construct( $client );
 
         // Register AJAX functions
         Rest::register_api_call( '/create_index', [ $this, 'create' ], 'POST' );
@@ -119,16 +78,11 @@ class PostIndex {
         // Register event hook for partial indexing
         \add_action( static::HOOKS['schedule_partial_index'], [ $this, 'schedule_partial_index' ], 50, 1 );
 
-        // Reverse filter for getting the Index instance.
-        add_filter( 'redipress/index_instance', function( $value ) {
-            return $this;
-        }, 1, 1 );
-
         // Register CLI bindings
         add_filter( 'redipress/cli/index_all', [ $this, 'index_all' ], 50, 2 );
         add_filter( 'redipress/cli/index_missing', [ $this, 'index_missing' ], 50, 2 );
         add_action( 'redipress/cli/index_single', [ $this, 'index_single' ], 50, 1 );
-        add_filter( 'redipress/create_index', [ $this, 'create' ], 50, 1 );
+        add_filter( 'redipress/index/posts/create', [ $this, 'create' ], 50, 1 );
         add_filter( 'redipress/drop_post_index', [ $this, 'drop' ], 50, 2 );
 
         // Register external actions
@@ -141,8 +95,6 @@ class PostIndex {
 
         // Register taxonomy actions
         add_action( 'set_object_terms', [ $this, 'index_single' ], 50, 1 );
-
-        $this->define_core_fields();
     }
 
     /**
@@ -157,25 +109,13 @@ class PostIndex {
     }
 
     /**
-     * Drop existing index.
-     *
-     * @param boolean $delete_data Whether to delete data in addition to the index or not.
-     * @return mixed
-     */
-    public function drop( bool $delete_data = false ) {
-        $args = $delete_data ? [ 'DD' ] : [];
-
-        return $this->client->raw_command( 'FT.DROPINDEX', [ $this->index, ...$args ] );
-    }
-
-    /**
      * Define core fields for the RediSearch schema
      *
-     * @return void
+     * @return array
      */
-    public function define_core_fields() {
+    public function define_core_fields() : array {
         // Define the WordPress core fields
-        $this->core_schema_fields = [
+        $core_schema_fields = [
             new TextField([
                 'name'     => 'post_title',
                 'weight'   => 5.0,
@@ -233,7 +173,7 @@ class PostIndex {
 
         if ( \is_multisite() ) {
             \array_unshift(
-                $this->core_schema_fields,
+                $core_schema_fields,
                 new TextField([
                     'name'     => 'blog_id',
                     'sortable' => true,
@@ -247,121 +187,23 @@ class PostIndex {
         foreach ( $taxonomies as $taxonomy ) {
             $taxonomy = str_replace( '-', '_', $taxonomy );
 
-            $this->core_schema_fields[] = new TagField([
+            $core_schema_fields[] = new TagField([
                 'name'      => 'taxonomy_' . $taxonomy,
                 'separator' => self::get_tag_separator(),
             ]);
 
-            $this->core_schema_fields[] = new TagField([
+            $core_schema_fields[] = new TagField([
                 'name'      => 'taxonomy_id_' . $taxonomy,
                 'separator' => self::get_tag_separator(),
             ]);
 
-            $this->core_schema_fields[] = new TagField([
+            $core_schema_fields[] = new TagField([
                 'name'      => 'taxonomy_slug_' . $taxonomy,
                 'separator' => self::get_tag_separator(),
             ]);
         }
-    }
 
-    /**
-     * Get the schema fields
-     *
-     * @return array
-     */
-    public function get_schema_fields() : array {
-        // Filter to add possible more fields.
-        $schema_fields = apply_filters( 'redipress/schema_fields', $this->core_schema_fields );
-
-        // Remove possible duplicate fields
-        $schema_fields = array_unique( $schema_fields );
-
-        $raw_schema = array_reduce(
-            $schema_fields,
-            // Convert SchemaField objects into raw arrays
-            fn( ?array $c, SchemaField $field ) : array => array_merge( $c, $field->get() ),
-            []
-        );
-
-        $raw_schema = apply_filters( 'redipress/raw_schema', array_merge( [ 'SCHEMA' ], $raw_schema ) );
-
-        $options = [
-            'ON',
-            'HASH',
-            'PREFIX',
-            '1',
-            $this->index . ':',
-            'MAXTEXTFIELDS',
-            'STOPWORDS',
-            '0',
-        ];
-
-        $options = apply_filters( 'redipress/index_options', $options );
-
-        return [
-            $options,
-            $schema_fields,
-            $raw_schema,
-        ];
-    }
-
-    /**
-     * Gather the schema fields for multisite index-creation
-     *
-     * @param string $key The run-time key to identify the gathering.
-     * @return void
-     */
-    public function gather_schema_fields( string $key, bool $throw_error = true ) : void {
-        [ $options, $schema_fields ] = $this->get_schema_fields();
-
-        $fields = \get_option( "redipress_gather_fields_$key", [] );
-
-        foreach ( $schema_fields as $field ) {
-            $found = false;
-
-            // If there is a field with the same name within the initial fields, find it
-            foreach ( $fields as &$original_field ) {
-                if ( $field->name === $original_field->name ) {
-                    $original = serialize( $original_field );
-                    $new      = serialize( $field );
-
-                    if ( $original !== $new ) {
-                        if ( $throw_error ) {
-                            die( 'RediPress index creation error: conflicting fields with name ' . $field->name );
-                        }
-
-                        $original_field->conflict = true;
-
-                        $field->conflict = true;
-
-                        $fields[] = $field;
-                    }
-                }
-            }
-
-            if ( ! $found ) {
-                $fields[] = $field;
-            }
-        }
-
-        \update_option( "redipress_gather_fields_$key", $fields, false );
-    }
-
-    /**
-     * Create a RediSearch index.
-     *
-     * @return mixed
-     */
-    public function create() {
-        [ $options, $schema_fields, $raw_schema ] = $this->get_schema_fields();
-
-        $return = $this->client->raw_command( 'FT.CREATE', array_merge( [ $this->index ], $options, $raw_schema ) );
-
-        do_action( 'redipress/schema_created', $return, $options, $schema_fields, $raw_schema );
-
-        $this->maybe_write_to_disk( 'schema_created' );
-
-        return $return;
+        return $core_schema_fields;
     }
 
     /**
@@ -416,7 +258,7 @@ class PostIndex {
 
         define( 'WP_IMPORTING', true );
 
-        \do_action( 'redipress/before_index_all', $request ?? null );
+        \do_action( 'redipress/index/posts/before_index_all', $request ?? null );
         // phpcs:disable
         if ( ! empty( $args['limit'] ) && ! empty( $args['offset'] ) ) {
             $query  = $wpdb->prepare( "SELECT ID FROM $wpdb->posts LIMIT %d OFFSET %d", $args['limit'], $args['offset'] );
@@ -465,13 +307,13 @@ class PostIndex {
             return get_post( $row->ID );
         }, $ids );
 
-        $posts = apply_filters( 'redipress/custom_posts', $posts );
+        $posts = apply_filters( 'redipress/index/posts/custom', $posts );
 
         $result = array_map( function( $post ) use ( $progress ) {
             self::$indexing = $post->ID;
 
-            $language = apply_filters( 'redipress/post_language', $post->lang ?? null, $post );
-            $language = apply_filters( 'redipress/post_language/' . $post->ID, $language, $post );
+            $language = apply_filters( 'redipress/index/posts/language', $post->lang ?? null, $post );
+            $language = apply_filters( 'redipress/index/posts/language/' . $post->ID, $language, $post );
 
             // Sanity check.
             if ( ! $post instanceof \WP_Post ) {
@@ -494,7 +336,7 @@ class PostIndex {
             return $return;
         }, $posts );
 
-        \do_action( 'redipress/indexed_all', $result, $request ?? null );
+        \do_action( 'redipress/index/posts/indexed_all', $result, $request ?? null );
 
         $this->maybe_write_to_disk( 'indexed_all' );
 
@@ -1152,51 +994,6 @@ class PostIndex {
         }
 
         return count( $return );
-    }
-
-    /**
-     * Write the index to the disk if the setting is on.
-     *
-     * @param mixed $args Special arguments to give to the filter if needed.
-     *
-     * @return mixed
-     */
-    public function maybe_write_to_disk( $args = null ) {
-        $settings = new Settings();
-
-        // Bail early if we don't want a persisting index.
-        if ( ! $settings->get( 'persist_index' ) ) {
-            return;
-        }
-
-        // Write immediately, if we want to do it every time.
-        if ( $settings->get( 'write_every' ) ) {
-            // Allow overriding the settings via a filter
-            $filter_writing = apply_filters( 'redipress/write_to_disk', null, $args );
-
-            if ( $filter_writing ) {
-                return $this->write_to_disk();
-            }
-        }
-        else {
-            if ( self::$written ) {
-                return true;
-            }
-            else {
-                register_shutdown_function( [ $this, 'write_to_disk' ] );
-                self::$written = true;
-                return true;
-            }
-        }
-    }
-
-    /**
-     * Write the index to the disk to persist it.
-     *
-     * @return mixed
-     */
-    public function write_to_disk() {
-        return $this->client->raw_command( 'SAVE', [] );
     }
 
     /**

@@ -7,7 +7,8 @@ namespace Geniem\RediPress\Index;
 
 use Geniem\RediPress\Settings,
     Geniem\RediPress\Entity\SchemaField,
-    Geniem\RediPress\Redis\Client;
+    Geniem\RediPress\Redis\Client,
+    Geniem\RediPress\Utility;
 
 /**
  * RediPress index class
@@ -32,6 +33,13 @@ abstract class Index {
      * @var string
      */
     protected $index;
+
+    /**
+     * The index info
+     *
+     * @var array
+     */
+    protected $index_info;
 
     /**
      * Core fields
@@ -61,21 +69,6 @@ abstract class Index {
      */
     protected static $written = false;
 
-    public function __construct( Client $client ) {
-        $settings     = new Settings();
-        $this->client = $client;
-
-        // Get the index name from settings
-        $this->index = $settings->get( "{${self::INDEX_TYPE}}_index" );
-
-        // Reverse filter for getting the Index instance.
-        add_filter( "redipress/{${self::INDEX_TYPE}}_index_instance", function() {
-            return $this;
-        }, 1, 0 );
-
-        $this->core_schema_fields = $this->define_core_fields();
-    }
-
     /**
      * Define core fields for the index
      *
@@ -84,17 +77,41 @@ abstract class Index {
     abstract protected function define_core_fields() : array;
 
     /**
+     * The constructor
+     *
+     * @param Client $client The client instance.
+     */
+    public function __construct( Client $client ) {
+        $settings     = new Settings();
+        $this->client = $client;
+
+        $index_type = self::INDEX_TYPE;
+
+        // Get the index name from settings
+        $this->index = $settings->get( "${index_type}_index" );
+
+        // Reverse filter for getting the Index instance.
+        add_filter( "redipress/${index_type}_index_instance", function() {
+            return $this;
+        }, 1, 0 );
+
+        $this->core_schema_fields = $this->define_core_fields();
+    }
+
+    /**
      * Create a RediSearch index.
      *
      * @return mixed
      */
     public function create() {
+        $index_type = self::INDEX_TYPE;
+
         [ $options, $schema_fields, $raw_schema ] = $this->get_schema_fields();
 
         $return = $this->client->raw_command( 'FT.CREATE', array_merge( [ $this->index ], $options, $raw_schema ) );
 
         do_action( 'redipress/schema_created', $return, $options, $schema_fields, $raw_schema );
-        do_action( "redipress/{${self::INDEX_TYPE}}_schema_created", $return, $options, $schema_fields, $raw_schema );
+        do_action( "redipress/${index_type}_schema_created", $return, $options, $schema_fields, $raw_schema );
 
         $this->maybe_write_to_disk( 'schema_created' );
 
@@ -161,8 +178,10 @@ abstract class Index {
      * @return array
      */
     public function get_schema_fields() : array {
+        $index_type = self::INDEX_TYPE;
+
         // Filter to add possible more fields.
-        $schema_fields = apply_filters( "redipress/index/{${self::INDEX_TYPE}}/schema_fields", $this->core_schema_fields );
+        $schema_fields = apply_filters( "redipress/index/${index_type}/schema_fields", $this->core_schema_fields );
 
         // Remove possible duplicate fields
         $schema_fields = array_unique( $schema_fields );
@@ -174,7 +193,7 @@ abstract class Index {
             []
         );
 
-        $raw_schema = apply_filters( "redipress/index/{${self::INDEX_TYPE}}/raw_schema", array_merge( [ 'SCHEMA' ], $raw_schema ) );
+        $raw_schema = apply_filters( "redipress/index/${index_type}/raw_schema", array_merge( [ 'SCHEMA' ], $raw_schema ) );
 
         $options = [
             'ON',
@@ -187,13 +206,44 @@ abstract class Index {
             '0',
         ];
 
-        $options = apply_filters( "redipress/index/{${self::INDEX_TYPE}}/options", $options );
+        $options = apply_filters( "redipress/index/${index_type}/options", $options );
 
         return [
             $options,
             $schema_fields,
             $raw_schema,
         ];
+    }
+
+    /**
+     * Add a document to Redis
+     *
+     * @param array $converted_document The document to add in an alternating array format.
+     * @param string $document_id The document ID.
+     * @return mixed
+     */
+    protected function add_document( array $converted_document, string $document_id ) {
+        $command = [ $this->index . ':' . $document_id ];
+
+        $raw_command = array_merge( $command, $converted_document );
+
+        $return = $this->client->raw_command( 'HSET', $raw_command );
+
+        return $return;
+    }
+
+    /**
+     * Delete a document from Redis
+     *
+     * @param string $document_id The document ID.
+     * @return mixed
+     */
+    protected function delete_document( string $document_id ) {
+        $return = $this->client->raw_command( 'HDEL', [ $this->index . ':' . $document_id ] );
+
+        do_action( 'redipress/post_deleted', $document_id, $return );
+
+        return $return;
     }
 
     /**
@@ -239,5 +289,69 @@ abstract class Index {
      */
     public function write_to_disk() {
         return $this->client->raw_command( 'SAVE', [] );
+    }
+
+    /**
+     * A helper function to use in gathering field names from objects.
+     *
+     * @param SchemaField $field The field object to handle.
+     * @return string
+     */
+    protected function return_field_name( SchemaField $field ) : string {
+        return $field->name;
+    }
+
+    /**
+     * Returns the tag separator value through a filter.
+     *
+     * @return string
+     */
+    public static function get_tag_separator() : string {
+        return apply_filters( 'redipress/tag_separator', self::TAG_SEPARATOR );
+    }
+
+    /**
+     * Get RediSearch field type for a field
+     *
+     * @param string $key The key for which to fetch the field type.
+     * @return string|null
+     */
+    protected function get_field_type( string $key ) : ?string {
+        $fields = Utility::format( $this->index_info['fields'] );
+
+        $field_type = array_reduce( $fields, function( $carry = null, $item = null ) use ( $key ) {
+            if ( ! empty( $carry ) ) {
+                return $carry;
+            }
+
+            $name = $item[0];
+
+            if ( $name === $key ) {
+                return Utility::get_value( $item, 'type' );
+            }
+
+            return null;
+        });
+
+        return $field_type;
+    }
+
+    /**
+     * Set the index info
+     *
+     * @param array $info The data to set.
+     * @return void
+     */
+    public function set_info( array $info ) : void {
+        $this->index_info = $info;
+    }
+
+    /**
+     * Get the index info
+     *
+     * @return array
+     */
+    public function get_info() : array {
+        return $this->index_info;
     }
 }

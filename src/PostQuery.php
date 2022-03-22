@@ -1,6 +1,6 @@
 <?php
 /**
- * RediPress search class file
+ * RediPress PostQuery class file
  */
 
 namespace Geniem\RediPress;
@@ -10,9 +10,9 @@ use Geniem\RediPress\Settings,
     Geniem\RediPress\Utility;
 
 /**
- * RediPress search class
+ * RediPress PostQuery class
  */
-class Search {
+class PostQuery {
 
     /**
      * RediPress wrapper for the Predis client
@@ -68,7 +68,6 @@ class Search {
      * @param array  $index_info Index information.
      */
     public function __construct( Client $client, array $index_info ) {
-        $settings         = new Settings();
         $this->client     = $client;
         $this->index_info = $index_info;
 

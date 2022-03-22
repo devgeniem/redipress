@@ -7,7 +7,7 @@ namespace Geniem\RediPress;
 
 use Geniem\RediPressPlugin,
     Geniem\RediPress\Settings,
-    Geniem\RediPress\Index\Index,
+    Geniem\RediPress\Index\PostIndex,
     Geniem\RediPress\Index\UserIndex,
     Geniem\RediPress\Redis\Client,
     Geniem\RediPress\Utility,
@@ -33,11 +33,11 @@ class RediPress {
     protected $connection;
 
     /**
-     * The index information
+     * The indexes
      *
      * @var array
      */
-    protected $index_info = null;
+    protected $indexes = [];
 
     /**
      * Store the plugin core instance and initialize rest of the functionalities.
@@ -56,7 +56,7 @@ class RediPress {
         add_action( 'rest_api_init', [ Rest::class, 'rest_api_init' ] );
 
         // Register the CLI commands if WP CLI is available
-        if ( defined( 'WP_CLI' ) && WP_CLI ) {
+        if ( defined( 'WP_CLI' ) ) {
             \WP_CLI::add_command( 'redipress', __NAMESPACE__ . '\\CLI' );
         }
     }
@@ -71,15 +71,11 @@ class RediPress {
         $checks = [
             'connect',
             'check_redisearch',
-            'check_index',
+            'create_indexes',
             'check_schema_integrity',
         ];
 
-        if ( Settings::get( 'use_user_query' ) ) {
-            $checks[] = 'check_user_index';
-        }
-
-        // Run through various checks and quit the run if anyone fails.
+        // Run through various checks and quit the run if any of them fails.
         foreach ( $checks as $check ) {
             if ( ! $this->{ $check }() ) {
                 return;
@@ -136,13 +132,18 @@ class RediPress {
             return false;
         }
         else {
-            // Initialize indexing features, we have everything we need to have here.
+            // Initialize indexes
             add_action( 'init', function() {
-                new Index( $this->connection );
+                // We want post index anyway
+                $this->indexes['posts'] = new PostIndex( $this->connection );
 
                 if ( Settings::get( 'use_user_query' ) ) {
-                    new UserIndex( $this->connection );
+                    $this->indexes['users'] = new UserIndex( $this->connection );
                 }
+
+                // if ( Settings::get( 'use_analytics' ) ) {
+                //     $this->indexes['analytics'] = new UserIndex( $this->connection );
+                // }
             }, 1000 );
 
             return true;
@@ -154,31 +155,36 @@ class RediPress {
      *
      * @return boolean Whether the Redisearch index exists or not.
      */
-    protected function check_index() : bool {
-        $index_name = Settings::get( 'index' );
+    protected function check_indexes() : bool {
+        foreach ( $this->indexes as $type => $info ) {
+            $index = $this->indexes[ $type ];
 
-        $index = $this->connection->raw_command( 'FT.INFO', [ $index_name ] );
+            $name = Settings::get( "${type}_index" );
 
-        if ( $index === 'Unknown Index name' ) {
-            $this->plugin->show_admin_error( __( 'Redisearch index is not created.', 'redipress' ) );
-            return false;
-        }
-        else {
-            $info = Utility::format( $index );
+            $raw_info = $this->connection->raw_command( 'FT.INFO', [ $name ] );
+
+            // Create the index if it doesn't already exist
+            if ( $info === 'Unknown Index name' ) {
+                $index->create();
+
+                $raw_info = $this->connection->raw_command( 'FT.INFO', [ $name ] );
+            }
+
+            $info = Utility::format( $raw_info );
 
             // Require the external API functions
             require_once( __DIR__ . '/API.php' );
 
             if ( (int) $info['num_docs'] === 0 ) {
-                $this->plugin->show_admin_error( __( 'Redisearch index is empty.', 'redipress' ) );
+                $this->plugin->show_admin_error( sprintf( __( 'RediPress: Index "%s" is empty, consider running the indexing function.', 'redipress' ), $type ) );
                 return false;
             }
             else {
                 // Store the index information
-                $this->index_info = $info;
+                $index->set_info( $info );
 
                 // Initialize searching features, we have everything we need to have here.
-                new Search( $this->connection, $this->index_info );
+                new PostQuery( $this->connection, $info );
 
                 return true;
             }

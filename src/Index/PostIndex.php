@@ -28,6 +28,11 @@ class PostIndex extends Index {
     const INDEX_TYPE = 'posts';
 
     /**
+     * The corresponding query class name
+     */
+    const INDEX_QUERY_CLASS = 'PostQuery';
+
+    /**
      * Which mime types are supported for parsing
      *
      * @var array An associative array with file extensions as keys and mime types as values.
@@ -294,7 +299,7 @@ class PostIndex extends Index {
 
         $count = count( $ids );
 
-        if ( defined( 'WP_CLI' ) && WP_CLI ) {
+        if ( defined( 'WP_CLI' ) ) {
             \WP_CLI::success( 'Starting to index a total of ' . $count . ' posts.' );
 
             $progress = \WP_CLI\Utils\make_progress_bar( __( 'Indexing posts', 'redipress' ), $count );
@@ -443,7 +448,7 @@ class PostIndex extends Index {
 
         $new_count = count( $posts );
 
-        if ( defined( 'WP_CLI' ) && WP_CLI ) {
+        if ( defined( 'WP_CLI' ) ) {
             \WP_CLI::success( 'Starting to index a total of ' . $new_count . ' posts. Skipped already existing ' . ( $count - $new_count ) . ' posts.' );
 
             $progress = \WP_CLI\Utils\make_progress_bar( __( 'Indexing posts', 'redipress' ), $new_count );
@@ -901,12 +906,12 @@ class PostIndex extends Index {
         }
         elseif ( \method_exists( $current, 'getSections' ) ) {
             foreach ( $current->getSections() as $section ) {
-                $post_content .= $this->io_factory_get_text( $section );
+                $post_content .= $this->io_factory_get_text( $section ) . "\n";
             }
         }
         elseif ( \method_exists( $current, 'getElements' ) ) {
             foreach ( $current->getElements() as $element ) {
-                $post_content .= $this->io_factory_get_text( $element );
+                $post_content .= $this->io_factory_get_text( $element ) . "\n";
             }
         }
 
@@ -923,7 +928,7 @@ class PostIndex extends Index {
         $content   = null;
         $file_path = \get_attached_file( $post->ID );
 
-        // File doesn't exist locally (wp stateless or similiar)
+        // File doesn't exist locally (wp stateless or similar)
         if ( ! \file_exists( $file_path ) ) {
             $args    = \apply_filters( 'redipress/get_uploaded_media_content/wp_remote_get', [] );
             $request = \wp_remote_get( $post->guid, $args );
@@ -943,17 +948,10 @@ class PostIndex extends Index {
      *
      * @param array      $converted_post         The post in array form.
      * @param string|int $id                     The document ID for RediSearch.
-     * @param string     $language               Possible language parameter for the post.
      * @return mixed
      */
-    public function add_post( array $converted_post, $id, string $language = null ) {
-        $command = [ $this->index . ':' . $id ];
-
-        $raw_command = array_merge( $command, $converted_post );
-
-        $return = $this->client->raw_command( 'HSET', $raw_command );
-
-        return $return;
+    public function add_post( array $converted_post, $id ) {
+        return $this->add_document( $converted_post, $id );
     }
 
     /**
@@ -963,11 +961,7 @@ class PostIndex extends Index {
      * @return mixed
      */
     public function delete_post( $id ) {
-        $return = $this->client->raw_command( 'HDEL', [ $this->index . ':' . $id ] );
-
-        do_action( 'redipress/post_deleted', $id, $return );
-
-        return $return;
+        return $this->delete_document( $id );
     }
 
     /**
@@ -1022,25 +1016,6 @@ class PostIndex extends Index {
             'tamil',
             'turkish',
         ], true );
-    }
-
-    /**
-     * A helper function to use in gathering field names from objects.
-     *
-     * @param SchemaField $field The field object to handle.
-     * @return string
-     */
-    private function return_field_name( SchemaField $field ) : string {
-        return $field->name;
-    }
-
-    /**
-     * Returns the tag separator value through a filter.
-     *
-     * @return string
-     */
-    public static function get_tag_separator() : string {
-        return apply_filters( 'redipress/tag_separator', self::TAG_SEPARATOR );
     }
 
     /**
@@ -1135,32 +1110,6 @@ class PostIndex extends Index {
      */
     public static function indexing() : ?int {
         return self::$indexing;
-    }
-
-    /**
-     * Get RediSearch field type for a field
-     *
-     * @param string $key The key for which to fetch the field type.
-     * @return string|null
-     */
-    protected function get_field_type( string $key ) : ?string {
-        $fields = Utility::format( $this->index_info['fields'] );
-
-        $field_type = array_reduce( $fields, function( $carry = null, $item = null ) use ( $key ) {
-            if ( ! empty( $carry ) ) {
-                return $carry;
-            }
-
-            $name = $item[0];
-
-            if ( $name === $key ) {
-                return Utility::get_value( $item, 'type' );
-            }
-
-            return null;
-        });
-
-        return $field_type;
     }
 
     /**

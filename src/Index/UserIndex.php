@@ -5,7 +5,6 @@
 
 namespace Geniem\RediPress\Index;
 
-use Geniem\RediPress\CLI\Index;
 use Geniem\RediPress\Settings,
     Geniem\RediPress\Entity\SchemaField,
     Geniem\RediPress\Entity\NumericField,
@@ -18,35 +17,17 @@ use Geniem\RediPress\Settings,
 /**
  * RediPress user index class
  */
-class UserIndex {
+class UserIndex extends Index {
 
     /**
-     * RediPress wrapper for the Predis client
-     *
-     * @var Client
+     * The index type
      */
-    protected $client;
+    const INDEX_TYPE = 'users';
 
     /**
-     * Index
-     *
-     * @var string
+     * The corresponding query class name
      */
-    protected $index;
-
-    /**
-     * Names for core fields
-     *
-     * These are stored for filtering purposes.
-     *
-     * @var array
-     */
-    protected $core_schema_fields = [];
-
-    /**
-     * The default tag separator.
-     */
-    protected const TAG_SEPARATOR = '*';
+    const INDEX_QUERY_CLASS = 'PostQuery';
 
     /**
      * Construct the index object
@@ -54,11 +35,7 @@ class UserIndex {
      * @param Client $client Client instance.
      */
     public function __construct( Client $client ) {
-        $settings     = new Settings();
-        $this->client = $client;
-
-        // Get the index name from settings
-        $this->index = $settings->get( 'user_index' );
+        parent::__construct( $client );
 
         // Register AJAX functions
         Rest::register_api_call( '/create_user_index', [ $this, 'create' ], 'POST' );
@@ -92,8 +69,6 @@ class UserIndex {
         add_action( 'profile_update', [ $this, 'upsert' ], 10, 1 );
         add_action( 'user_register', [ $this, 'upsert' ], 10, 1 );
         add_action( 'deleted_user', [ $this, 'delete' ], 10, 1 );
-
-        $this->define_core_fields();
     }
 
     /**
@@ -108,22 +83,13 @@ class UserIndex {
     }
 
     /**
-     * Drop existing index.
-     *
-     * @return mixed
-     */
-    public function drop() {
-        return $this->client->raw_command( 'FT.DROP', [ $this->index ] );
-    }
-
-    /**
      * Define core fields for the RediSearch schema
      *
-     * @return void
+     * @return array
      */
-    public function define_core_fields() {
+    public function define_core_fields() : array {
         // Define the WordPress core fields
-        $this->core_schema_fields = [
+        $core_schema_fields = [
             new TextField([
                 'name'     => 'user_id',
                 'sortable' => true,
@@ -178,48 +144,13 @@ class UserIndex {
         ];
 
         if ( \is_multisite() ) {
-            $this->core_schema_fields[] = new TagField([
+            $core_schema_fields[] = new TagField([
                 'name'      => 'blogs',
                 'separator' => self::get_tag_separator(),
             ]);
         }
-    }
 
-    /**
-     * Create a RediSearch index.
-     *
-     * @return mixed
-     */
-    public function create() {
-        // Filter to add possible more fields.
-        $schema_fields = apply_filters( 'redipress/user_schema_fields', $this->core_schema_fields );
-
-        // Remove possible duplicate fields
-        $schema_fields = array_unique( $schema_fields );
-
-        $raw_schema = array_reduce( $schema_fields,
-            /**
-             * Convert SchemaField objects into raw arrays
-             *
-             * @param array       $carry The array to gather.
-             * @param SchemaField $item  The schema to convert.
-             *
-             * @return array
-             */
-            function( ?array $carry, SchemaField $item = null ) : array {
-                return array_merge( $carry ?? [], $item->get() ?? [] );
-            }
-        );
-
-        $raw_schema = apply_filters( 'redipress/user_raw_schema', array_merge( [ $this->index, 'SCHEMA' ], $raw_schema ) );
-
-        $return = $this->client->raw_command( 'FT.CREATE', $raw_schema );
-
-        do_action( 'redipress/user_schema_created', $return, $schema_fields, $raw_schema );
-
-        $this->maybe_write_to_disk( 'user_schema_created' );
-
-        return $return;
+        return $core_schema_fields;
     }
 
     /**
@@ -485,35 +416,6 @@ class UserIndex {
     }
 
     /**
-     * Get RediSearch field type for a field
-     *
-     * @param string $key The key for which to fetch the field type.
-     * @return string|null
-     */
-    protected function get_field_type( string $key ) : ?string {
-        $schema     = $this->client->raw_command( 'FT.INFO', [ $this->index ] );
-        $index_info = Utility::format( $schema );
-
-        $fields = Utility::format( $index_info['fields'] );
-
-        $field_type = array_reduce( $fields, function( $carry = null, $item = null ) use ( $key ) {
-            if ( ! empty( $carry ) ) {
-                return $carry;
-            }
-
-            $name = $item[0];
-
-            if ( $name === $key ) {
-                return Utility::get_value( $item, 'type' );
-            }
-
-            return null;
-        });
-
-        return $field_type;
-    }
-
-    /**
      * Get user roles for site
      *
      * @param int $user_id User.
@@ -548,23 +450,7 @@ class UserIndex {
      * @return mixed
      */
     public function add_user( array $converted_user, $id ) {
-        $command = [ $this->index, $id, 1, 'REPLACE' ];
-
-        $raw_command = array_merge( $command, [ 'FIELDS' ], $converted_user );
-
-        $return = $this->client->raw_command( 'FT.ADD', $raw_command );
-
-        $this->client->raw_command(
-            'FT.ADDHASH',
-            [
-                $this->index,
-                $id,
-                1,
-                'REPLACE',
-            ]
-        );
-
-        return $return;
+        return $this->add_document( $converted_user, $id );
     }
 
     /**
@@ -574,56 +460,6 @@ class UserIndex {
      * @return mixed
      */
     public function delete_user( $id ) {
-        $return = $this->client->raw_command( 'FT.DEL', [ $this->index, $id, 'DD' ] );
-
-        do_action( 'redipress/user_deleted', $id, $return );
-
-        return $return;
-    }
-
-    /**
-     * Write the index to the disk if the setting is on.
-     *
-     * @param mixed $args Special arguments to give to the filter if needed.
-     *
-     * @return mixed
-     */
-    public function maybe_write_to_disk( $args = null ) {
-        $settings = new Settings();
-
-        // Allow overriding the setting via a filter
-        $filter_writing = apply_filters( 'redipress/write_to_disk', null, $args );
-
-        if ( $filter_writing ?? $settings->get( 'persist_index' ) ) {
-            return $this->write_to_disk();
-        }
-    }
-
-    /**
-     * Write the index to the disk to persist it.
-     *
-     * @return mixed
-     */
-    public function write_to_disk() {
-        return $this->client->raw_command( 'SAVE', [] );
-    }
-
-    /**
-     * A helper function to use in gathering field names from objects.
-     *
-     * @param SchemaField $field The field object to handle.
-     * @return string
-     */
-    private function return_field_name( SchemaField $field ) : string {
-        return $field->name;
-    }
-
-    /**
-     * Returns the tag separator value through a filter.
-     *
-     * @return string
-     */
-    public static function get_tag_separator() : string {
-        return apply_filters( 'redipress/tag_separator', self::TAG_SEPARATOR );
+        return $this->delete_document( $id );
     }
 }

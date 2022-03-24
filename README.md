@@ -38,8 +38,8 @@ RediPress is also built with extensive amount of hooks and filters to customize 
 
 
 ## Requirements
-- Redis + [RediSearch](https://oss.redislabs.com/redisearch/index.html) module. At least version 1.6.0 of RediSearch is required. The plugin is tested up to version 1.6.1.
-- WordPress version 5.0.0 or later. The plugin could work with earlier versions as well, but it has not been tested.
+- Redis + [RediSearch](https://oss.redislabs.com/redisearch/index.html) module. At least version 2.2.1 of RediSearch is required. The plugin is tested up to version 2.4.2.
+- WordPress version 5.9.0 or later. The plugin could work with earlier versions as well, but it has not been tested.
 
 ## Installation and initialization
 1. Install Redis with RediSearch and ensure it can be connected from the WordPress installation.
@@ -62,6 +62,44 @@ Unlike some other similar query-speeding plugins, you don't need to add any para
 ### Extra parameters
 
 There are some extra parameters that can be used alongside the regular parameters.
+
+#### Geolocation
+
+If you have defined geolocation fields for your index, you can query them easily with `WP_Query`. The query should be placed on the root level of the `WP_Query` arguments array, and look like this:
+
+```php
+'geolocation'    => [
+    'field'    => 'location',
+    'compare'  => '<',
+    'lat'      => 59.6,
+    'lng'      => 16.5,
+    'distance' => 100000,
+],
+```
+
+- `field` is the name of the field you have defined in the index.
+- `compare` is either `<` or `>` depending on whether you want to have results closer to or farther away from your reference point.
+- `lat` and `lng` are the coordinates of the reference point to which the distance is calculated.
+- `distance` is the distance in *meters* from the reference point to which the values are compared.
+
+##### Sorting
+
+If you want to sort the `WP_Query` results by a distance to certain coordinates, you can do so by defining the `WP_Query` `orderby` parameter like this:
+
+```php
+'orderby' => [
+    [
+        'orderby' => 'location',
+        'order'   => 'ASC',
+        'compare' => [
+            'lat' => 59.6,
+            'lng' => 16.5,
+        ]
+    ]
+]
+```
+
+This will sort the query results by the distance to the given coordinates.
 
 #### Weights
 
@@ -237,6 +275,7 @@ RediPress supports Polylang out of the box. Other multi-language plugins may req
 If you run into problems you can try dropping all indeces by running `wp redipress drop`. After this re-index.
 
 ## WP-CLI
+
 ### command: wp redipress delete
 
 description: Delete posts from the index by the arguments.

@@ -6,8 +6,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [2.0-beta]
 
+### Added
+- Geolocation field functionality for both posts and users.
+
 ### Changed
 - The required RediSearch version is from now on at least 2.2.1.
+- Ability to drop and create the index without having to delete all data first.
 
 ## [1.14.0] - 2021-12-02
 

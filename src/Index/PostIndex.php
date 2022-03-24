@@ -30,7 +30,7 @@ class PostIndex extends Index {
     /**
      * The corresponding query class name
      */
-    const INDEX_QUERY_CLASS = 'PostQuery';
+    const INDEX_QUERY_CLASS = '\\Geniem\\RediPress\\PostQuery';
 
     /**
      * Which mime types are supported for parsing
@@ -72,7 +72,7 @@ class PostIndex extends Index {
         Rest::register_api_call( '/create_index', [ $this, 'create' ], 'POST' );
         Rest::register_api_call( '/drop_index', [ $this, 'drop' ], 'DELETE' );
         Rest::register_api_call( '/schedule_index_all', [ $this, 'schedule_partial_index' ], 'POST', [
-            'offset'    => [
+            'offset' => [
                 'description' => 'Offset to start indexing items from',
                 'type'        => 'integer',
                 'required'    => false,
@@ -88,8 +88,7 @@ class PostIndex extends Index {
         add_filter( 'redipress/cli/index_missing', [ $this, 'index_missing' ], 50, 2 );
         add_action( 'redipress/cli/index_single', [ $this, 'index_single' ], 50, 1 );
         add_filter( 'redipress/index/posts/create', [ $this, 'create' ], 50, 1 );
-        add_filter( 'redipress/drop_post_index', [ $this, 'drop' ], 50, 2 );
-
+        add_filter( 'redipress/index/posts/drop', [ $this, 'drop' ], 50, 2 );
         // Register external actions
         add_action( 'redipress/delete_post', [ $this, 'delete_post' ], 50, 1 );
         add_action( 'redipress/index_post', [ $this, 'upsert' ], 50, 3 );
@@ -618,7 +617,7 @@ class PostIndex extends Index {
             $this->index_info = Utility::format( $schema );
         }
 
-        $fields = Utility::get_schema_fields( $this->index_info['fields'] ?? [] );
+        $fields = Utility::get_schema_fields( $this->index_info['attributes'] ?? [] );
 
         // Gather field names from hardcoded field for later.
         $core_field_names = array_map( [ $this, 'return_field_name' ], $this->core_schema_fields );
@@ -642,8 +641,8 @@ class PostIndex extends Index {
                 $value = (int) $value;
             }
 
-            // Escape the string in all but numeric and tag fields
-            if ( ! in_array( $type, [ 'NUMERIC', 'TAG' ] ) ) {
+            // Escape the string in all but numeric, geo and tag fields
+            if ( ! in_array( $type, [ 'NUMERIC', 'GEO', 'TAG' ] ) ) {
                 $value = $this->escape_string( $value );
             }
 
@@ -1016,91 +1015,6 @@ class PostIndex extends Index {
             'tamil',
             'turkish',
         ], true );
-    }
-
-    /**
-     * Store additional data for indexing from outside
-     *
-     * @param mixed  $post_id The post ID.
-     * @param string $field   The field name.
-     * @param mixed  $data    The data.
-     * @param string $method  The method to use with multiple values. Defaults to "use_last". Possibilites: use_last, concat, concat_with_spaces, array_merge, sum, custom (needs filter).
-     * @return void
-     */
-    public static function store( $post_id, string $field, $data, string $method = 'use_last' ) : void {
-        if ( ! isset( self::$additional[ $post_id ] ) ) {
-            self::$additional[ $post_id ] = [];
-        }
-
-        $original = self::$additional[ $post_id ][ $field ] ?? '';
-
-        switch ( $method ) {
-            case 'use_last':
-                if ( is_array( $data ) ) {
-                    $data = array_pop( $data );
-                }
-
-                self::$additional[ $post_id ][ $field ] = $data;
-                break;
-            case 'concat':
-                if ( is_array( $data ) ) {
-                    $data = implode( '', $data );
-                }
-
-                self::$additional[ $post_id ][ $field ] = $original . $data;
-                break;
-            case 'concat_with_spaces':
-                if ( is_array( $data ) ) {
-                    $data = implode( ' ', $data );
-                }
-
-                self::$additional[ $post_id ][ $field ] = $original . ' ' . $data;
-                break;
-            case 'array_merge':
-                if ( ! is_array( $original ) ) {
-                    if ( empty( $original ) ) {
-                        $original = [];
-                    }
-                    else {
-                        $original = [ $original ];
-                    }
-                }
-
-                if ( ! is_array( $data ) ) {
-                    $data = [ $data ];
-                }
-
-                self::$additional[ $post_id ][ $field ] = array_merge( $original, $data );
-                break;
-            case 'sum':
-                if ( is_array( $data ) ) {
-                    $data = array_sum( $data );
-                }
-
-                self::$additional[ $post_id ][ $field ] = $original + $data;
-                break;
-            default:
-                self::$additional[ $post_id ][ $field ] = apply_filters( "redipress/additional_field/method/$method", $data, $original );
-                break;
-        }
-    }
-
-    /**
-     * Get additional data for a post by field name
-     *
-     * @param mixed   $post_id The post ID.
-     * @param string  $field   The field name.
-     * @param boolean $purge   Whether to purge the data after reading.
-     * @return mixed
-     */
-    public static function get( $post_id, string $field, bool $purge = false ) {
-        $value = self::$additional[ $post_id ][ $field ] ?? null;
-
-        if ( $value && ( $purge || defined( 'WP_IMPORTING' ) ) ) {
-            self::$additional[ $post_id ][ $field ] = null;
-        }
-
-        return $value;
     }
 
     /**

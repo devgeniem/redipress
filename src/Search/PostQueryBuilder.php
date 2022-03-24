@@ -71,11 +71,13 @@ class PostQueryBuilder extends QueryBuilder {
         'order'               => null,
         'orderby'             => null,
         'groupby'             => null,
+        // phpcs:ignore
         'posts_per_page'      => null,
         'offset'              => null,
         'meta_key'            => null,
         'weight'              => null,
         'reduce_functions'    => null,
+        'geolocation'         => null,
     ];
 
     /**
@@ -148,37 +150,6 @@ class PostQueryBuilder extends QueryBuilder {
         }
 
         return parent::get_query();
-    }
-
-    /**
-     * Return the possible apply clauses.
-     *
-     * @return array
-     */
-    public function get_applies() : array {
-        if ( ! empty( $this->applies ) ) {
-            return array_merge( ...$this->applies );
-        }
-        else {
-            return [];
-        }
-    }
-
-    /**
-     * Return the possible filters
-     *
-     * @return array
-     */
-    public function get_filters() : array {
-        if ( empty( $this->filters) ) {
-            return [];
-        }
-        else {
-            return [
-                'FILTER',
-                $this->filters,
-            ];
-        }
     }
 
     /**
@@ -640,16 +611,16 @@ class PostQueryBuilder extends QueryBuilder {
 
         $queries = $this->create_date_query( $this->query->date_query->queries );
 
-        $this->applies = array_map( function( $apply ) {
+        $this->applies = array_merge( $this->applies, array_map( function( $apply ) {
             return [
                 'APPLY',
                 $apply['function'] . '(@' . $apply['field'] . ')',
                 'AS',
                 'redipress_' . $apply['as'],
             ];
-        }, $queries['applies'] );
+        }, $queries['applies'] ) );
 
-        $this->filters = $queries['filters'];
+        $this->filters = array_merge( $this->filters, $queries['filters'] );
 
         return '';
     }
@@ -913,8 +884,16 @@ class PostQueryBuilder extends QueryBuilder {
                     $clause['orderby'] = 'post_' . strtolower( $clause['orderby'] );
                     break;
                 default:
+                    // If we have a distance clause, just pass it on
+                    if (
+                        is_array( $clause['compare'] ) &&
+                        ! empty( $clause['compare']['lat'] ) &&
+                        ! empty( $clause['compare']['lng'] )
+                    ) {
+                        return true;
+                    }
                     // The value can also be a named meta clause
-                    if ( ! empty( $this->meta_clauses[ $clause['orderby'] ] ) ) {
+                    elseif ( ! empty( $this->meta_clauses[ $clause['orderby'] ] ) ) {
                         $clause['orderby'] = $this->meta_clauses[ $clause['orderby'] ];
                     }
                     else {
@@ -933,7 +912,7 @@ class PostQueryBuilder extends QueryBuilder {
             }
 
             // If we don't have the field in the schema, it's a no-go as well.
-            $fields = array_column( $this->index_info['fields'], 0 );
+            $fields = array_column( $this->index_info['attributes'], 1 );
 
             if ( ! in_array( $clause['orderby'], $fields, true ) ) {
                 return false;
@@ -947,7 +926,7 @@ class PostQueryBuilder extends QueryBuilder {
             if ( ! $clause ) {
                 return false;
             }
-            else if ( $clause === true ) {
+            elseif ( $clause === true ) {
                 $this->sortby = [];
                 return true;
             }
@@ -956,6 +935,25 @@ class PostQueryBuilder extends QueryBuilder {
         $this->sortby = array_merge(
             [ 'SORTBY', ( count( $sortby ) * 2 ) ],
             array_reduce( $sortby, function( $carry, $item ) {
+                // Distance clauses need a special treatment
+                if (
+                    is_array( $item['compare'] ) &&
+                    ! empty( $item['compare']['lat'] ) &&
+                    ! empty( $item['compare']['lng'] )
+                ) {
+                    $field = $item['orderby'];
+                    $lat   = $item['compare']['lat'];
+                    $lng   = $item['compare']['lng'];
+
+                    $this->applies[] = [
+                        'APPLY',
+                        "geodistance(@$field, \"$lat,$lng\")",
+                        'AS',
+                        'redipress__distance_order',
+                    ];
+
+                    $item['orderby'] = 'redipress__distance_order';
+                }
 
                 // Store to return fields array, these need to be in sync with sortby params.
                 $this->return_fields[] = $item['orderby'];

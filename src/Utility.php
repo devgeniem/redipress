@@ -99,7 +99,7 @@ class Utility {
      */
     public static function get_schema_fields( array $schema = [] ) : array {
         return array_map( function( $field ) : ?string {
-            return $field[0] ?? null;
+            return $field[1] ?? null;
         }, $schema );
     }
 

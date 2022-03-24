@@ -16,9 +16,9 @@ use Geniem\RediPress\Settings,
 abstract class Index {
 
     /**
-     * The index type
+     * Placeholder to suppress linter warnings
      */
-    const INDEX_TYPE = self::INDEX_TYPE;
+    const INDEX_TYPE = 'default';
 
     /**
      * The Redis client wrapper
@@ -85,7 +85,7 @@ abstract class Index {
         $settings     = new Settings();
         $this->client = $client;
 
-        $index_type = self::INDEX_TYPE;
+        $index_type = static::INDEX_TYPE;
 
         // Get the index name from settings
         $this->index = $settings->get( "${index_type}_index" );
@@ -104,7 +104,7 @@ abstract class Index {
      * @return mixed
      */
     public function create() {
-        $index_type = self::INDEX_TYPE;
+        $index_type = static::INDEX_TYPE;
 
         [ $options, $schema_fields, $raw_schema ] = $this->get_schema_fields();
 
@@ -121,13 +121,16 @@ abstract class Index {
     /**
      * Drop existing index.
      *
-     * @param boolean $delete_data Whether to delete data in addition to the index or not.
+     * @param mixed $not_in_use Not in use.
+     * @param array $assoc_args Possible additional arguments.
      * @return mixed
      */
-    public function drop( bool $delete_data = false ) {
-        $args = $delete_data ? [ 'DD' ] : [];
+    public function drop( $not_in_use, ?array $assoc_args = [] ) {
+        $args = isset( $assoc_args['delete_data'] ) ? [ 'DD' ] : [];
 
-        return $this->client->raw_command( 'FT.DROPINDEX', [ $this->index, ...$args ] );
+        $return = $this->client->raw_command( 'FT.DROPINDEX', [ $this->index, ...$args ] );
+
+        return $return;
     }
 
     /**
@@ -178,7 +181,7 @@ abstract class Index {
      * @return array
      */
     public function get_schema_fields() : array {
-        $index_type = self::INDEX_TYPE;
+        $index_type = static::INDEX_TYPE;
 
         // Filter to add possible more fields.
         $schema_fields = apply_filters( "redipress/index/${index_type}/schema_fields", $this->core_schema_fields );
@@ -317,16 +320,15 @@ abstract class Index {
      * @return string|null
      */
     protected function get_field_type( string $key ) : ?string {
-        $fields = Utility::format( $this->index_info['fields'] );
+        $fields = Utility::format( $this->index_info['attributes'] );
+
 
         $field_type = array_reduce( $fields, function( $carry = null, $item = null ) use ( $key ) {
             if ( ! empty( $carry ) ) {
                 return $carry;
             }
 
-            $name = $item[0];
-
-            if ( $name === $key ) {
+            if ( $item[1] === $key ) {
                 return Utility::get_value( $item, 'type' );
             }
 
@@ -353,5 +355,90 @@ abstract class Index {
      */
     public function get_info() : array {
         return $this->index_info;
+    }
+
+    /**
+     * Store additional data for indexing from outside
+     *
+     * @param mixed  $post_id The post ID.
+     * @param string $field   The field name.
+     * @param mixed  $data    The data.
+     * @param string $method  The method to use with multiple values. Defaults to "use_last". Possibilites: use_last, concat, concat_with_spaces, array_merge, sum, custom (needs filter).
+     * @return void
+     */
+    public static function store( $post_id, string $field, $data, string $method = 'use_last' ) : void {
+        if ( ! isset( self::$additional[ $post_id ] ) ) {
+            self::$additional[ $post_id ] = [];
+        }
+
+        $original = self::$additional[ $post_id ][ $field ] ?? '';
+
+        switch ( $method ) {
+            case 'use_last':
+                if ( is_array( $data ) ) {
+                    $data = array_pop( $data );
+                }
+
+                self::$additional[ $post_id ][ $field ] = $data;
+                break;
+            case 'concat':
+                if ( is_array( $data ) ) {
+                    $data = implode( '', $data );
+                }
+
+                self::$additional[ $post_id ][ $field ] = $original . $data;
+                break;
+            case 'concat_with_spaces':
+                if ( is_array( $data ) ) {
+                    $data = implode( ' ', $data );
+                }
+
+                self::$additional[ $post_id ][ $field ] = $original . ' ' . $data;
+                break;
+            case 'array_merge':
+                if ( ! is_array( $original ) ) {
+                    if ( empty( $original ) ) {
+                        $original = [];
+                    }
+                    else {
+                        $original = [ $original ];
+                    }
+                }
+
+                if ( ! is_array( $data ) ) {
+                    $data = [ $data ];
+                }
+
+                self::$additional[ $post_id ][ $field ] = array_merge( $original, $data );
+                break;
+            case 'sum':
+                if ( is_array( $data ) ) {
+                    $data = array_sum( $data );
+                }
+
+                self::$additional[ $post_id ][ $field ] = $original + $data;
+                break;
+            default:
+                self::$additional[ $post_id ][ $field ] = apply_filters( "redipress/additional_field/method/$method", $data, $original );
+                break;
+        }
+    }
+
+    /**
+     * Get additional data for a post by field name
+     *
+     * @param mixed   $post_id The post ID.
+     * @param string  $field   The field name.
+     * @param boolean $purge   Whether to purge the data after reading.
+     * @return mixed
+     */
+    public static function get( $post_id, string $field, bool $purge = false ) {
+        $value = self::$additional[ $post_id ][ $field ] ?? null;
+
+        if ( $value && ( $purge || defined( 'WP_IMPORTING' ) ) ) {
+            self::$additional[ $post_id ][ $field ] = null;
+        }
+
+        return $value;
     }
 }

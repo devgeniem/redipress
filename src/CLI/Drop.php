@@ -33,32 +33,34 @@ class Drop implements Command {
      * Drop the index
      *
      * @param string $index The index to delete.
+     * @param array $assoc_args The associative args.
      * @throws \Exception If index type is not supported.
      * @return bool
      */
     public function drop_index( string $index, array $assoc_args ) {
         switch ( $index ) {
             case 'posts':
-                $return = apply_filters( 'redipress/drop_post_index', null, $assoc_args );
+                $return = apply_filters( 'redipress/index/posts/drop', 'method not found', $assoc_args );
                 break;
             case 'users':
-                $return = apply_filters( 'redipress/drop_user_index', null, $assoc_args );
+                $return = apply_filters( 'redipress/index/users/drop', 'method not found', $assoc_args );
                 break;
             default:
                 throw new \Exception( 'Index type ' . $index . ' is not supported.' );
                 break;
         }
 
-        switch ( $return ) {
-            case true:
-                WP_CLI::success( 'Index deleted.' );
-                return true;
-            case 'Unknown Index name':
-                WP_CLI::error( 'There was no index to delete or it was created under another name.' );
-                return false;
-            default:
-                WP_CLI::error( 'Unprecetended response: ' . $return );
-                return false;
+        if ( $return === true ) {
+            \WP_CLI::success( 'Index deleted.' );
+            return true;
+        }
+        elseif ( $return === 'Unknown Index name' ) {
+            \WP_CLI::error( 'There was no index to delete or it was created under another name.' );
+            return false;
+        }
+        else {
+            \WP_CLI::error( 'Unprecetended response: ' . $return );
+            return false;
         }
     }
 

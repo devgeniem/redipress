@@ -69,16 +69,18 @@ class RediPress {
     public function init() {
         // List of check methods.
         $checks = [
-            'connect',
-            'check_redisearch',
-            'create_indexes',
-            'check_schema_integrity',
+            'connect'                => '',
+            'check_redisearch'       => '',
+            'check_indexes'          => '',
+            'check_schema_integrity' => 'no_cli',
         ];
 
         // Run through various checks and quit the run if any of them fails.
-        foreach ( $checks as $check ) {
-            if ( ! $this->{ $check }() ) {
-                return;
+        foreach ( $checks as $check => $cli ) {
+            if ( $cli === '' || ( ! defined( 'WP_CLI' ) && $cli === 'no_cli' ) ) {
+                if ( ! $this->{ $check }() ) {
+                    return;
+                }
             }
         }
 
@@ -133,18 +135,12 @@ class RediPress {
         }
         else {
             // Initialize indexes
-            add_action( 'init', function() {
-                // We want post index anyway
-                $this->indexes['posts'] = new PostIndex( $this->connection );
+            // We want post index anyway
+            $this->indexes['posts'] = new PostIndex( $this->connection );
 
-                if ( Settings::get( 'use_user_query' ) ) {
-                    $this->indexes['users'] = new UserIndex( $this->connection );
-                }
-
-                // if ( Settings::get( 'use_analytics' ) ) {
-                //     $this->indexes['analytics'] = new UserIndex( $this->connection );
-                // }
-            }, 1000 );
+            if ( Settings::get( 'use_user_query' ) ) {
+                $this->indexes['users'] = new UserIndex( $this->connection );
+            }
 
             return true;
         }
@@ -164,10 +160,9 @@ class RediPress {
             $raw_info = $this->connection->raw_command( 'FT.INFO', [ $name ] );
 
             // Create the index if it doesn't already exist
-            if ( $info === 'Unknown Index name' ) {
-                $index->create();
-
-                $raw_info = $this->connection->raw_command( 'FT.INFO', [ $name ] );
+            if ( $raw_info === 'Unknown Index name' ) {
+                $this->plugin->show_admin_error( sprintf( __( 'RediPress: Index "%s" does not exist.', 'redipress' ), $type ) );
+                return false;
             }
 
             $info = Utility::format( $raw_info );
@@ -183,12 +178,13 @@ class RediPress {
                 // Store the index information
                 $index->set_info( $info );
 
-                // Initialize searching features, we have everything we need to have here.
-                new PostQuery( $this->connection, $info );
-
-                return true;
+                // Initialize the query class, we have everything we need to have here.
+                $class_name = $index::INDEX_QUERY_CLASS;
+                new $class_name( $this->connection, $info );
             }
         }
+
+        return true;
     }
 
     /**
@@ -198,58 +194,61 @@ class RediPress {
      */
     protected function check_schema_integrity() : bool {
         add_action( 'wp_loaded',  function() {
-            $index_name = Settings::get( 'index' );
+            foreach ( $this->indexes as $index_type => $info ) {
+                $index_name = Settings::get( "${index_type}_index" );
 
-            $raw_info = $this->connection->raw_command( 'FT.INFO', [ $index_name ] );
+                $raw_info = $this->connection->raw_command( 'FT.INFO', [ $index_name ] );
 
-            $info = Utility::format( $raw_info );
+                $info = Utility::format( $raw_info );
 
-            $index = apply_filters( 'redipress/index_instance', null );
+                $index = apply_filters( "redipress/${index_type}_index_instance", null );
 
-            [ $options, $schema_fields, $raw_schema ] = $index->get_schema_fields();
+                [ $options, $schema_fields, $raw_schema ] = $index->get_schema_fields();
 
-            $fields = array_map( function( $field ) {
-                // Remove some fields so that we can compare the output to our own schema
-                // definitions.
-                unset( $field[0] );
-                unset( $field[1] );
-                unset( $field[2] );
-                unset( $field[4] );
+                $fields = array_map( function( $field ) {
+                    // Remove some fields so that we can compare the output to our own schema
+                    // definitions.
+                    unset( $field[0] );
+                    unset( $field[1] );
+                    unset( $field[2] );
+                    unset( $field[4] );
 
-                return array_values( $field );
-            }, $info['attributes'] );
+                    return array_values( $field );
+                }, $info['attributes'] );
 
-            // Sort alphabetically by field name.
-            usort( $fields, fn( $a, $b ) => $a[0] <=> $b[0] );
+                // Sort alphabetically by field name.
+                usort( $fields, fn( $a, $b ) => $a[0] <=> $b[0] );
 
-            // Convert everything to strings.
-            $schema = array_map( function( $field ) {
-                return array_map( 'strval', $field->get() );
-            }, $schema_fields );
+                // Convert everything to strings.
+                $schema = array_map( function( $field ) {
+                    return array_map( 'strval', $field->get() );
+                }, $schema_fields );
 
-            // Sort alphabetically by field name.
-            usort( $schema, fn( $a, $b ) => $a[0] <=> $b[0] );
+                // Sort alphabetically by field name.
+                usort( $schema, fn( $a, $b ) => $a[0] <=> $b[0] );
 
-            $diff = array_diff(
-                \array_map( 'json_encode', $schema ),
-                \array_map( 'json_encode', $fields ),
-            );
+                $diff = array_diff(
+                    \array_map( 'json_encode', $schema ),
+                    \array_map( 'json_encode', $fields ),
+                );
 
-            if ( count( $diff ) > 0 ) {
-                array_map( function( $json ) {
-                    $field = json_decode( $json );
+                if ( count( $diff ) > 0 ) {
+                    array_map( function( $json ) use ( $index_type ) {
+                        $field = json_decode( $json );
 
-                    $this->plugin->show_admin_error(
-                        sprintf(
-                            // translators: %s is the field name.
-                            __(
-                                'Redisearch schema does not contain field %s which has been defined in the theme, or its definition has changed. Consider recreating the schema.',
-                                'redipress'
-                            ),
-                            $field[0],
-                        )
-                    );
-                }, $diff );
+                        $this->plugin->show_admin_error(
+                            sprintf(
+                                // translators: %s is the field name.
+                                __(
+                                    'RediSearch %1$s schema does not contain field %2$s which has been defined in the theme, or its definition has changed. Consider recreating the schema.',
+                                    'redipress'
+                                ),
+                                $index_type,
+                                $field[0],
+                            )
+                        );
+                    }, $diff );
+                }
             }
         }, 1000 );
 

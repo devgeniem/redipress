@@ -27,7 +27,7 @@ class UserIndex extends Index {
     /**
      * The corresponding query class name
      */
-    const INDEX_QUERY_CLASS = 'PostQuery';
+    const INDEX_QUERY_CLASS = '\\Geniem\\RediPress\\UserQuery';
 
     /**
      * Construct the index object
@@ -58,8 +58,8 @@ class UserIndex extends Index {
         add_action( 'redipress/cli/index_all_users', [ $this, 'index_all' ], 50, 0 );
         add_action( 'redipress/cli/index_missing_users', [ $this, 'index_missing' ], 50, 0 );
         add_action( 'redipress/cli/index_single_user', [ $this, 'index_single' ], 50, 1 );
-        add_filter( 'redipress/create_user_index', [ $this, 'create' ], 50, 1 );
-        add_filter( 'redipress/drop_user_index', [ $this, 'drop' ], 50, 1 );
+        add_filter( 'redipress/index/users/create', [ $this, 'create' ], 50, 1 );
+        add_filter( 'redipress/index/users/drop', [ $this, 'drop' ], 50, 1 );
 
         // Register external actions
         add_action( 'redipress/delete_user', [ $this, 'delete_user' ], 50, 1 );
@@ -287,13 +287,13 @@ class UserIndex extends Index {
         // Get the RediSearch schema for possible additional fields
         $schema = $this->client->raw_command( 'FT.INFO', [ $this->index ] );
         $schema = Utility::format( $schema );
-        $fields = Utility::get_schema_fields( $schema['fields'] ?? [] );
+        $fields = Utility::get_schema_fields( $schema['attributes'] ?? [] );
 
         // Gather field names from hardcoded field for later.
         $core_field_names  = array_map( [ $this, 'return_field_name' ], $this->core_schema_fields );
         $additional_fields = array_diff( $fields, $core_field_names );
         $additional_values = array_map( function( $field ) use ( $user ) {
-            $value = \Geniem\RediPress\Index\Index::get( 'user_' . $user->ID, $field );
+            $value = self::get( 'user_' . $user->ID, $field );
 
             $value = apply_filters( 'redipress/additional_user_field/' . $user->ID . '/' . $field, $value, $user );
             $value = apply_filters( 'redipress/additional_user_field/' . $field, $value, $user->ID, $user );
@@ -317,7 +317,7 @@ class UserIndex extends Index {
             }
 
             // Escape dashes in all but numeric fields
-            if ( $type !== 'NUMERIC' ) {
+            if ( ! in_array( $type, [ 'NUMERIC', 'GEO', 'TAG' ] ) ) {
                 $value = $this->escape_string( $value );
             }
 

@@ -79,7 +79,7 @@ class Search {
         add_filter( 'posts_pre_query', [ $this, 'posts_pre_query' ], 10, 2 );
 
         // Reverse filter for getting the Search instance.
-        add_filter( 'redipress/search_instance', function( $value ) {
+        add_filter( 'redipress/search_instance', function ( $value ) {
             return $this;
         }, 1, 1 );
     }
@@ -97,6 +97,7 @@ class Search {
      * The search function itself
      *
      * @param \WP_Query $query The WP_Query object for the search.
+     *
      * @return mixed Search results.
      */
     public function search( \WP_Query $query ) {
@@ -168,7 +169,7 @@ class Search {
             }
 
             // Form the return field clause
-            $return_fields = array_map( function( string $field ) use ( $reduce_functions ) : array {
+            $return_fields = array_map( function ( string $field ) use ( $reduce_functions ) : array {
                 $return = [
                     'REDUCE',
                     $reduce_functions[ $field ] ?? 'FIRST_VALUE',
@@ -185,8 +186,12 @@ class Search {
             $command = array_merge(
                 [ $this->index, $search_query_string, 'INFIELDS', count( $infields ) ],
                 $infields,
-                array_merge( [ 'LOAD', count( $load ) ], array_map( function( $l ) { return '@' . $l; }, $load ) ),
-                array_merge( [ 'GROUPBY', count( $groupby ) ], array_map( function( $g ) { return '@' . $g; }, $groupby ) ),
+                array_merge( [ 'LOAD', count( $load ) ], array_map( function ( $l ) {
+                    return '@' . $l;
+                }, $load ) ),
+                array_merge( [ 'GROUPBY', count( $groupby ) ], array_map( function ( $g ) {
+                    return '@' . $g;
+                }, $groupby ) ),
                 array_reduce( $return_fields, 'array_merge', [] ),
                 $applies,
                 $filters,
@@ -205,9 +210,9 @@ class Search {
             }
 
             // Clean the aggregate output to match usual key-value pairs
-            $results = array_map( function( $result ) {
+            $results = array_map( function ( $result ) {
                 if ( is_array( $result ) ) {
-                    return array_map( function( $item ) {
+                    return array_map( function ( $item ) {
                         // If we are dealing with an array, just turn it into a string
                         if ( is_array( $item ) ) {
                             return implode( ' ', $item );
@@ -223,14 +228,14 @@ class Search {
             }, $results );
 
             // Store the search query string so that in can be debugged easily via WP_Query.
-            $query->redisearch_query = 'FT.AGGREGATE ' . implode( ' ', array_map( function( $comm ) {
-                if ( \strpos( $comm, ' ' ) !== false ) {
-                    return '"' . $comm . '"';
-                }
-                else {
-                    return $comm;
-                }
-            }, $command ) );
+            $query->redisearch_query = 'FT.AGGREGATE ' . implode( ' ', array_map( function ( $comm ) {
+                    if ( \strpos( $comm, ' ' ) !== false ) {
+                        return '"' . $comm . '"';
+                    }
+                    else {
+                        return $comm;
+                    }
+                }, $command ) );
         }
         else {
             /**
@@ -256,6 +261,16 @@ class Search {
                 $scorer_array,
             );
 
+            // Get whether we want to explain weights in the debugger.
+            $explain_weights = apply_filters( 'redipress/explain_weights', '', $query );
+
+            if ( isset( $explain_weights ) && $explain_weights ) {
+                $query->using_weighting = true;
+
+                // Add the extra commands to the query for scoring.
+                $command = array_merge( $command, [ 'WITHSCORES', 'EXPLAINSCORE' ] );
+            }
+
             // Run the command itself. FT.AGGREGATE is used to allow multiple sortby queries
             $results = $this->client->raw_command(
                 'FT.SEARCH',
@@ -263,14 +278,14 @@ class Search {
             );
 
             // Store the search query string so that in can be debugged easily via WP_Query.
-            $query->redisearch_query = 'FT.SEARCH ' . implode( ' ', array_map( function( $comm ) {
-                if ( \strpos( $comm, ' ' ) !== false ) {
-                    return '"' . $comm . '"';
-                }
-                else {
-                    return $comm;
-                }
-            }, $command ) );
+            $query->redisearch_query = 'FT.SEARCH ' . implode( ' ', array_map( function ( $comm ) {
+                    if ( \strpos( $comm, ' ' ) !== false ) {
+                        return '"' . $comm . '"';
+                    }
+                    else {
+                        return $comm;
+                    }
+                }, $command ) );
         }
 
         // Run the count post types command
@@ -283,7 +298,29 @@ class Search {
             )
         );
 
-        \do_action( 'redipress/debug_query', $query, $results, 'posts' );
+        if ( isset( $explain_weights ) && $explain_weights ) {
+
+            $count = count( $results );
+
+            // The results will include alternating score results and post_objects. Loop and get the data out.
+            for ( $i = 2; $i < $count; $i += 3 ) {
+                $weight_post = array_slice( $results, $i, 1 );
+                $weight_post = $weight_post[0];
+
+                $lines = $this->get_weight_object_to_array( $weight_post[1] );
+
+                $weight_result[] = $lines;
+            }
+
+            // Remove the weighting info from the results.
+            for ( $i = 1; $i < $count; $i += 1 ) {
+                if ( isset( $results[ $i ][0] ) && $results[ $i ][0] !== 'post_object' ) {
+                    unset( $results[ $i ] );
+                }
+            }
+        }
+
+        \do_action( 'redipress/debug_query', $query, $results, 'posts', $weight_result ?? [] );
 
         // Return the results through a filter
         return apply_filters( 'redipress/search_results', (object) [
@@ -293,10 +330,31 @@ class Search {
     }
 
     /**
+     * Turns the Predis\Response\Status objects to strings for the debugger.
+     *
+     * @param $weight_post
+     *
+     * @return mixed
+     */
+    public function get_weight_object_to_array( $weight_post ) {
+        foreach ( $weight_post as $key => $value ) {
+            if ( is_object( $value ) ) {
+                $returnme[ $key ] = $value->getPayload();
+            }
+            elseif ( is_array( $value ) ) {
+                $returnme[ $key ] = $this->get_weight_object_to_array( $value );
+            }
+        }
+
+        return $returnme;
+    }
+
+    /**
      * Filter WordPress posts requests
      *
      * @param array|null $posts An empty array of posts.
      * @param \WP_Query  $query The WP_Query object.
+     *
      * @return array Results or null if no results.
      */
     public function posts_pre_query( ?array $posts, \WP_Query $query ) : ?array {
@@ -305,6 +363,7 @@ class Search {
         // If the query is empty, we are probably dealing with the front page and we want to skip RediSearch with that.
         if ( empty( $query->query ) ) {
             $query->is_front_page = true;
+
             return null;
         }
 
@@ -411,6 +470,7 @@ class Search {
      *
      * @param array     $posts The original posts array.
      * @param \WP_Query $query The WP_Query instance.
+     *
      * @return array
      */
     public function posts_results_single( array $posts, \WP_Query $query ) : array {
@@ -423,12 +483,13 @@ class Search {
      * Format RediSearch output formatted results to an array of WordPress posts.
      *
      * @param array $results Original array to format.
+     *
      * @return array
      */
     public function format_results( array $results ) : array {
         $results = Utility::format( $results );
 
-        return array_map( function( array $result ) : ?\WP_Post {
+        return array_map( function ( array $result ) : ?\WP_Post {
             if ( empty( $result['post_object'] ) ) {
                 $formatted = Utility::format( $result );
                 $post_obj  = $formatted['post_object'] ?? null;

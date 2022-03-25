@@ -21,26 +21,32 @@ class DustPressDebugger {
     /**
      * Add the data to DustPress Debugger
      *
-     * @param object $query The query object.
+     * @param object $query   The query object.
      * @param array  $results Query results.
-     * @param string $type Whether we are dealing with posts or users query.
+     * @param string $type    Whether we are dealing with posts or users query.
+     *
      * @return void
      */
-    public function debug_query( $query, $results, $type ) {
+    public function debug_query( $query, $results, $type, $weight_results ) {
         switch ( $type ) {
             case 'posts':
                 \DustPress\Debugger::set_debugger_data( 'RediPress', [
                     'query'   => $query->redisearch_query,
                     'params'  => $query->query_vars,
                     'results' => ( count( $results ) - 1 ),
-                ]);
+                ] );
+                if ( $weight_results ) {
+                    \DustPress\Debugger::set_debugger_data( 'Weighting', [
+                        $weight_results,
+                    ] );
+                }
                 break;
             case 'users':
                 \DustPress\Debugger::set_debugger_data( 'RediPress', [
                     'query'   => $query->request,
                     'params'  => $query->query_vars,
                     'results' => ( count( $results ) - 1 ),
-                ]);
+                ] );
                 break;
         }
     }

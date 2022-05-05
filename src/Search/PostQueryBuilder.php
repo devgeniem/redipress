@@ -65,6 +65,7 @@ class PostQueryBuilder extends QueryBuilder {
         'category__not_in'    => 'taxonomy_id_category',
         'category__and'       => 'taxonomy_id_category',
         'category_name'       => 'taxonomy_category',
+        'has_password'        => 'post_password',
         'meta_query'          => null,
         'tax_query'           => null,
         'date_query'          => null,
@@ -109,24 +110,30 @@ class PostQueryBuilder extends QueryBuilder {
         $this->query      = $query;
         $this->index_info = $index_info;
 
-        $ignore_added_query_vars = array_map( function( $code ) {
-            return preg_replace( '/^\%(.+)\%$/', '\1', $code );
-        }, $wp_rewrite->rewritecode );
+        $ignore_added_query_vars = array_map(
+            function( $code ) {
+                return preg_replace( '/^\%(.+)\%$/', '\1', $code );
+            }, $wp_rewrite->rewritecode
+        );
 
-        $this->ignore_query_vars = apply_filters( 'redipress/ignore_query_vars', array_merge( [
-            'order',
-            'orderby',
-            'paged',
-            'posts_per_page',
-            'offset',
-            'meta_key',
-            'meta_type',
-            'update_post_meta_cache',
-            'update_post_term_cache',
-            'ignore_sticky_posts',
-            'rest_route',
-            'fields',
-        ], $ignore_added_query_vars ) );
+        $this->ignore_query_vars = apply_filters(
+            'redipress/ignore_query_vars', array_merge(
+                [
+					'order',
+					'orderby',
+					'paged',
+					'posts_per_page',
+					'offset',
+					'meta_key',
+					'meta_type',
+					'update_post_meta_cache',
+					'update_post_term_cache',
+					'ignore_sticky_posts',
+					'rest_route',
+					'fields',
+				], $ignore_added_query_vars
+            )
+        );
 
         $this->ignore_query_vars = apply_filters( 'redipress/ignore_query_vars/' . static::TYPE, $this->ignore_query_vars );
 
@@ -170,7 +177,7 @@ class PostQueryBuilder extends QueryBuilder {
      * @return array
      */
     public function get_filters() : array {
-        if ( empty( $this->filters) ) {
+        if ( empty( $this->filters ) ) {
             return [];
         }
         else {
@@ -322,7 +329,7 @@ class PostQueryBuilder extends QueryBuilder {
         }
 
         $author = $this->query->query_vars['author'];
-        $clause     = '';
+        $clause = '';
 
         if ( ! empty( $author ) && is_string( $author ) ) {
             $clause = '@post_author_id:(' . $author . ')';
@@ -451,6 +458,45 @@ class PostQueryBuilder extends QueryBuilder {
     }
 
     /**
+     * WP_Query has_password parameter.
+     *
+     * @return ?string
+     */
+    protected function has_password() : ?string {
+
+        if ( empty( $this->query->query_vars['has_password'] ) ) {
+            return null;
+        }
+
+        $has_password = $this->query->query_vars['has_password'];
+
+        if ( $has_password === true ) {
+            return '-@post_password:(redipress___no_password_set)';
+        }
+        elseif ( $has_password === false ) {
+            return '@post_password:(redipress___no_password_set)';
+        }
+    }
+
+    /**
+     * WP_Query post_password parameter.
+     *
+     * @return ?string
+     */
+    protected function post_password() : ?string {
+
+        if ( empty( $this->query->query_vars['post_password'] ) ) {
+            return null;
+        }
+
+        $post_password = $this->query->query_vars['post_password'];
+
+        if ( $post_password ) {
+            return '@post_password:(' . $post_password . ')';
+        }
+    }
+
+    /**
      * WP_Query post_parent parameter.
      *
      * @return ?string
@@ -479,7 +525,7 @@ class PostQueryBuilder extends QueryBuilder {
         }
 
         $post_parent__in = $this->query->query_vars['post_parent__in'];
-        $clause     = '';
+        $clause          = '';
 
         if ( ! empty( $post_parent__in ) && is_array( $post_parent__in ) ) {
             $clause = '@post_parent:(' . implode( '|', $post_parent__in ) . ')';
@@ -500,7 +546,7 @@ class PostQueryBuilder extends QueryBuilder {
         }
 
         $post_parent__not_in = $this->query->query_vars['post_parent__not_in'];
-        $clause         = '';
+        $clause              = '';
 
         if ( ! empty( $post_parent__not_in ) && is_array( $post_parent__not_in ) ) {
             $clause = '-@post_parent:(' . implode( '|', $post_parent__not_in ) . ')';
@@ -580,9 +626,13 @@ class PostQueryBuilder extends QueryBuilder {
 
         $cat = is_array( $cats ) ? $cats : [ $cats ];
 
-        return implode( ' ', array_map( function( $cat ) {
-            return '@taxonomy_id_category:{' . $cat . '}';
-        }, $cat ));
+        return implode(
+            ' ', array_map(
+				function( $cat ) {
+					return '@taxonomy_id_category:{' . $cat . '}';
+				}, $cat
+            )
+        );
     }
 
     /**
@@ -640,14 +690,16 @@ class PostQueryBuilder extends QueryBuilder {
 
         $queries = $this->create_date_query( $this->query->date_query->queries );
 
-        $this->applies = array_map( function( $apply ) {
-            return [
-                'APPLY',
-                $apply['function'] . '(@' . $apply['field'] . ')',
-                'AS',
-                'redipress_' . $apply['as'],
-            ];
-        }, $queries['applies'] );
+        $this->applies = array_map(
+            function( $apply ) {
+                return [
+					'APPLY',
+					$apply['function'] . '(@' . $apply['field'] . ')',
+					'AS',
+					'redipress_' . $apply['as'],
+                ];
+            }, $queries['applies']
+        );
 
         $this->filters = $queries['filters'];
 
@@ -784,14 +836,16 @@ class PostQueryBuilder extends QueryBuilder {
 
             // Count the number of non-arrays in the clause. If it's greater than zero
             // we are dealing with an actual clause.
-            $single = array_reduce( $clause, function( int $carry, $item ) {
-                if ( ! is_array( $item ) ) {
-                    return ++$carry;
-                }
-                else {
-                    return $carry;
-                }
-            }, 0 );
+            $single = array_reduce(
+                $clause, function( int $carry, $item ) {
+					if ( ! is_array( $item ) ) {
+						return ++$carry;
+					}
+					else {
+						return $carry;
+					}
+				}, 0
+            );
 
             if ( $single ) {
                 $res = [];
@@ -815,9 +869,13 @@ class PostQueryBuilder extends QueryBuilder {
                     }
                 }
 
-                $filters[] = '(' . implode( ' ' . $inner_relation . ' ', array_map( function( $clause ) use ( $compare ) {
-                    return implode( ' ' . $compare . ' ', $clause );
-                }, $res ) ) . ')';
+                $filters[] = '(' . implode(
+                    ' ' . $inner_relation . ' ', array_map(
+						function( $clause ) use ( $compare ) {
+							return implode( ' ' . $compare . ' ', $clause );
+						}, $res
+                    )
+                ) . ')';
             }
             // If we have multiple clauses in the block, run the function recursively.
             else {
@@ -893,61 +951,63 @@ class PostQueryBuilder extends QueryBuilder {
             return false;
         }
 
-        $sortby = array_map( function( array $clause ) use ( $query ) {
-            // Create the mappings for orderby parameter
-            switch ( $clause['orderby'] ) {
-                case 'menu_order':
-                case 'meta_value':
-                case 'meta_value_num':
-                    break;
-                case 'none':
-                case 'relevance':
-                    return true;
-                case 'ID':
-                case 'author':
-                case 'title':
-                case 'name':
-                case 'type':
-                case 'date':
-                case 'parent':
-                    $clause['orderby'] = 'post_' . strtolower( $clause['orderby'] );
-                    break;
-                default:
-                    // The value can also be a named meta clause
-                    if ( ! empty( $this->meta_clauses[ $clause['orderby'] ] ) ) {
-                        $clause['orderby'] = $this->meta_clauses[ $clause['orderby'] ];
+        $sortby = array_map(
+            function( array $clause ) use ( $query ) {
+                // Create the mappings for orderby parameter
+                switch ( $clause['orderby'] ) {
+                    case 'menu_order':
+                    case 'meta_value':
+                    case 'meta_value_num':
+                        break;
+                    case 'none':
+                    case 'relevance':
+                        return true;
+                    case 'ID':
+                    case 'author':
+                    case 'title':
+                    case 'name':
+                    case 'type':
+                    case 'date':
+                    case 'parent':
+                        $clause['orderby'] = 'post_' . strtolower( $clause['orderby'] );
+                        break;
+                    default:
+                        // The value can also be a named meta clause
+                        if ( ! empty( $this->meta_clauses[ $clause['orderby'] ] ) ) {
+                            $clause['orderby'] = $this->meta_clauses[ $clause['orderby'] ];
+                        }
+                        else {
+                            return false;
+                        }
+                }
+
+                // We may also have a meta value as the orderby.
+                if ( in_array( $clause['orderby'], [ 'meta_value', 'meta_value_num' ], true ) ) {
+                    if ( is_string( $query['meta_key'] ) && ! empty( $query['meta_key'] ) ) {
+                        $clause['orderby'] = $query['meta_key'];
                     }
                     else {
                         return false;
                     }
-            }
-
-            // We may also have a meta value as the orderby.
-            if ( in_array( $clause['orderby'], [ 'meta_value', 'meta_value_num' ], true ) ) {
-                if ( is_string( $query['meta_key'] ) && ! empty( $query['meta_key'] ) ) {
-                    $clause['orderby'] = $query['meta_key'];
                 }
-                else {
+
+                // If we don't have the field in the schema, it's a no-go as well.
+                $fields = array_column( $this->index_info['fields'], 0 );
+
+                if ( ! in_array( $clause['orderby'], $fields, true ) ) {
                     return false;
                 }
-            }
 
-            // If we don't have the field in the schema, it's a no-go as well.
-            $fields = array_column( $this->index_info['fields'], 0 );
-
-            if ( ! in_array( $clause['orderby'], $fields, true ) ) {
-                return false;
-            }
-
-            return $clause;
-        }, $sortby );
+                return $clause;
+            }, $sortby
+        );
 
         // If we have a false value in the sortby array, just bail away.
         foreach ( $sortby as $clause ) {
             if ( ! $clause ) {
                 return false;
             }
-            else if ( $clause === true ) {
+            elseif ( $clause === true ) {
                 $this->sortby = [];
                 return true;
             }
@@ -955,13 +1015,15 @@ class PostQueryBuilder extends QueryBuilder {
 
         $this->sortby = array_merge(
             [ 'SORTBY', ( count( $sortby ) * 2 ) ],
-            array_reduce( $sortby, function( $carry, $item ) {
+            array_reduce(
+                $sortby, function( $carry, $item ) {
 
-                // Store to return fields array, these need to be in sync with sortby params.
-                $this->return_fields[] = $item['orderby'];
+					// Store to return fields array, these need to be in sync with sortby params.
+					$this->return_fields[] = $item['orderby'];
 
-                return array_merge( $carry, [ '@' . $item['orderby'], $item['order'] ] );
-            }, [] )
+					return array_merge( $carry, [ '@' . $item['orderby'], $item['order'] ] );
+				}, []
+            )
         );
 
         return true;

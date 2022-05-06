@@ -294,7 +294,7 @@ class RediPress {
      * @return void
      */
     public function add_settings_page() {
-        $settings = new Settings( $this->get_index_info() );
+        $settings = new Settings();
 
         \add_submenu_page(
             $settings->get_parent_slug(),
@@ -331,14 +331,5 @@ class RediPress {
      */
     public function get_plugin() : RediPressPlugin {
         return $this->plugin;
-    }
-
-    /**
-     * Get the index information
-     *
-     * @return array|null
-     */
-    public function get_index_info() : ?array {
-        return $this->index_info;
     }
 }

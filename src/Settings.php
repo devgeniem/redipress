@@ -29,8 +29,8 @@ class Settings {
      *
      * @param array|null $index_info Index information.
      */
-    public function __construct( array $index_info = null ) {
-        $this->index_info = $index_info;
+    public function __construct() {
+        $this->index_info = Settings::get( 'posts_index' );
         \add_action( 'admin_init', [ $this, 'configure' ] );
     }
 

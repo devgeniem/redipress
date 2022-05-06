@@ -937,6 +937,7 @@ class PostQueryBuilder extends QueryBuilder {
             array_reduce( $sortby, function( $carry, $item ) {
                 // Distance clauses need a special treatment
                 if (
+                    ! empty( $item['compare'] ) &&
                     is_array( $item['compare'] ) &&
                     ! empty( $item['compare']['lat'] ) &&
                     ! empty( $item['compare']['lng'] )

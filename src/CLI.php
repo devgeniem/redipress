@@ -57,7 +57,7 @@ class CLI {
         }
         // If not, ask for more.
         else {
-            echo "Usage: wp redipress myrkky [command]\n";
+            echo "Usage: wp redipress [command]\n";
             exit;
         }
     }

@@ -183,7 +183,7 @@ class Settings {
         );
 
         // Index name field
-        \add_settings_field(
+/*         \add_settings_field(
             $this->get_slug() . '-posts-index-name',
             __( 'Posts index name', 'redipress' ),
             [ $this, 'render_posts_index_name_field' ],
@@ -192,7 +192,7 @@ class Settings {
             [
                 'label_for' => self::PREFIX . 'posts_index',
             ]
-        );
+        ); */
 
         // Use user query field
         \add_settings_field(
@@ -472,6 +472,27 @@ class Settings {
      * Renders the index manipulation buttons.
      */
     public function render_index_management() {
+
+        // If index is empty show error message.
+        if ( empty( $this->index_info['num_docs'] ) ) {
+
+            ?>
+                <div>
+                    <p id="redipress_index_info"></p>
+                </div>
+                <div>
+                    <p>
+                        <span id="redipress_current_index" style="color: red;">
+                            <?php echo __( 'No valid index found.', 'redipress' ) ?>
+                        </span>
+                    </p>
+                </div>
+            <?php
+
+            return;
+        }
+
+        // If index_info not empty.
         $current_index = $this->index_info['num_docs'] ?? 0 + $this->index_info['num_terms'] ?? 0;
         $max_index     = Index::index_total();
         ?>
@@ -488,9 +509,9 @@ class Settings {
                 </p>
             </div>
         <?php
-        \submit_button( \__( 'Index all' ),    'primary',   'redipress_index_all',  false );
-        \submit_button( \__( 'Create index' ), 'secondary', 'redipress_index',      false );
-        \submit_button( \__( 'Delete index' ), 'delete',    'redipress_drop_index', false );
+        \submit_button( \__( 'Index all', 'redipress' ),    'primary',   'redipress_index_all',  false );
+        \submit_button( \__( 'Create index', 'redipress' ), 'secondary', 'redipress_index',      false );
+        \submit_button( \__( 'Delete index', 'redipress' ), 'delete',    'redipress_drop_index', false );
     }
 
     /**

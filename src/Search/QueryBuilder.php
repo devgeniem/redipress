@@ -244,7 +244,7 @@ abstract class QueryBuilder {
 
         // All minuses to the end of the line.
         usort( $return, function( $a, $b ) {
-            return ( substr( $a, 0, 1 ) === '-' );
+            return ( substr( $a, 0, 1 ) === '-' ) ? 1 : 0;
         });
 
         return array_merge(

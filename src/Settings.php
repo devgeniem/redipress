@@ -473,7 +473,7 @@ class Settings {
      */
     public function render_index_management() {
         $current_index = $this->index_info['num_docs'] ?? 0 + $this->index_info['num_terms'] ?? 0;
-        $max_index     = Index::index_total();
+        $max_index     = 0; // Todo
         ?>
             <div>
                 <p id="redipress_index_info"></p>
@@ -547,8 +547,8 @@ class Settings {
     /**
      * Renders the index name field.
      */
-    public function render_index_name_field() {
-        $name   = 'index';
+    public function render_posts_index_name_field() {
+        $name   = 'posts_index';
         $option = self::get( $name );
         ?>
             <input type="text" name="redipress_posts_index" id="redipress_posts_index" value="<?php echo \esc_attr( $option ) ?: 'posts'; ?>" <?php $this->disabled( $name ); ?>>

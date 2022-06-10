@@ -183,7 +183,7 @@ class Settings {
         );
 
         // Index name field
-/*         \add_settings_field(
+        \add_settings_field(
             $this->get_slug() . '-posts-index-name',
             __( 'Posts index name', 'redipress' ),
             [ $this, 'render_posts_index_name_field' ],
@@ -192,7 +192,7 @@ class Settings {
             [
                 'label_for' => self::PREFIX . 'posts_index',
             ]
-        ); */
+        );
 
         // Use user query field
         \add_settings_field(

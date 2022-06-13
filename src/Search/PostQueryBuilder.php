@@ -811,6 +811,7 @@ class PostQueryBuilder extends QueryBuilder {
      * @return boolean Whether we have a qualified orderby or not.
      */
     protected function get_orderby() : bool {
+
         if ( ! empty( $this->sortby ) ) {
             return true;
         }
@@ -865,6 +866,7 @@ class PostQueryBuilder extends QueryBuilder {
         }
 
         $sortby = array_map( function( array $clause ) use ( $query ) {
+
             // Create the mappings for orderby parameter
             switch ( $clause['orderby'] ) {
                 case 'menu_order':
@@ -884,13 +886,14 @@ class PostQueryBuilder extends QueryBuilder {
                     $clause['orderby'] = 'post_' . strtolower( $clause['orderby'] );
                     break;
                 default:
+
                     // If we have a distance clause, just pass it on
                     if (
-                        is_array( $clause['compare'] ) &&
-                        ! empty( $clause['compare']['lat'] ) &&
-                        ! empty( $clause['compare']['lng'] )
+                        is_array( $clause['order']['compare'] ) &&
+                        ! empty( $clause['order']['compare']['lat'] ) &&
+                        ! empty( $clause['order']['compare']['lng'] )
                     ) {
-                        return true;
+                        return $clause;
                     }
                     // The value can also be a named meta clause
                     elseif ( ! empty( $this->meta_clauses[ $clause['orderby'] ] ) ) {
@@ -935,16 +938,17 @@ class PostQueryBuilder extends QueryBuilder {
         $this->sortby = array_merge(
             [ 'SORTBY', ( count( $sortby ) * 2 ) ],
             array_reduce( $sortby, function( $carry, $item ) {
+
                 // Distance clauses need a special treatment
                 if (
-                    ! empty( $item['compare'] ) &&
-                    is_array( $item['compare'] ) &&
-                    ! empty( $item['compare']['lat'] ) &&
-                    ! empty( $item['compare']['lng'] )
+                    ! empty( $item['order']['compare'] ) &&
+                    is_array( $item['order']['compare'] ) &&
+                    ! empty( $item['order']['compare']['lat'] ) &&
+                    ! empty( $item['order']['compare']['lng'] )
                 ) {
                     $field = $item['orderby'];
-                    $lat   = $item['compare']['lat'];
-                    $lng   = $item['compare']['lng'];
+                    $lat   = $item['order']['compare']['lat'];
+                    $lng   = $item['order']['compare']['lng'];
 
                     $this->applies[] = [
                         'APPLY',
@@ -954,10 +958,11 @@ class PostQueryBuilder extends QueryBuilder {
                     ];
 
                     $item['orderby'] = 'redipress__distance_order';
-                }
+                    $item['order']   = $item['order']['order'];
 
-                // Store to return fields array, these need to be in sync with sortby params.
-                $this->return_fields[] = $item['orderby'];
+                    // Store to return fields array, these need to be in sync with sortby params.
+                    $this->return_fields[] = $field;
+                }
 
                 return array_merge( $carry, [ '@' . $item['orderby'], $item['order'] ] );
             }, [] )

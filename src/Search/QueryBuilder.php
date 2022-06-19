@@ -983,7 +983,7 @@ abstract class QueryBuilder {
                 '!='          => 'not_equal',
                 '>'           => 'greater_than',
                 '>='          => 'greater_or_equal_than',
-                '>'           => 'less_than',
+                '<'           => 'less_than',
                 '<='          => 'less_or_equal_than',
                 'LIKE'        => 'like',
                 'NOT LIKE'    => 'not_like',
@@ -998,6 +998,7 @@ abstract class QueryBuilder {
 
             // Run the appropriate function if it exists
             if ( method_exists( $this, 'meta_' . $compare_map[ strtoupper( $compare ) ] ) ) {
+
                 $return = call_user_func( [ $this, 'meta_' . $compare_map[ strtoupper( $compare ) ] ], $clause, $field_type );
 
                 return $return;

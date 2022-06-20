@@ -49,7 +49,7 @@ class RediPress {
         $this->plugin = $plugin;
 
         // Initialize plugin functionalities in proper hook
-        add_action( 'init', [ $this, 'init' ], 1 );
+        add_action( 'init', [ $this, 'init' ], 2 );
 
         add_action( 'admin_menu', [ $this, 'add_settings_page' ] );
 

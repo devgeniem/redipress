@@ -572,7 +572,7 @@ class PostIndex extends Index {
             $post_id = self::get_document_id( $post );
         }
 
-        $this->delete_post( $post_id );
+        $this->delete_post( $this->index . ':' . $post_id );
         $this->maybe_write_to_disk( 'post_deleted' );
     }
 

@@ -265,7 +265,7 @@ class UserIndex extends Index {
      * @return void
      */
     public function delete( $user_id ) {
-        $this->delete_user( $user_id );
+        $this->delete_user( $this->index . ':' . $user_id );
 
         $this->maybe_write_to_disk( 'user_deleted' );
     }

@@ -242,7 +242,7 @@ abstract class Index {
      * @return mixed
      */
     protected function delete_document( string $document_id ) {
-        $return = $this->client->raw_command( 'HDEL', [ $this->index . ':' . $document_id ] );
+        $return = $this->client->raw_command( 'DEL', [ $document_id ] );
 
         do_action( 'redipress/post_deleted', $document_id, $return );
 

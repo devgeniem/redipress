@@ -889,6 +889,7 @@ class PostQueryBuilder extends QueryBuilder {
 
                     // If we have a distance clause, just pass it on
                     if (
+                        ! empty( $clause['order'] ) &&
                         is_array( $clause['order']['compare'] ) &&
                         ! empty( $clause['order']['compare']['lat'] ) &&
                         ! empty( $clause['order']['compare']['lng'] )

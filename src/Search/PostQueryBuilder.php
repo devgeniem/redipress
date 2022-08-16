@@ -889,6 +889,8 @@ class PostQueryBuilder extends QueryBuilder {
 
                     // If we have a distance clause, just pass it on
                     if (
+                        ! empty( $clause['order'] ) &&
+                        ! empty( $clause['order']['compare'] ) &&
                         is_array( $clause['order']['compare'] ) &&
                         ! empty( $clause['order']['compare']['lat'] ) &&
                         ! empty( $clause['order']['compare']['lng'] )
@@ -962,6 +964,11 @@ class PostQueryBuilder extends QueryBuilder {
 
                     // Store to return fields array, these need to be in sync with sortby params.
                     $this->return_fields[] = $field;
+                }
+                else {
+
+                    // Store to return fields array, these need to be in sync with sortby params.
+                    $this->return_fields[] = $item['orderby'];
                 }
 
                 return array_merge( $carry, [ '@' . $item['orderby'], $item['order'] ] );

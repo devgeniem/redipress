@@ -756,7 +756,7 @@ class PostIndex extends Index {
             'post_status'    => $post_status,
             'post_object'    => serialize( $post_object ),
             'permalink'      => get_permalink( $post->ID ),
-            'menu_order'     => absint( $post->menu_order ),
+            'menu_order'     => intval( $post->menu_order ),
             'search_index'   => $search_index,
         ];
 

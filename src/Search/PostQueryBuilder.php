@@ -620,7 +620,7 @@ class PostQueryBuilder extends QueryBuilder {
             ];
         }, $queries['applies'] ) );
 
-        $this->filters = array_merge( $this->filters, $queries['filters'] );
+        $this->filters = array_merge( $this->filters, [ $queries['filters'] ] );
 
         return '';
     }

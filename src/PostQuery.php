@@ -210,6 +210,36 @@ class PostQuery {
                 $results = [];
             }
 
+            // If we have applies and filters, we need to calculate the count in a separate query
+            if ( ! empty( $applies ) || ! empty( $filters ) ) {
+                preg_match_all( '/@([^ ]+)/', implode( ' ', array_merge( $filters ) ), $matches );
+
+                $filter_keys = $matches[1];
+
+                $command = array_merge(
+                    [ $this->index, $search_query_string, 'INFIELDS', count( $infields ) ],
+                    $geofilter,
+                    $infields,
+                    array_merge( $applies ),
+                    array_merge( $filters ),
+                    array_merge( [ 'GROUPBY', count( $filter_keys ) ], array_map( function( $f ) {
+                        return '@' . $f;
+                    }, $filter_keys ) ),
+                    [ 'REDUCE', 'COUNT', 0, 'AS', 'count' ],
+                );
+
+                // Run the command itself.
+                $count_result = $this->client->raw_command(
+                    'FT.AGGREGATE',
+                    $command
+                );
+
+                $count_result = Utility::format( $count_result[1] ?? [] );
+
+                // Use the count from our separate query if applicable
+                $results[0] = $count_result['count'] ?? $results[0];
+            }
+
             // Clean the aggregate output to match usual key-value pairs
             $results = array_map( function( $result ) {
                 if ( is_array( $result ) ) {

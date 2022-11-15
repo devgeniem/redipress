@@ -236,8 +236,8 @@ class PostQuery {
 
                 $count_result = Utility::format( $count_result[1] ?? [] );
 
-                // Use the count from our separate query if applicable
-                $results[0] = $count_result['count'] ?? $results[0];
+                // Use the count from our separate query
+                $results[0] = $count_result['count'] ?? 0;
             }
 
             // Clean the aggregate output to match usual key-value pairs

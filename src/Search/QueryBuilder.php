@@ -125,9 +125,7 @@ abstract class QueryBuilder {
         if ( ! empty( $this->filters ) ) {
             return [
                 'FILTER',
-                implode( ' && ', array_map( function( $filter ) {
-                    return implode( ' ', $filter );
-                }, $this->filters ) ),
+                implode( ' && ', $this->filters ),
             ];
         }
         else {

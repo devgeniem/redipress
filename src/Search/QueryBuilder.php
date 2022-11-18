@@ -350,7 +350,7 @@ abstract class QueryBuilder {
         $terms = apply_filters( 'redipress/search_terms/raw/' . static::TYPE, $terms );
 
         // Remove a list of forbidden characters based on RediSearch restrictions.
-        $forbidden_characters = str_split( ',.<>{}[]"\':;!@#$%^&()+=~' );
+        $forbidden_characters = str_split( ',.<>{}[]"\':;!?@#$%^&()+=~' );
 
         $terms = str_replace( $forbidden_characters, array_fill( 0, count( $forbidden_characters ), ' ' ), $terms );
 

@@ -135,14 +135,12 @@ class RediPress {
         }
         else {
             // Initialize indexes
-            add_action( 'init', function() {
-                // We want post index anyway
-                $this->indexes['posts'] = new PostIndex( $this->connection );
+            // We want post index anyway
+            $this->indexes['posts'] = new PostIndex( $this->connection );
 
-                if ( Settings::get( 'use_user_query' ) ) {
-                    $this->indexes['users'] = new UserIndex( $this->connection );
-                }
-            }, 1000 );
+            if ( Settings::get( 'use_user_query' ) ) {
+                $this->indexes['users'] = new UserIndex( $this->connection );
+            }
 
             return true;
         }

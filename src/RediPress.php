@@ -13,6 +13,9 @@ use Geniem\RediPressPlugin,
     Geniem\RediPress\Utility,
     Geniem\RediPress\Rest;
 
+// Require the external API functions
+require_once( __DIR__ . '/API.php' );
+
 /**
  * RediPress main class
  */
@@ -168,9 +171,6 @@ class RediPress {
             }
 
             $info = Utility::format( $raw_info );
-
-            // Require the external API functions
-            require_once( __DIR__ . '/API.php' );
 
             if ( (int) $info['num_docs'] === 0 ) {
                 $this->plugin->show_admin_error( sprintf( __( 'RediPress: Index "%s" is empty, consider running the indexing function.', 'redipress' ), $type ) );

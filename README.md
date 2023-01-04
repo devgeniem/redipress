@@ -25,6 +25,7 @@ RediPress is also built with extensive amount of hooks and filters to customize 
       - [Taxonomy terms](#taxonomy-terms)
       - [Meta values](#meta-values)
     - [Fuzzy matching](#fuzzy-matching)
+    - [Multisite search](#multisite-search)
 - [Expanding](#expanding)
   - [Adding custom fields](#adding-custom-fields)
   - [Modifying the post object](#modifying-the-post-object)
@@ -199,6 +200,55 @@ new WP_Query([
     'post_type' => 'any',
     'fuzzy'     => 2,
 ]);
+```
+
+#### Multisite search
+
+RediPress supports searching from multiple sites with one query by using special `blog` query parameter. Set site IDs in an array to specify which sites should be targeted. You can use string `'all'` to search all sites, or omit the value to search only current site (default).
+
+```php
+new WP_Query([
+    's'         => 'foobar',
+    'post_type' => 'any',
+    'blog'      => [ get_main_site_id(), 2, 3 ],
+]);
+```
+
+By default RediPress does not include the blog ID within the result objects, but you can add it by using `redipress/return_fields` filter.
+
+```php
+add_filter(
+    'redipress/return_fields',
+    function ( $return_fields ) {
+        $return_fields[] = 'blog_id';
+
+        return $return_fields;
+    }
+);
+```
+
+After that you can use the `blog_id` f. ex. in `redipress/formatted_search_results` filter.
+
+```php
+add_filter(
+    'redipress/formatted_search_results',
+    function ( $results, $raw_results ) {
+
+        // Format the raw results into associative array.
+        $formatted_raw_results = array_map( function ( $result ) {
+            return \Geniem\RediPress\Utility::format( $result );
+        }, $raw_results );
+
+        foreach ( $results as $key => $result ) {
+            $raw             = $formatted_raw_results[ $key ] ?? [];
+            $result->blog_id = (int) $raw['blog_id'] ?? 0;
+        }
+
+        return $results;
+    },
+    10,
+    2,
+);
 ```
 
 ### Filters

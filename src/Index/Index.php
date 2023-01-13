@@ -88,10 +88,10 @@ abstract class Index {
         $index_type = static::INDEX_TYPE;
 
         // Get the index name from settings
-        $this->index = $settings->get( "${index_type}_index" );
+        $this->index = $settings->get( "{$index_type}_index" );
 
         // Reverse filter for getting the Index instance.
-        add_filter( "redipress/${index_type}_index_instance", function() {
+        add_filter( "redipress/{$index_type}_index_instance", function() {
             return $this;
         }, 1, 0 );
 
@@ -111,7 +111,7 @@ abstract class Index {
         $return = $this->client->raw_command( 'FT.CREATE', array_merge( [ $this->index ], $options, $raw_schema ) );
 
         do_action( 'redipress/schema_created', $return, $options, $schema_fields, $raw_schema );
-        do_action( "redipress/${index_type}_schema_created", $return, $options, $schema_fields, $raw_schema );
+        do_action( "redipress/{$index_type}_schema_created", $return, $options, $schema_fields, $raw_schema );
 
         $this->maybe_write_to_disk( 'schema_created' );
 
@@ -184,7 +184,7 @@ abstract class Index {
         $index_type = static::INDEX_TYPE;
 
         // Filter to add possible more fields.
-        $schema_fields = apply_filters( "redipress/index/${index_type}/schema_fields", $this->core_schema_fields );
+        $schema_fields = apply_filters( "redipress/index/{$index_type}/schema_fields", $this->core_schema_fields );
 
         // Remove possible duplicate fields
         $schema_fields = array_unique( $schema_fields );
@@ -196,7 +196,7 @@ abstract class Index {
             []
         );
 
-        $raw_schema = apply_filters( "redipress/index/${index_type}/raw_schema", array_merge( [ 'SCHEMA' ], $raw_schema ) );
+        $raw_schema = apply_filters( "redipress/index/{$index_type}/raw_schema", array_merge( [ 'SCHEMA' ], $raw_schema ) );
 
         $options = [
             'ON',
@@ -209,7 +209,7 @@ abstract class Index {
             '0',
         ];
 
-        $options = apply_filters( "redipress/index/${index_type}/options", $options );
+        $options = apply_filters( "redipress/index/{$index_type}/options", $options );
 
         return [
             $options,

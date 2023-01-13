@@ -157,7 +157,7 @@ class RediPress {
         foreach ( $this->indexes as $type => $info ) {
             $index = $this->indexes[ $type ];
 
-            $name = Settings::get( "${type}_index" );
+            $name = Settings::get( "{$type}_index" );
 
             $raw_info = $this->connection->raw_command( 'FT.INFO', [ $name ] );
 
@@ -197,13 +197,13 @@ class RediPress {
     protected function check_schema_integrity() : bool {
         add_action( 'wp_loaded',  function() {
             foreach ( $this->indexes as $index_type => $info ) {
-                $index_name = Settings::get( "${index_type}_index" );
+                $index_name = Settings::get( "{$index_type}_index" );
 
                 $raw_info = $this->connection->raw_command( 'FT.INFO', [ $index_name ] );
 
                 $info = Utility::format( $raw_info );
 
-                $index = apply_filters( "redipress/${index_type}_index_instance", null );
+                $index = apply_filters( "redipress/{$index_type}_index_instance", null );
 
                 [ $options, $schema_fields, $raw_schema ] = $index->get_schema_fields();
 

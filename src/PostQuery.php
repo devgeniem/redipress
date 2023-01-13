@@ -210,13 +210,13 @@ class PostQuery {
                 $results = [];
             }
 
-            // If we have applies and filters, we need to calculate the count in a separate query
-            if ( ! empty( $applies ) || ! empty( $filters ) ) {
+            // If we have filters, we need to calculate the count in a separate query
+            if ( ! empty( $filters ) ) {
                 preg_match_all( '/@([^ ]+)/', implode( ' ', array_merge( $filters ) ), $matches );
 
                 $filter_keys = $matches[1];
 
-                $command = array_merge(
+                $count_command = array_merge(
                     [ $this->index, $search_query_string, 'INFIELDS', count( $infields ) ],
                     $geofilter,
                     $infields,
@@ -231,7 +231,7 @@ class PostQuery {
                 // Run the command itself.
                 $count_result = $this->client->raw_command(
                     'FT.AGGREGATE',
-                    $command
+                    $count_command
                 );
 
                 $count_result = Utility::format( $count_result[1] ?? [] );

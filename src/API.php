@@ -25,7 +25,7 @@ function get_post( $post_id ) {
     $result = $client->raw_command( 'HGETALL', [ $index . ':' . $doc_id ] );
 
     $query = (object) [
-        'redisearch_query' => "HGETALL ${index}:${doc_id}",
+        'redisearch_query' => "HGETALL $index:$doc_id",
         'query_vars'       => [
             'post_id' => $post_id,
         ],

@@ -39,7 +39,7 @@ RediPress is also built with extensive amount of hooks and filters to customize 
 
 
 ## Requirements
-- Redis + [RediSearch](https://oss.redislabs.com/redisearch/index.html) module. At least version 2.2.1 of RediSearch is required. The plugin is tested up to version 2.4.2.
+- Redis + [RediSearch](https://oss.redislabs.com/redisearch/index.html) module. At least version 2.2.1 of RediSearch is required. The plugin is tested up to version 2.6.8.
 - WordPress version 5.9.0 or later. The plugin could work with earlier versions as well, but it has not been tested.
 
 ## Installation and initialization
@@ -47,12 +47,12 @@ RediPress is also built with extensive amount of hooks and filters to customize 
 2. Install and activate the RediPress plugin. For now the only available installation method is through Composer.
 3. Define the connection parameters either in the admin panel or as constants in your code (recommended).
 4. If you are planning to include custom posts or additional fields in the search index, it should be done now.
-5. Create the index schema to RediSearch. It can be done either in the admin panel or through WP-CLI with command `wp redipress create`.
-6. Run the actual indexing. It can as well be done either in the admin panel or through WP-CLI. Running the command `wp redipress index` is a recommended way to run the initial indexing. If the indexing stops you can continue indexing by running the command `wp redipress index posts missing`.
+5. Create the index schema to RediSearch. It can be done either in the admin panel or through WP-CLI with command `wp redipress create posts`.
+6. Run the actual indexing. It can as well be done either in the admin panel or through WP-CLI. Running the command `wp redipress index posts` is a recommended way to run the initial indexing. If the indexing stops you can continue indexing by running the command `wp redipress index posts missing`.
 
 ### Indexing multisite installations
 
-You can use the same commands with multisite: `wp redipress create` and `wp redipress index`. For multisite you have to specify site url with the `--url` parameter in order for RediPress to function properly. Example `wp redipress index --url=subsite.domain.test`.
+You can use the same commands with multisite: `wp redipress create posts` and `wp redipress index posts`. For multisite you have to specify site url with the `--url` parameter in order for RediPress to function properly. Example `wp redipress index --url=subsite.domain.test`.
 
 ## Usage
 
@@ -272,10 +272,10 @@ RediPress is built to be as developer-friendly as possible. Nearly everything ca
 
 To add custom fields into the RediPress index, two things must be done: register a new field into the table schema, and add a filter which provides the data for the field during the indexing and on post save.
 
-Adding a new schema field works with the `redipress/schema_fields` filter. It filters an array of objects that extend `Geniem\RediPress\Entity\SchemaField`. For now the options are a numeric field, a text field a and tag field. The differences on these can be read from the [official RediSearch documentation](https://oss.redislabs.com/redisearch/Commands.html#Parameters).
+Adding a new schema field works with the `redipress/index/posts/schema_fields` filter. (And similarly with the `redipress/index/users/schema_fields` filter) It filters an array of objects that extend `Geniem\RediPress\Entity\SchemaField`. For now the options are a numeric field, a text field a and tag field. The differences on these can be read from the [official RediSearch documentation](https://oss.redislabs.com/redisearch/Commands.html#Parameters).
 
 ```php
-add_filter( 'redipress/schema_fields', function( $fields ) {
+add_filter( 'redipress/index/posts/schema_fields', function( $fields ) {
     $fields[] = new \Geniem\RediPress\Entity\TextField([
         'name'     => 'my_field_name',
         'weight'   => 1.5,
@@ -286,7 +286,7 @@ add_filter( 'redipress/schema_fields', function( $fields ) {
 }, 10, 1 );
 ```
 
-**Notice** The index needs to be re-created if new fields are created, which also empties the index and thus requires complete re-indexing as well.
+**Notice** The index needs to be re-created if new fields are created. This happens with the `wp redipress drop posts` command, which - unlike the 1.x versions - does not empty the index but rather drops only the schema which can then be re-created using the `create` command.
 
 When the custom field is created and in the schema, the next is step to provide a function that populates the data for the field. This is done via the `redipress/additional_field/{field_name}` filter. The filter gets called every time the post is indexed, regardless of whether it is done on save post action, on a complete re-index or for example via WP-CLI command.
 
@@ -322,7 +322,7 @@ RediPress supports Polylang out of the box. Other multi-language plugins may req
 
 ## Troubleshooting
 
-If you run into problems you can try dropping all indeces by running `wp redipress drop`. After this re-index.
+If you run into problems you can try dropping all indexes by running `wp redipress drop posts`. You can also delete all posts adding `--delete-data` flag for the command. After this re-index.
 
 ## WP-CLI
 

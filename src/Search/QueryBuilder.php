@@ -96,12 +96,24 @@ abstract class QueryBuilder {
     }
 
     /**
+     * Get whether we have an orderby or not.
+     *
+     * @return boolean
+     */
+    abstract protected function get_orderby() : bool;
+
+    /**
      * Return the possible apply clauses.
      *
      * @return array
      */
     public function get_applies() : array {
-        return [];
+        if ( ! empty( $this->applies ) ) {
+            return array_merge( ...$this->applies );
+        }
+        else {
+            return [];
+        }
     }
 
     /**
@@ -110,7 +122,32 @@ abstract class QueryBuilder {
      * @return array
      */
     public function get_filters() : array {
-        return [];
+        if ( ! empty( $this->filters ) ) {
+            return [
+                'FILTER',
+                implode( ' && ', $this->filters ),
+            ];
+        }
+        else {
+            return [];
+        }
+    }
+
+    /**
+     * Return the possible filters
+     *
+     * @return array
+     */
+    public function get_geofilter() : array {
+        if ( empty( $this->geofilter ) ) {
+            return [];
+        }
+        else {
+            return [
+                'GEOFILTER',
+                $this->geofilter,
+            ];
+        }
     }
 
     /**
@@ -156,7 +193,7 @@ abstract class QueryBuilder {
                 $this->add_search_field( $query_var );
             }
 
-            $fields = Utility::format( $this->index_info['fields'] );
+            $fields = Utility::format( $this->index_info['attributes'] );
 
             // Find out the type of the field we are dealing with.
             $field_type = array_reduce( $fields, function( $carry = null, $item = null ) use ( $query_var ) {
@@ -205,7 +242,7 @@ abstract class QueryBuilder {
 
         // All minuses to the end of the line.
         usort( $return, function( $a, $b ) {
-            return ( substr( $a, 0, 1 ) === '-' );
+            return ( substr( $a, 0, 1 ) === '-' ) ? 1 : 0;
         });
 
         return array_merge(
@@ -313,7 +350,7 @@ abstract class QueryBuilder {
         $terms = apply_filters( 'redipress/search_terms/raw/' . static::TYPE, $terms );
 
         // Remove a list of forbidden characters based on RediSearch restrictions.
-        $forbidden_characters = str_split( ',.<>{}[]"\':;!@#$%^&()+=~' );
+        $forbidden_characters = str_split( ',.<>{}[]"\':;!?@#$%^&()+=~' );
 
         $terms = str_replace( $forbidden_characters, array_fill( 0, count( $forbidden_characters ), ' ' ), $terms );
 
@@ -733,7 +770,7 @@ abstract class QueryBuilder {
                         $prefix = $wpdb->base_prefix;
 
                         // This is the place to convert the checks of whether the user belongs to a blog or not into RediPress style.
-                        if ( preg_match( "/^${prefix}(\d+?)_?capabilities$/", $clause['key'], $matches ) && $clause['compare'] === 'EXISTS' ) {
+                        if ( preg_match( "/^{$prefix}(\d+?)_?capabilities$/", $clause['key'], $matches ) && $clause['compare'] === 'EXISTS' ) {
                             $query = $this->create_meta_query([
                                 [
                                     'key'     => 'blogs',
@@ -792,7 +829,21 @@ abstract class QueryBuilder {
             foreach ( $query as $name => $clause ) {
                 if ( ! empty( $clause['key'] ) ) {
                     if ( ! isset( $clause['value'] ) ) {
-                        continue;
+                        $prefix = $wpdb->base_prefix;
+
+                        // This is the place to convert the checks of whether the user belongs to a blog or not into RediPress style.
+                        if ( preg_match( "/^{$prefix}(\d+?)_?capabilities$/", $clause['key'], $matches ) && $clause['compare'] === 'EXISTS' ) {
+                            $query = $this->create_meta_query([
+                                [
+                                    'key'     => 'blogs',
+                                    'value'   => $matches[1],
+                                    'compare' => 'IN',
+                                ],
+                            ]);
+                        }
+                        else {
+                            continue;
+                        }
                     }
 
                     $query = $this->create_meta_clause( $clause );
@@ -847,7 +898,7 @@ abstract class QueryBuilder {
         $prefix = $wpdb->base_prefix;
 
         // Filter out capability queries as they are handled differently
-        if ( preg_match( "/^${prefix}(\d+?)_?capabilities$/", $clause['key'] ) ) {
+        if ( preg_match( "/^{$prefix}(\d+?)_?capabilities$/", $clause['key'] ) ) {
             return '';
         }
 
@@ -945,7 +996,10 @@ abstract class QueryBuilder {
 
             // Run the appropriate function if it exists
             if ( method_exists( $this, 'meta_' . $compare_map[ strtoupper( $compare ) ] ) ) {
-                return call_user_func( [ $this, 'meta_' . $compare_map[ strtoupper( $compare ) ] ], $clause, $field_type );
+
+                $return = call_user_func( [ $this, 'meta_' . $compare_map[ strtoupper( $compare ) ] ], $clause, $field_type );
+
+                return $return;
             }
             else {
                 return null;
@@ -960,14 +1014,14 @@ abstract class QueryBuilder {
      * @return string|null
      */
     protected function get_field_type( string $key ) : ?string {
-        $fields = Utility::format( $this->index_info['fields'] );
+        $fields = Utility::format( $this->index_info['attributes'] );
 
         $field_type = array_reduce( $fields, function( $carry = null, $item = null ) use ( $key ) {
             if ( ! empty( $carry ) ) {
                 return $carry;
             }
 
-            $name = $item[0];
+            $name = $item[1];
 
             if ( $name === $key ) {
                 return Utility::get_value( $item, 'type' );
@@ -1158,7 +1212,6 @@ abstract class QueryBuilder {
      */
     protected function meta_like( array $clause, string $field_type ) : ?string {
         $value = $clause['value'];
-        $like  = false;
 
         if ( strpos( $value, '%' ) === strlen( $value ) - 1 ) {
             $value = str_replace( '%', '*', $value );
@@ -1242,6 +1295,52 @@ abstract class QueryBuilder {
         else {
             return $return;
         }
+    }
+
+    /**
+     * Geolocation query handler
+     *
+     * @return string
+     */
+    protected function geolocation() : string {
+        if ( empty( $this->query->query['geolocation'] ?? $this->query->query_vars['geolocation'] ) ) {
+            return '';
+        }
+
+        $clause = $this->query->query['geolocation'] ?? $this->query->query_vars['geolocation'];
+
+        // Distance clauses need a special treatment
+        if (
+            is_array( $clause ) &&
+            ! empty( $clause['field'] ) &&
+            ! empty( $clause['compare'] ) &&
+            ! empty( $clause['lat'] ) &&
+            ! empty( $clause['lng'] ) &&
+            ! empty( $clause['distance'] )
+        ) {
+            $field    = $clause['field'];
+            $compare  = $clause['compare'];
+            $lat      = $clause['lat'];
+            $lng      = $clause['lng'];
+            $distance = $clause['distance'];
+
+            $this->applies[] = [
+                'APPLY',
+                "geodistance(@$field, \"$lat,$lng\")",
+                'AS',
+                'redipress__distance',
+            ];
+
+            $this->filters[] = [
+                '@redipress__distance',
+                $compare,
+                $distance,
+            ];
+
+            $this->return_fields[] = $clause['field'];
+        }
+
+        return '';
     }
 
     /**

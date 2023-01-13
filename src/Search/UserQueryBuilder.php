@@ -72,6 +72,7 @@ class UserQueryBuilder extends QueryBuilder {
         'who'                 => null,
         'has_published_posts' => null,
         'search_columns'      => null,
+        'geolocation'         => null,
     ];
 
     /**
@@ -571,8 +572,16 @@ class UserQueryBuilder extends QueryBuilder {
                     $clause['orderby'] = strtolower( $clause['orderby'] );
                     break;
                 default:
+                    // If we have a distance clause, just pass it on
+                    if (
+                        is_array( $clause['compare'] ) &&
+                        ! empty( $clause['compare']['lat'] ) &&
+                        ! empty( $clause['compare']['lng'] )
+                    ) {
+                        return true;
+                    }
                     // The value can also be a named meta clause
-                    if ( ! empty( $this->meta_clauses[ $clause['orderby'] ] ) ) {
+                    elseif ( ! empty( $this->meta_clauses[ $clause['orderby'] ] ) ) {
                         $clause['orderby'] = $this->meta_clauses[ $clause['orderby'] ];
                     }
                     else {
@@ -591,7 +600,7 @@ class UserQueryBuilder extends QueryBuilder {
             }
 
             // If we don't have the field in the schema, it's a no-go as well.
-            $fields = array_column( $this->index_info['fields'], 0 );
+            $fields = array_column( $this->index_info['attributes'], 1 );
 
             if ( ! in_array( $clause['orderby'], $fields, true ) ) {
                 return false;
@@ -610,9 +619,28 @@ class UserQueryBuilder extends QueryBuilder {
         $this->sortby = array_merge(
             [ 'SORTBY', ( count( $sortby ) * 2 ) ],
             array_reduce( $sortby, function( $carry, $item ) {
+                // Distance clauses need a special treatment
+                if (
+                    is_array( $item['compare'] ) &&
+                    ! empty( $item['compare']['lat'] ) &&
+                    ! empty( $item['compare']['lng'] )
+                ) {
+                    $field = $item['orderby'];
+                    $lat   = $item['compare']['lat'];
+                    $lng   = $item['compare']['lng'];
 
-                // Store groupby these need to be in sync with sortby params.
-                $this->groupby[] = $item['orderby'];
+                    $this->applies[] = [
+                        'APPLY',
+                        "geodistance(@$field, \"$lat,$lng\")",
+                        'AS',
+                        'redipress__distance_order',
+                    ];
+
+                    $item['orderby'] = 'redipress__distance_order';
+                }
+
+                // Store to return fields array, these need to be in sync with sortby params.
+                $this->return_fields[] = $item['orderby'];
 
                 return array_merge( $carry, [ '@' . $item['orderby'], $item['order'] ] );
             }, [] )

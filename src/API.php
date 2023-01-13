@@ -5,7 +5,8 @@
 
 namespace Geniem\RediPress;
 
-use Geniem\RediPress\Index\Index;
+use Geniem\RediPress\Index\PostIndex;
+use Geniem\RediPress\Index\UserIndex;
 
 /**
  * Get one post with its from RediPress index.
@@ -17,14 +18,14 @@ function get_post( $post_id ) {
     $settings = new Settings();
     $client   = apply_filters( 'redipress/client', null );
 
-    $index = Settings::get( 'index' );
+    $index = Settings::get( 'posts_index' );
 
-    $doc_id = Index::get_document_id( \get_post( $post_id ), $post_id );
+    $doc_id = PostIndex::get_document_id( \get_post( $post_id ), $post_id );
 
-    $result = $client->raw_command( 'FT.GET', [ $index, $doc_id ] );
+    $result = $client->raw_command( 'HGETALL', [ $index . ':' . $doc_id ] );
 
     $query = (object) [
-        'redisearch_query' => "FT.GET ${index} ${doc_id}",
+        'redisearch_query' => "HGETALL $index:$doc_id",
         'query_vars'       => [
             'post_id' => $post_id,
         ],
@@ -62,10 +63,12 @@ function update_value( $doc_id, $field, $value, $score = 1, $users = false ) {
     $client = apply_filters( 'redipress/client', null );
 
     if ( $users ) {
-        $index = Settings::get( 'user_index' );
+        $index       = Settings::get( 'users_index' );
+        $index_class = 'UserIndex';
     }
     else {
-        $index = Settings::get( 'index' );
+        $index       = Settings::get( 'posts_index' );
+        $index_class = 'PostIndex';
     }
 
     $raw_schema = $client->raw_command( 'FT.INFO', [ $index ] );
@@ -75,7 +78,7 @@ function update_value( $doc_id, $field, $value, $score = 1, $users = false ) {
     $type = get_field_type( $field, $index_info );
 
     if ( $type === 'TAG' && is_array( $value ) ) {
-        $value = implode( Index::get_tag_separator(), $value );
+        $value = implode( $index_class::get_tag_separator(), $value );
     }
 
     // RediSearch doesn't accept boolean values
@@ -137,7 +140,7 @@ function escape_string( ?string $string = '' ) : string {
  * @return string|null
  */
 function get_field_type( string $key, array $index ) : ?string {
-    $fields = Utility::format( $index['fields'] );
+    $fields = Utility::format( $index['attributes'] );
 
     $field_type = array_reduce( $fields, function( $carry = null, $item = null ) use ( $key ) {
         if ( ! empty( $carry ) ) {

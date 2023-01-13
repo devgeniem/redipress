@@ -72,11 +72,13 @@ class PostQueryBuilder extends QueryBuilder {
         'order'               => null,
         'orderby'             => null,
         'groupby'             => null,
+        // phpcs:ignore
         'posts_per_page'      => null,
         'offset'              => null,
         'meta_key'            => null,
         'weight'              => null,
         'reduce_functions'    => null,
+        'geolocation'         => null,
     ];
 
     /**
@@ -155,37 +157,6 @@ class PostQueryBuilder extends QueryBuilder {
         }
 
         return parent::get_query();
-    }
-
-    /**
-     * Return the possible apply clauses.
-     *
-     * @return array
-     */
-    public function get_applies() : array {
-        if ( ! empty( $this->applies ) ) {
-            return array_merge( ...$this->applies );
-        }
-        else {
-            return [];
-        }
-    }
-
-    /**
-     * Return the possible filters
-     *
-     * @return array
-     */
-    public function get_filters() : array {
-        if ( empty( $this->filters ) ) {
-            return [];
-        }
-        else {
-            return [
-                'FILTER',
-                $this->filters,
-            ];
-        }
     }
 
     /**
@@ -690,18 +661,16 @@ class PostQueryBuilder extends QueryBuilder {
 
         $queries = $this->create_date_query( $this->query->date_query->queries );
 
-        $this->applies = array_map(
-            function( $apply ) {
-                return [
-					'APPLY',
-					$apply['function'] . '(@' . $apply['field'] . ')',
-					'AS',
-					'redipress_' . $apply['as'],
-                ];
-            }, $queries['applies']
-        );
+        $this->applies = array_merge( $this->applies, array_map( function( $apply ) {
+            return [
+                'APPLY',
+                $apply['function'] . '(@' . $apply['field'] . ')',
+                'AS',
+                'redipress_' . $apply['as'],
+            ];
+        }, $queries['applies'] ) );
 
-        $this->filters = $queries['filters'];
+        $this->filters = array_merge( $this->filters, [ $queries['filters'] ] );
 
         return '';
     }
@@ -898,6 +867,7 @@ class PostQueryBuilder extends QueryBuilder {
      * @return boolean Whether we have a qualified orderby or not.
      */
     protected function get_orderby() : bool {
+
         if ( ! empty( $this->sortby ) ) {
             return true;
         }
@@ -951,48 +921,49 @@ class PostQueryBuilder extends QueryBuilder {
             return false;
         }
 
-        $sortby = array_map(
-            function( array $clause ) use ( $query ) {
-                // Create the mappings for orderby parameter
-                switch ( $clause['orderby'] ) {
-                    case 'menu_order':
-                    case 'meta_value':
-                    case 'meta_value_num':
-                        break;
-                    case 'none':
-                    case 'relevance':
-                        return true;
-                    case 'ID':
-                    case 'author':
-                    case 'title':
-                    case 'name':
-                    case 'type':
-                    case 'date':
-                    case 'parent':
-                        $clause['orderby'] = 'post_' . strtolower( $clause['orderby'] );
-                        break;
-                    default:
-                        // The value can also be a named meta clause
-                        if ( ! empty( $this->meta_clauses[ $clause['orderby'] ] ) ) {
-                            $clause['orderby'] = $this->meta_clauses[ $clause['orderby'] ];
-                        }
-                        else {
-                            return false;
-                        }
-                }
+        $sortby = array_map( function( array $clause ) use ( $query ) {
 
-                // We may also have a meta value as the orderby.
-                if ( in_array( $clause['orderby'], [ 'meta_value', 'meta_value_num' ], true ) ) {
-                    if ( is_string( $query['meta_key'] ) && ! empty( $query['meta_key'] ) ) {
-                        $clause['orderby'] = $query['meta_key'];
+            // Create the mappings for orderby parameter
+            switch ( $clause['orderby'] ) {
+                case 'menu_order':
+                case 'meta_value':
+                case 'meta_value_num':
+                    break;
+                case 'none':
+                case 'relevance':
+                    return true;
+                case 'ID':
+                case 'author':
+                case 'title':
+                case 'name':
+                case 'type':
+                case 'date':
+                case 'parent':
+                    $clause['orderby'] = 'post_' . strtolower( $clause['orderby'] );
+                    break;
+                default:
+
+                    // If we have a distance clause, just pass it on
+                    if (
+                        ! empty( $clause['order'] ) &&
+                        ! empty( $clause['order']['compare'] ) &&
+                        is_array( $clause['order']['compare'] ) &&
+                        ! empty( $clause['order']['compare']['lat'] ) &&
+                        ! empty( $clause['order']['compare']['lng'] )
+                    ) {
+                        return $clause;
+                    }
+                    // The value can also be a named meta clause
+                    elseif ( ! empty( $this->meta_clauses[ $clause['orderby'] ] ) ) {
+                        $clause['orderby'] = $this->meta_clauses[ $clause['orderby'] ];
                     }
                     else {
                         return false;
                     }
                 }
 
-                // If we don't have the field in the schema, it's a no-go as well.
-                $fields = array_column( $this->index_info['fields'], 0 );
+            // If we don't have the field in the schema, it's a no-go as well.
+            $fields = array_column( $this->index_info['attributes'], 1 );
 
                 if ( ! in_array( $clause['orderby'], $fields, true ) ) {
                     return false;
@@ -1018,8 +989,35 @@ class PostQueryBuilder extends QueryBuilder {
             array_reduce(
                 $sortby, function( $carry, $item ) {
 
-					// Store to return fields array, these need to be in sync with sortby params.
-					$this->return_fields[] = $item['orderby'];
+                // Distance clauses need a special treatment
+                if (
+                    ! empty( $item['order']['compare'] ) &&
+                    is_array( $item['order']['compare'] ) &&
+                    ! empty( $item['order']['compare']['lat'] ) &&
+                    ! empty( $item['order']['compare']['lng'] )
+                ) {
+                    $field = $item['orderby'];
+                    $lat   = $item['order']['compare']['lat'];
+                    $lng   = $item['order']['compare']['lng'];
+
+                    $this->applies[] = [
+                        'APPLY',
+                        "geodistance(@$field, \"$lat,$lng\")",
+                        'AS',
+                        'redipress__distance_order',
+                    ];
+
+                    $item['orderby'] = 'redipress__distance_order';
+                    $item['order']   = $item['order']['order'];
+
+                    // Store to return fields array, these need to be in sync with sortby params.
+                    $this->return_fields[] = $field;
+                }
+                else {
+
+                    // Store to return fields array, these need to be in sync with sortby params.
+                    $this->return_fields[] = $item['orderby'];
+                }
 
 					return array_merge( $carry, [ '@' . $item['orderby'], $item['order'] ] );
 				}, []

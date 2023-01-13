@@ -37,5 +37,8 @@
         "psr-4": {
             "Geniem\\RediPress\\": "src/"
         }
+    },
+    "require-dev": {
+        "php-stubs/wp-cli-stubs": "dev-master"
     }
 }

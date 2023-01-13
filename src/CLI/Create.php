@@ -21,7 +21,11 @@ class Create implements Command {
      */
     public function run( array $args = [], array $assoc_args = [] ) : bool {
         if ( count( $args ) === 0 ) {
-            return $this->create_index( 'posts' );
+            return [
+                'posts'     => $this->create_index( 'posts' ),
+                'users'     => $this->create_index( 'users' ),
+                'analytics' => $this->create_index( 'analytics' ),
+            ];
         }
         elseif ( count( $args ) === 1 ) {
             return $this->create_index( $args[0] );
@@ -42,10 +46,13 @@ class Create implements Command {
     public function create_index( string $index ) {
         switch ( $index ) {
             case 'posts':
-                $return = apply_filters( 'redipress/create_index', null );
+                $return = apply_filters( 'redipress/index/posts/create', null );
                 break;
             case 'users':
-                $return = apply_filters( 'redipress/create_user_index', null );
+                $return = apply_filters( 'redipress/index/users/create', null );
+                break;
+            case 'analytics':
+                $return = apply_filters( 'redipress/index/analytics/create', null );
                 break;
             default:
                 throw new \Exception( 'Index type ' . $index . ' is not supported.' );

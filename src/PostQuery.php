@@ -1,6 +1,6 @@
 <?php
 /**
- * RediPress search class file
+ * RediPress PostQuery class file
  */
 
 namespace Geniem\RediPress;
@@ -10,9 +10,9 @@ use Geniem\RediPress\Settings,
     Geniem\RediPress\Utility;
 
 /**
- * RediPress search class
+ * RediPress PostQuery class
  */
-class Search {
+class PostQuery {
 
     /**
      * RediPress wrapper for the Predis client
@@ -68,12 +68,11 @@ class Search {
      * @param array  $index_info Index information.
      */
     public function __construct( Client $client, array $index_info ) {
-        $settings         = new Settings();
         $this->client     = $client;
         $this->index_info = $index_info;
 
         // Get the index name from settings
-        $this->index = Settings::get( 'index' );
+        $this->index = Settings::get( 'posts_index' );
 
         // Add search filters
         add_filter( 'posts_pre_query', [ $this, 'posts_pre_query' ], 10, 2 );
@@ -151,6 +150,7 @@ class Search {
         $sortby           = $this->query_builder->get_sortby() ?: [];
         $applies          = $this->query_builder->get_applies() ?: [];
         $filters          = $this->query_builder->get_filters() ?: [];
+        $geofilter        = $this->query_builder->get_geofilter() ?: [];
         $reduce_functions = $this->query_builder->get_reduce_functions() ?: [];
         $groupby          = $this->query_builder->get_groupby() ?: [];
 
@@ -158,6 +158,7 @@ class Search {
         $sortby           = apply_filters( 'redipress/sortby', $sortby );
         $applies          = apply_filters( 'redipress/applies', $applies );
         $filters          = apply_filters( 'redipress/filters', $filters );
+        $geofilter        = apply_filters( 'redipress/geofilter', $geofilter );
         $groupby          = apply_filters( 'redipress/groupby', $groupby );
         $reduce_functions = apply_filters( 'redipress/reduce_functions', $reduce_functions );
         $load             = apply_filters( 'redipress/load', [ 'post_object' ] );
@@ -184,12 +185,17 @@ class Search {
             // Form the final query
             $command = array_merge(
                 [ $this->index, $search_query_string, 'INFIELDS', count( $infields ) ],
+                $geofilter,
                 $infields,
-                array_merge( [ 'LOAD', count( $load ) ], array_map( function( $l ) { return '@' . $l; }, $load ) ),
-                array_merge( [ 'GROUPBY', count( $groupby ) ], array_map( function( $g ) { return '@' . $g; }, $groupby ) ),
+                array_merge( [ 'LOAD', count( $load ) ], array_map( function( $l ) {
+                    return '@' . $l;
+                }, $load ) ),
+                array_merge( [ 'GROUPBY', count( $groupby ) ], array_map( function( $g ) {
+                    return '@' . $g;
+                }, $groupby ) ),
                 array_reduce( $return_fields, 'array_merge', [] ),
-                $applies,
-                $filters,
+                array_merge( $applies ),
+                array_merge( $filters ),
                 array_merge( $sortby ),
                 $limits
             );
@@ -202,6 +208,36 @@ class Search {
 
             if ( ! is_array( $results ) ) {
                 $results = [];
+            }
+
+            // If we have filters, we need to calculate the count in a separate query
+            if ( ! empty( $filters ) ) {
+                preg_match_all( '/@([^ ]+)/', implode( ' ', array_merge( $filters ) ), $matches );
+
+                $filter_keys = $matches[1];
+
+                $count_command = array_merge(
+                    [ $this->index, $search_query_string, 'INFIELDS', count( $infields ) ],
+                    $geofilter,
+                    $infields,
+                    array_merge( $applies ),
+                    array_merge( $filters ),
+                    array_merge( [ 'GROUPBY', count( $filter_keys ) ], array_map( function( $f ) {
+                        return '@' . $f;
+                    }, $filter_keys ) ),
+                    [ 'REDUCE', 'COUNT', 0, 'AS', 'count' ],
+                );
+
+                // Run the command itself.
+                $count_result = $this->client->raw_command(
+                    'FT.AGGREGATE',
+                    $count_command
+                );
+
+                $count_result = Utility::format( $count_result[1] ?? [] );
+
+                // Use the count from our separate query
+                $results[0] = $count_result['count'] ?? 0;
             }
 
             // Clean the aggregate output to match usual key-value pairs
@@ -250,6 +286,7 @@ class Search {
             $command = array_merge(
                 [ $this->index, $search_query_string, 'INFIELDS', count( $infields ) ],
                 $infields,
+                $geofilter,
                 [ 'RETURN', count( $return ) ],
                 $return,
                 $limits,
@@ -395,7 +432,7 @@ class Search {
 
             $query->using_redisearch = true;
 
-            if ( isset( $query->query['fields'] ) && $query->query['fields'] === 'ids' ) {
+            if ( isset( $query->query['attributes'] ) && $query->query['attributes'] === 'ids' ) {
                 $results = \array_column( $results, 'ID' );
             }
 

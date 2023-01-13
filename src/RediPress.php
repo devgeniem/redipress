@@ -7,11 +7,14 @@ namespace Geniem\RediPress;
 
 use Geniem\RediPressPlugin,
     Geniem\RediPress\Settings,
-    Geniem\RediPress\Index\Index,
+    Geniem\RediPress\Index\PostIndex,
     Geniem\RediPress\Index\UserIndex,
     Geniem\RediPress\Redis\Client,
     Geniem\RediPress\Utility,
     Geniem\RediPress\Rest;
+
+// Require the external API functions
+require_once( __DIR__ . '/API.php' );
 
 /**
  * RediPress main class
@@ -33,11 +36,11 @@ class RediPress {
     protected $connection;
 
     /**
-     * The index information
+     * The indexes
      *
      * @var array
      */
-    protected $index_info = null;
+    protected $indexes = [];
 
     /**
      * Store the plugin core instance and initialize rest of the functionalities.
@@ -49,14 +52,14 @@ class RediPress {
         $this->plugin = $plugin;
 
         // Initialize plugin functionalities in proper hook
-        add_action( 'init', [ $this, 'init' ], 1 );
+        add_action( 'init', [ $this, 'init' ], 2 );
 
         add_action( 'admin_menu', [ $this, 'add_settings_page' ] );
 
         add_action( 'rest_api_init', [ Rest::class, 'rest_api_init' ] );
 
         // Register the CLI commands if WP CLI is available
-        if ( defined( 'WP_CLI' ) && WP_CLI ) {
+        if ( defined( 'WP_CLI' ) ) {
             \WP_CLI::add_command( 'redipress', __NAMESPACE__ . '\\CLI' );
         }
     }
@@ -69,19 +72,18 @@ class RediPress {
     public function init() {
         // List of check methods.
         $checks = [
-            'connect',
-            'check_redisearch',
-            'check_index',
+            'connect'                => '',
+            'check_redisearch'       => '',
+            'check_indexes'          => '',
+            'check_schema_integrity' => 'no_cli',
         ];
 
-        if ( Settings::get( 'use_user_query' ) ) {
-            $checks[] = 'check_user_index';
-        }
-
-        // Run through various checks and quit the run if anyone fails.
-        foreach ( $checks as $check ) {
-            if ( ! $this->{ $check }() ) {
-                return;
+        // Run through various checks and quit the run if any of them fails.
+        foreach ( $checks as $check => $cli ) {
+            if ( $cli === '' || ( ! defined( 'WP_CLI' ) && $cli === 'no_cli' ) ) {
+                if ( ! $this->{ $check }() ) {
+                    return;
+                }
             }
         }
 
@@ -122,7 +124,7 @@ class RediPress {
         $modules = $this->connection->raw_command( 'MODULE', [ 'LIST' ] );
 
         $redisearch = array_reduce( $modules, function( $carry, $item = null ) {
-            if ( $carry === true || ( ! empty( $item[1] ) && $item[1] === 'ft' ) ) {
+            if ( $carry === true || ( ! empty( $item[1] ) && $item[1] === 'search' ) ) {
                 return true;
             }
             else {
@@ -135,16 +137,25 @@ class RediPress {
             return false;
         }
         else {
-            // Initialize indexing features, we have everything we need to have here.
-            add_action( 'init', function() {
-                new Index( $this->connection );
 
-                if ( Settings::get( 'use_user_query' ) ) {
-                    new UserIndex( $this->connection );
-                }
-            }, 1000 );
+            // Initialize indexes.
+            // Run initialization inside 'init' hook only if in WP CLI to avoid code execution order errors.
+            defined( 'WP_CLI' ) ? add_action( 'init', fn() => $this->init_indexes(), 1000 ) : $this->init_indexes();
 
             return true;
+        }
+    }
+
+    /**
+     * Initialize indexes.
+     *
+     * @return void
+     */
+    protected function init_indexes () {
+        $this->indexes['posts'] = new PostIndex( $this->connection );
+
+        if ( Settings::get( 'use_user_query' ) ) {
+            $this->indexes['users'] = new UserIndex( $this->connection );
         }
     }
 
@@ -153,68 +164,105 @@ class RediPress {
      *
      * @return boolean Whether the Redisearch index exists or not.
      */
-    protected function check_index() : bool {
-        $index_name = Settings::get( 'index' );
+    protected function check_indexes() : bool {
+        foreach ( $this->indexes as $type => $info ) {
+            $index = $this->indexes[ $type ];
 
-        $index = $this->connection->raw_command( 'FT.INFO', [ $index_name ] );
+            $name = Settings::get( "{$type}_index" );
 
-        if ( $index === 'Unknown Index name' ) {
-            $this->plugin->show_admin_error( __( 'Redisearch index is not created.', 'redipress' ) );
-            return false;
-        }
-        else {
-            $info = Utility::format( $index );
+            $raw_info = $this->connection->raw_command( 'FT.INFO', [ $name ] );
 
-            // Require the external API functions
-            require_once( __DIR__ . '/API.php' );
+            // Create the index if it doesn't already exist
+            if ( $raw_info === 'Unknown Index name' ) {
+                $this->plugin->show_admin_error( sprintf( __( 'RediPress: Index "%s" does not exist.', 'redipress' ), $type ) );
+                return false;
+            }
+
+            $info = Utility::format( $raw_info );
 
             if ( (int) $info['num_docs'] === 0 ) {
-                $this->plugin->show_admin_error( __( 'Redisearch index is empty.', 'redipress' ) );
+                $this->plugin->show_admin_error( sprintf( __( 'RediPress: Index "%s" is empty, consider running the indexing function.', 'redipress' ), $type ) );
                 return false;
             }
             else {
                 // Store the index information
-                $this->index_info = $info;
+                $index->set_info( $info );
 
-                // Initialize searching features, we have everything we need to have here.
-                new Search( $this->connection, $this->index_info );
-
-                return true;
+                // Initialize the query class, we have everything we need to have here.
+                $class_name = $index::INDEX_QUERY_CLASS;
+                new $class_name( $this->connection, $info );
             }
         }
+
+        return true;
     }
 
     /**
-     * Check if the user index exists in Redisearch.
+     * Check if the schema has changed after last update.
      *
-     * @return boolean Whether the Redisearch user index exists or not.
+     * @return bool
      */
-    protected function check_user_index() : bool {
-        $index_name = Settings::get( 'user_index' );
+    protected function check_schema_integrity() : bool {
+        add_action( 'wp_loaded',  function() {
+            foreach ( $this->indexes as $index_type => $info ) {
+                $index_name = Settings::get( "{$index_type}_index" );
 
-        $index = $this->connection->raw_command( 'FT.INFO', [ $index_name ] );
+                $raw_info = $this->connection->raw_command( 'FT.INFO', [ $index_name ] );
 
-        if ( $index === 'Unknown Index name' ) {
-            $this->plugin->show_admin_error( __( 'Redisearch user index is not created.', 'redipress' ) );
-            return false;
-        }
-        else {
-            $info = Utility::format( $index );
+                $info = Utility::format( $raw_info );
 
-            if ( (int) $info['num_docs'] === 0 ) {
-                $this->plugin->show_admin_error( __( 'Redisearch user index is empty.', 'redipress' ) );
-                return false;
+                $index = apply_filters( "redipress/{$index_type}_index_instance", null );
+
+                [ $options, $schema_fields, $raw_schema ] = $index->get_schema_fields();
+
+                $fields = array_map( function( $field ) {
+                    // Remove some fields so that we can compare the output to our own schema
+                    // definitions.
+                    unset( $field[0] );
+                    unset( $field[1] );
+                    unset( $field[2] );
+                    unset( $field[4] );
+
+                    return array_values( $field );
+                }, $info['attributes'] );
+
+                // Sort alphabetically by field name.
+                usort( $fields, fn( $a, $b ) => $a[0] <=> $b[0] );
+
+                // Convert everything to strings.
+                $schema = array_map( function( $field ) {
+                    return array_map( 'strval', $field->get() );
+                }, $schema_fields );
+
+                // Sort alphabetically by field name.
+                usort( $schema, fn( $a, $b ) => $a[0] <=> $b[0] );
+
+                $diff = array_diff(
+                    \array_map( 'json_encode', $schema ),
+                    \array_map( 'json_encode', $fields ),
+                );
+
+                if ( count( $diff ) > 0 ) {
+                    array_map( function( $json ) use ( $index_type ) {
+                        $field = json_decode( $json );
+
+                        $this->plugin->show_admin_error(
+                            sprintf(
+                                // translators: %s is the field name.
+                                __(
+                                    'RediSearch %1$s schema does not contain field %2$s which has been defined in the theme, or its definition has changed. Consider recreating the schema.',
+                                    'redipress'
+                                ),
+                                $index_type,
+                                $field[0],
+                            )
+                        );
+                    }, $diff );
+                }
             }
-            else {
-                // Store the index information
-                $this->user_index_info = $info;
+        }, 1000 );
 
-                // Initialize searching features, we have everything we need to have here.
-                new UserQuery( $this->connection, $this->user_index_info );
-
-                return true;
-            }
-        }
+        return true;
     }
 
     /**
@@ -223,7 +271,7 @@ class RediPress {
      * @return void
      */
     public function add_settings_page() {
-        $settings = new Settings( $this->get_index_info() );
+        $settings = new Settings();
 
         \add_submenu_page(
             $settings->get_parent_slug(),
@@ -260,14 +308,5 @@ class RediPress {
      */
     public function get_plugin() : RediPressPlugin {
         return $this->plugin;
-    }
-
-    /**
-     * Get the index information
-     *
-     * @return array|null
-     */
-    public function get_index_info() : ?array {
-        return $this->index_info;
     }
 }

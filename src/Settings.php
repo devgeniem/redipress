@@ -29,8 +29,8 @@ class Settings {
      *
      * @param array|null $index_info Index information.
      */
-    public function __construct( array $index_info = null ) {
-        $this->index_info = $index_info;
+    public function __construct() {
+        $this->index_info = Settings::get( 'posts_index' );
         \add_action( 'admin_init', [ $this, 'configure' ] );
     }
 
@@ -49,9 +49,9 @@ class Settings {
         \register_setting( $this->get_slug(), self::PREFIX . 'hostname' );
         \register_setting( $this->get_slug(), self::PREFIX . 'port' );
         \register_setting( $this->get_slug(), self::PREFIX . 'password' );
-        \register_setting( $this->get_slug(), self::PREFIX . 'index' );
+        \register_setting( $this->get_slug(), self::PREFIX . 'posts_index' );
         \register_setting( $this->get_slug(), self::PREFIX . 'use_user_query' );
-        \register_setting( $this->get_slug(), self::PREFIX . 'user_index' );
+        \register_setting( $this->get_slug(), self::PREFIX . 'users_index' );
         \register_setting( $this->get_slug(), self::PREFIX . 'post_types' );
         \register_setting( $this->get_slug(), self::PREFIX . 'taxonomies' );
 
@@ -184,13 +184,13 @@ class Settings {
 
         // Index name field
         \add_settings_field(
-            $this->get_slug() . '-index-name',
-            __( 'Index name', 'redipress' ),
-            [ $this, 'render_index_name_field' ],
+            $this->get_slug() . '-posts-index-name',
+            __( 'Posts index name', 'redipress' ),
+            [ $this, 'render_posts_index_name_field' ],
             $this->get_slug(),
             $this->get_slug() . '-redis-settings-section',
             [
-                'label_for' => self::PREFIX . 'index',
+                'label_for' => self::PREFIX . 'posts_index',
             ]
         );
 
@@ -208,13 +208,13 @@ class Settings {
 
         // User index name field
         \add_settings_field(
-            $this->get_slug() . '-user-index-name',
-            __( 'User index name', 'redipress' ),
-            [ $this, 'render_user_index_name_field' ],
+            $this->get_slug() . '-users-index-name',
+            __( 'Users index name', 'redipress' ),
+            [ $this, 'render_users_index_name_field' ],
             $this->get_slug(),
             $this->get_slug() . '-redis-settings-section',
             [
-                'label_for' => self::PREFIX . 'user_index',
+                'label_for' => self::PREFIX . 'users_index',
             ]
         );
 
@@ -472,8 +472,29 @@ class Settings {
      * Renders the index manipulation buttons.
      */
     public function render_index_management() {
+
+        // If index is empty show error message.
+        if ( empty( $this->index_info['num_docs'] ) ) {
+
+            ?>
+                <div>
+                    <p id="redipress_index_info"></p>
+                </div>
+                <div>
+                    <p>
+                        <span id="redipress_current_index" style="color: red;">
+                            <?php echo __( 'No valid index found.', 'redipress' ) ?>
+                        </span>
+                    </p>
+                </div>
+            <?php
+
+            return;
+        }
+
+        // If index_info not empty.
         $current_index = $this->index_info['num_docs'] ?? 0 + $this->index_info['num_terms'] ?? 0;
-        $max_index     = Index::index_total();
+        $max_index     = 0; // Todo
         ?>
             <div>
                 <p id="redipress_index_info"></p>
@@ -488,9 +509,9 @@ class Settings {
                 </p>
             </div>
         <?php
-        \submit_button( \__( 'Index all' ),    'primary',   'redipress_index_all',  false );
-        \submit_button( \__( 'Create index' ), 'secondary', 'redipress_index',      false );
-        \submit_button( \__( 'Delete index' ), 'delete',    'redipress_drop_index', false );
+        \submit_button( \__( 'Index all', 'redipress' ),    'primary',   'redipress_index_all',  false );
+        \submit_button( \__( 'Create index', 'redipress' ), 'secondary', 'redipress_index',      false );
+        \submit_button( \__( 'Delete index', 'redipress' ), 'delete',    'redipress_drop_index', false );
     }
 
     /**
@@ -547,13 +568,13 @@ class Settings {
     /**
      * Renders the index name field.
      */
-    public function render_index_name_field() {
-        $name   = 'index';
+    public function render_posts_index_name_field() {
+        $name   = 'posts_index';
         $option = self::get( $name );
         ?>
-            <input type="text" name="redipress_index" id="redipress_index" value="<?php echo \esc_attr( $option ) ?: 'posts'; ?>" <?php $this->disabled( $name ); ?>>
-            <p class="description" id="index-name-description">
-                <?php \esc_html_e( 'RediSearch index name, must be unique within the database.', 'redipress' ); ?>
+            <input type="text" name="redipress_posts_index" id="redipress_posts_index" value="<?php echo \esc_attr( $option ) ?: 'posts'; ?>" <?php $this->disabled( $name ); ?>>
+            <p class="description" id="posts-index-name-description">
+                <?php \esc_html_e( 'RediSearch posts index name, must be unique within the database.', 'redipress' ); ?>
             </p>
         <?php
     }
@@ -576,15 +597,15 @@ class Settings {
     }
 
     /**
-     * Renders the user index name field.
+     * Renders the users index name field.
      */
-    public function render_user_index_name_field() {
-        $name   = 'user_index';
+    public function render_users_index_name_field() {
+        $name   = 'users_index';
         $option = self::get( $name );
         ?>
-            <input type="text" name="redipress_user_index" id="redipress_user_index" value="<?php echo \esc_attr( $option ) ?: 'users'; ?>" <?php $this->disabled( $name ); ?>>
-            <p class="description" id="user-index-name-description">
-                <?php \esc_html_e( 'RediSearch user index name, must be unique within the database.', 'redipress' ); ?>
+            <input type="text" name="redipress_users_index" id="redipress_users_index" value="<?php echo \esc_attr( $option ) ?: 'users'; ?>" <?php $this->disabled( $name ); ?>>
+            <p class="description" id="users-index-name-description">
+                <?php \esc_html_e( 'RediSearch users index name, must be unique within the database.', 'redipress' ); ?>
             </p>
         <?php
     }

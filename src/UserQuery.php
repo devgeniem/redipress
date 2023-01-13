@@ -75,7 +75,7 @@ class UserQuery {
         $this->index_info = $index_info;
 
         // Get the index name from settings
-        $this->index = Settings::get( 'user_index' );
+        $this->index = Settings::get( 'users_index' );
 
         // Add search filters
         add_filter( 'users_pre_query', [ $this, 'users_pre_query' ], 10, 2 );
@@ -132,14 +132,25 @@ class UserQuery {
             $offset = 0;
         }
 
-        // Get the sortby parameter
+        // Get query parameters
         $sortby           = $this->query_builder->get_sortby() ?: [];
+        $applies          = $this->query_builder->get_applies() ?: [];
+        $filters          = $this->query_builder->get_filters() ?: [];
+        $geofilter        = $this->query_builder->get_geofilter() ?: [];
         $reduce_functions = $this->query_builder->get_reduce_functions() ?: [];
 
-        if ( empty( $sortby ) && ! empty( $query->query_vars['search'] ) ) {
+        // Filters for query parts
+        $sortby           = apply_filters( 'redipress/sortby', $sortby );
+        $applies          = apply_filters( 'redipress/applies', $applies );
+        $filters          = apply_filters( 'redipress/filters', $filters );
+        $geofilter        = apply_filters( 'redipress/geofilter', $geofilter );
+        $reduce_functions = apply_filters( 'redipress/reduce_functions', $reduce_functions );
+
+        if ( empty( $sortby ) && empty( $applies ) && empty( $filters ) && ! empty( $query->query_vars['search'] ) ) {
             // Form the search query
             $command = array_merge(
                 [ $this->index, $search_query_string, 'INFIELDS', count( $infields ) ],
+                $geofilter,
                 $infields,
                 [ 'RETURN', count( $return ) ],
                 $return,
@@ -192,10 +203,15 @@ class UserQuery {
             // Form the final query
             $command = array_merge(
                 [ $this->index, $search_query_string, 'INFIELDS', count( $infields ) ],
+                $geofilter,
                 $infields,
                 [ 'LOAD', 1, '@user_object' ],
-                array_merge( [ 'GROUPBY', count( $groupby ) ], array_map( function( $g ) { return '@' . $g; }, $groupby ) ),
+                array_merge( [ 'GROUPBY', count( $groupby ) ], array_map( function( $g ) {
+                    return '@' . $g;
+                }, $groupby ) ),
                 array_reduce( $return_fields, 'array_merge', [] ),
+                array_merge( $applies ),
+                array_merge( $filters ),
                 array_merge( $sortby ),
                 [ 'LIMIT', $offset, $limit ]
             );

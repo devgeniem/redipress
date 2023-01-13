@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+
+## [2.0.0] - 2023-01-13
+
+### Added
+- Geolocation field functionality for both posts and users.
+
+### Changed
+- The required RediSearch version is from now on at least 2.2.1.
+- Ability to drop and create the index without having to delete all data first.
+- A lot of changes in the filter names clarifying which index or search (i.e. posts or users) the filters are modifying.
+
 ## [1.16.0] - 2022-05-17
 
 ### Added

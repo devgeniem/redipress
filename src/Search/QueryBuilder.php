@@ -703,7 +703,7 @@ abstract class QueryBuilder {
 
         // All minuses to the end of the line.
         usort( $queries, function( $a, $b ) {
-            return ( substr( $a, 0, 1 ) === '-' );
+            return ( substr( $a, 0, 1 ) === '-' ) ? 1 : 0;
         });
 
         // Compare the relation.
@@ -807,7 +807,7 @@ abstract class QueryBuilder {
 
             // All minuses to the end of the line.
             usort( $queries, function( $a, $b ) {
-                return ( substr( $a, 0, 1 ) === '-' );
+                return ( substr( $a, 0, 1 ) === '-' ) ? 1 : 0;
             });
 
             $queries = array_filter( $queries, function( $query ) {
@@ -868,7 +868,7 @@ abstract class QueryBuilder {
 
             // All minuses to the end of the line.
             usort( $queries, function( $a, $b ) {
-                return ( substr( $a, 0, 1 ) === '-' );
+                return ( substr( $a, 0, 1 ) === '-' ) ? 1 : 0;
             });
 
             $queries = array_filter( $queries, function( $query ) {

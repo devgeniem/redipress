@@ -205,7 +205,7 @@ abstract class QueryBuilder {
 
         // All minuses to the end of the line.
         usort( $return, function( $a, $b ) {
-            return ( substr( $a, 0, 1 ) === '-' );
+            return ( substr( $a, 0, 1 ) === '-' ) ? 1 : 0;
         });
 
         return array_merge(
@@ -733,7 +733,7 @@ abstract class QueryBuilder {
                         $prefix = $wpdb->base_prefix;
 
                         // This is the place to convert the checks of whether the user belongs to a blog or not into RediPress style.
-                        if ( preg_match( "/^${prefix}(\d+?)_?capabilities$/", $clause['key'], $matches ) && $clause['compare'] === 'EXISTS' ) {
+                        if ( preg_match( "/^{$prefix}(\d+?)_?capabilities$/", $clause['key'], $matches ) && $clause['compare'] === 'EXISTS' ) {
                             $query = $this->create_meta_query([
                                 [
                                     'key'     => 'blogs',
@@ -847,7 +847,7 @@ abstract class QueryBuilder {
         $prefix = $wpdb->base_prefix;
 
         // Filter out capability queries as they are handled differently
-        if ( preg_match( "/^${prefix}(\d+?)_?capabilities$/", $clause['key'] ) ) {
+        if ( preg_match( "/^{$prefix}(\d+?)_?capabilities$/", $clause['key'] ) ) {
             return '';
         }
 

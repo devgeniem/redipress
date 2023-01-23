@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.0.2] - 2023-01-23
+
+### Changed
+- User query functionality to work with the changes of WordPress 5.9.
+
 ## [2.0.1] - 2023-01-20
 
 ### Changed
@@ -27,7 +32,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [1.15.0] - 2021-12-17
 
 ### Fixed
-- Fixed "less_than" operator in the meta clause compare map.
+- "less_than" operator in the meta clause compare map.
 
 ## [1.14.0] - 2021-12-02
 

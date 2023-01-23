@@ -319,6 +319,10 @@ class UserQuery {
 
             $query->using_redisearch = true;
 
+            if ( ! is_array( $query->query_vars['fields'] ) ) {
+				$results = array_column( $results, 'ID' );
+			}
+
             return array_values( $results );
         }
         else {

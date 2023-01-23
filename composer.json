@@ -25,9 +25,9 @@
     ],
     "require": {
         "predis/predis": "^1.1",
-        "php": ">=7.3",
-        "smalot/pdfparser": "^0.16.2",
-        "phpoffice/phpword": "^0.17"
+        "php": ">=8.0",
+        "smalot/pdfparser": "^2.3.0",
+        "phpoffice/phpword": "^1.0"
     },
     "conflict": {
         "devgeniem/acf-codifier": "<1.36.0",

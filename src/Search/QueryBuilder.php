@@ -930,7 +930,7 @@ abstract class QueryBuilder {
                 '!='          => 'not_equal',
                 '>'           => 'greater_than',
                 '>='          => 'greater_or_equal_than',
-                '>'           => 'less_than',
+                '<'           => 'less_than',
                 '<='          => 'less_or_equal_than',
                 'LIKE'        => 'like',
                 'NOT LIKE'    => 'not_like',

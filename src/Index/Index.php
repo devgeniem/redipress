@@ -211,6 +211,10 @@ class Index {
                 'name'     => 'post_status',
                 'sortable' => true,
             ]),
+            new TextField([
+                'name'     => 'post_password',
+                'sortable' => true,
+            ]),
             new NumericField([
                 'name'     => 'post_date',
                 'sortable' => true,
@@ -837,6 +841,8 @@ class Index {
 
         $post_status = apply_filters( 'redipress/post_status', $post->post_status ?? 'publish' );
 
+        $post_password = apply_filters( 'redipress/post_password', $post->post_password ?? '' );
+
         // Get rest of the fields
         $rest = [
             'post_id'        => $post->ID,
@@ -849,6 +855,7 @@ class Index {
             'post_parent'    => $post->post_parent,
             'post_mime_type' => $post->post_mime_type,
             'post_status'    => $post_status,
+            'post_password'  => $post_password ?: 'redipress___no_password_set',
             'post_object'    => serialize( $post_object ),
             'permalink'      => get_permalink( $post->ID ),
             'menu_order'     => absint( $post->menu_order ),

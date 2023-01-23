@@ -110,6 +110,9 @@ class UserQueryBuilder extends QueryBuilder {
             'number',
             'offset',
             'meta_key',
+            'capability',
+            'capability__in',
+            'capability__not_in',
         ]);
 
         $this->ignore_query_vars = apply_filters( 'redipress/ignore_query_vars/' . static::TYPE, $this->ignore_query_vars );

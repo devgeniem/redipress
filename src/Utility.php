@@ -28,7 +28,7 @@ class Utility {
         $source = self::recursive_to_string( $source );
 
         // Remove possible first integer
-        if ( filter_var( $source[0], FILTER_VALIDATE_INT ) ) {
+        if ( isset( $source[0] ) && filter_var( $source[0], FILTER_VALIDATE_INT ) ) {
             unset( $source[0] );
         }
 

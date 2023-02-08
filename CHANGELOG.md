@@ -4,7 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [2.0.3] _ 2023-02-02
+## [2.0.4] - 2023-02-08
+
+### Changed
+- Updated dependencies
+
+## [2.0.3] - 2023-02-02
 
 ### Changed
 - PHP 8.1 compatibility fix

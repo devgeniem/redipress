@@ -846,6 +846,9 @@ class PostIndex extends Index {
                                     catch( \Exception $e ) {
                                         error_log( 'RediPress Office indexing error: ' . $e->getMessage() );
                                     }
+                                    catch( \ValueError $e ) {
+                                        error_log( 'RediPress Office file not found: ' . $post->post_title );
+                                    }
                                     break;
                                 default:
                                     // There already is default post content

@@ -58,6 +58,13 @@ class Index {
     protected $index;
 
     /**
+     * Index info
+     *
+     * @var array
+     */
+    protected $index_info;
+
+    /**
      * Names for core fields
      *
      * These are stored for filtering purposes.
@@ -546,7 +553,7 @@ class Index {
 
         $new_count = count( $posts );
 
-        if ( defined( 'WP_CLI' ) && WP_CLI ) {
+        if ( defined( 'WP_CLI' ) && \WP_CLI ) {
             \WP_CLI::success( 'Starting to index a total of ' . $new_count . ' posts. Skipped already existing ' . ( $count - $new_count ) . ' posts.' );
 
             $progress = \WP_CLI\Utils\make_progress_bar( __( 'Indexing posts', 'redipress' ), $new_count );
@@ -941,7 +948,9 @@ class Index {
                                     catch( \Exception $e ) {
                                         error_log( 'RediPress Office indexing error: ' . $e->getMessage() );
                                     }
-                                    break;
+                                    catch( \ValueError $e ) {
+                                        error_log( 'RediPress Office file not found: ' . $post->post_title );
+                                    }
                                 default:
                                     // There already is default post content
                                     break;

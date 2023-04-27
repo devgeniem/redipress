@@ -925,9 +925,13 @@ class PostQueryBuilder extends QueryBuilder {
 
             // Create the mappings for orderby parameter
             switch ( $clause['orderby'] ) {
-                case 'menu_order':
                 case 'meta_value':
                 case 'meta_value_num':
+                    if ( ! empty( $query['meta_key'] ) ) {
+                        $clause['orderby'] = $query['meta_key'];
+                    }
+                    break;
+                case 'menu_order':
                     break;
                 case 'none':
                 case 'relevance':
@@ -960,21 +964,22 @@ class PostQueryBuilder extends QueryBuilder {
                     else {
                         return false;
                     }
-                }
+            }
 
             // If we don't have the field in the schema, it's a no-go as well.
             $fields = array_column( $this->index_info['attributes'], 1 );
 
-                if ( ! in_array( $clause['orderby'], $fields, true ) ) {
-                    return false;
-                }
+            if ( ! in_array( $clause['orderby'], $fields, true ) ) {
+                return false;
+            }
 
-                return $clause;
-            }, $sortby
-        );
+            return $clause;
+
+        }, $sortby );
 
         // If we have a false value in the sortby array, just bail away.
         foreach ( $sortby as $clause ) {
+
             if ( ! $clause ) {
                 return false;
             }

@@ -689,6 +689,7 @@ abstract class QueryBuilder {
                         break;
                 }
             }
+
             // If we have multiple clauses in the block, run the function recursively.
             else {
                 $queries[] = $this->create_taxonomy_query( $clause, $relation );

@@ -9,7 +9,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - Tax query fixes to support relation and operator simultaneously
 
-
 ## [1.16.3] - 2023-02-15
 
 ### Fixed

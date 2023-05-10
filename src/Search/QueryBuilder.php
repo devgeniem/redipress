@@ -579,6 +579,24 @@ abstract class QueryBuilder {
                                 implode( '|', array_map( [ $this, 'enclose_in_quotes' ], (array) $clause['terms'] ) )
                             );
                         }
+                        if ( $clause['operator'] === 'AND' ) {
+
+                            // Note: if we are handling term conditions with AND operator
+                            // we need to form the query like so (@taxonomy: {term1}) (@taxonomy: {term2})
+                            // wrapping these condditions would break the query logic.
+                            // https://redis.io/docs/stack/search/reference/tags/
+                            $and_queries = [];
+
+                            array_map( function( $term ) use ( $clause, $prefix, &$and_queries ) {
+                                $and_queries[] = sprintf(
+                                    '(@%s:{%s})',
+                                    $prefix ? 'taxonomy_' . $clause['taxonomy'] : $clause['taxonomy'],
+                                    $term
+                                );
+                            }, (array) $clause['terms'] );
+
+                            $queries[] = '(' . implode( ' ', $and_queries ) . ')';
+                        }
                         elseif ( $clause['operator'] === 'NOT IN' ) {
                             $queries[] = sprintf(
                                 '-(@%s:{%s})',
@@ -598,6 +616,20 @@ abstract class QueryBuilder {
                                 $prefix ? 'taxonomy_slug_' . $clause['taxonomy'] : $clause['taxonomy'],
                                 implode( '|', array_map( [ $this, 'enclose_in_quotes' ], (array) $clause['terms'] ) )
                             );
+                        }
+                        elseif ( $clause['operator'] === 'AND' ) {
+
+                            $and_queries = [];
+
+                            array_map( function( $term ) use ( $clause, $prefix, &$and_queries ) {
+                                $and_queries[] = sprintf(
+                                    '@%s:{%s}',
+                                    $prefix ? 'taxonomy_slug_' . $clause['taxonomy'] : $clause['taxonomy'],
+                                    $term
+                                );
+                            }, (array) $clause['terms'] );
+
+                            $queries[] = '(' . implode( ' ', $and_queries ) . ')';
                         }
                         elseif ( $clause['operator'] === 'NOT IN' ) {
                             $queries[] = sprintf(
@@ -645,6 +677,20 @@ abstract class QueryBuilder {
                                 implode( '|', (array) $clause['terms'] )
                             );
                         }
+                        // 2023.05.09: Added AND operator for taxonomy_id
+                        elseif ( $clause['operator'] === 'AND' ) {
+
+                            $and_queries = [];
+                            array_map( function( $term ) use ( $clause, &$and_queries ) {
+                                $and_queries[] = sprintf(
+                                    '@taxonomy_id_%s:{%s}',
+                                    $clause['taxonomy'],
+                                    $term
+                                );
+                            }, (array) $clause['terms'] );
+
+                            $queries[] = '(' . implode( ' ', $and_queries ) . ')';
+                        }
                         elseif ( $clause['operator'] === 'NOT IN' ) {
                             $queries[] = sprintf(
                                 '-(@taxonomy_id_%s:{%s})',
@@ -658,6 +704,7 @@ abstract class QueryBuilder {
                         break;
                 }
             }
+
             // If we have multiple clauses in the block, run the function recursively.
             else {
                 $queries[] = $this->create_taxonomy_query( $clause, $relation );

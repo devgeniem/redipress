@@ -581,13 +581,21 @@ abstract class QueryBuilder {
                         }
                         if ( $clause['operator'] === 'AND' ) {
 
-                            array_map( function( $term ) use ( $clause, $prefix, &$queries ) {
-                                $queries[] = sprintf(
+                            // Note: if we are handling term conditions with AND operator
+                            // we need to form the query like so (@taxonomy: {term1}) (@taxonomy: {term2})
+                            // wrapping these condditions would break the query logic.
+                            // https://redis.io/docs/stack/search/reference/tags/
+                            $and_queries = [];
+
+                            array_map( function( $term ) use ( $clause, $prefix, &$and_queries ) {
+                                $and_queries[] = sprintf(
                                     '(@%s:{%s})',
                                     $prefix ? 'taxonomy_' . $clause['taxonomy'] : $clause['taxonomy'],
                                     $term
                                 );
                             }, (array) $clause['terms'] );
+
+                            $queries[] = '(' . implode( ' ', $and_queries ) . ')';
                         }
                         elseif ( $clause['operator'] === 'NOT IN' ) {
                             $queries[] = sprintf(
@@ -611,13 +619,17 @@ abstract class QueryBuilder {
                         }
                         elseif ( $clause['operator'] === 'AND' ) {
 
-                            array_map( function( $term ) use ( $clause, $prefix, &$queries ) {
-                                $queries[] = sprintf(
-                                    '(@%s:{%s})',
+                            $and_queries = [];
+
+                            array_map( function( $term ) use ( $clause, $prefix, &$and_queries ) {
+                                $and_queries[] = sprintf(
+                                    '@%s:{%s}',
                                     $prefix ? 'taxonomy_slug_' . $clause['taxonomy'] : $clause['taxonomy'],
                                     $term
                                 );
                             }, (array) $clause['terms'] );
+
+                            $queries[] = '(' . implode( ' ', $and_queries ) . ')';
                         }
                         elseif ( $clause['operator'] === 'NOT IN' ) {
                             $queries[] = sprintf(
@@ -668,13 +680,16 @@ abstract class QueryBuilder {
                         // 2023.05.09: Added AND operator for taxonomy_id
                         elseif ( $clause['operator'] === 'AND' ) {
 
-                            array_map( function( $term ) use ( $clause, &$queries ) {
-                                $queries[] = sprintf(
-                                    '(@taxonomy_id_%s:{%s})',
+                            $and_queries = [];
+                            array_map( function( $term ) use ( $clause, &$and_queries ) {
+                                $and_queries[] = sprintf(
+                                    '@taxonomy_id_%s:{%s}',
                                     $clause['taxonomy'],
                                     $term
                                 );
                             }, (array) $clause['terms'] );
+
+                            $queries[] = '(' . implode( ' ', $and_queries ) . ')';
                         }
                         elseif ( $clause['operator'] === 'NOT IN' ) {
                             $queries[] = sprintf(
@@ -700,14 +715,6 @@ abstract class QueryBuilder {
         usort( $queries, function( $a, $b ) {
             return ( substr( $a, 0, 1 ) === '-' ) ? 1 : 0;
         });
-
-        // Note: if we are handling term conditions with AND operator
-        // we need to form the query like so (@taxonomy: {term1}) (@taxonomy: {term2})
-        // wrapping these condditions would break the query logic.
-        // https://redis.io/docs/stack/search/reference/tags/
-        if ( $clause['operator'] === 'AND' ) {
-            return implode( ' ', $queries );
-        }
 
         // Compare the relation.
         if ( $relation === 'AND' ) {

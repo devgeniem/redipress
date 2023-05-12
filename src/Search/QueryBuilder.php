@@ -560,6 +560,9 @@ abstract class QueryBuilder {
      *
      * This function runs itself recursively if the query has multiple levels.
      *
+     * RediSearch documentation for tag queries:
+     * https://redis.io/docs/stack/search/reference/tags/
+     *
      * @param array   $query    The block to create the block from.
      * @param string  $operator Possible operator of the parent array.
      * @param boolean $prefix   Whether to prefix the field with taxonomy_ or not.
@@ -620,8 +623,6 @@ abstract class QueryBuilder {
 
                             // Note: if we are handling term conditions with AND operator
                             // we need to form the query like so (@taxonomy: {term1}) (@taxonomy: {term2})
-                            // wrapping these condditions would break the query logic.
-                            // https://redis.io/docs/stack/search/reference/tags/
                             $and_queries = [];
 
                             array_map( function( $term ) use ( $clause, $prefix, &$and_queries ) {

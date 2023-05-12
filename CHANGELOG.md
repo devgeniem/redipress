@@ -7,12 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [2.0.7] - 2023-05-12
 
 ### Fixed
-- Fixes tax_query `AND` operator.
+- Fixed tax_query `AND` operator.
 
 ## [2.0.6] - 2023-04-27
 
 ### Fixed
-- Fixes query argument `'orderby' => 'meta_value'`.
+- Fixed query argument `'orderby' => 'meta_value'`.
 
 ## [2.0.4] - 2023-02-08
 

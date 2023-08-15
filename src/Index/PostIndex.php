@@ -437,7 +437,7 @@ class PostIndex extends Index {
 
         $custom_posts = [];
 
-        $custom_posts = apply_filters( 'redipress/custom_posts', $custom_posts );
+        $custom_posts = apply_filters( 'redipress/index/posts/custom', $custom_posts );
 
         $count += count( $custom_posts );
 

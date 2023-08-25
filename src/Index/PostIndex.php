@@ -437,7 +437,7 @@ class PostIndex extends Index {
 
         $custom_posts = [];
 
-        $custom_posts = apply_filters( 'redipress/custom_posts', $custom_posts );
+        $custom_posts = apply_filters( 'redipress/index/posts/custom', $custom_posts );
 
         $count += count( $custom_posts );
 
@@ -463,8 +463,8 @@ class PostIndex extends Index {
         $result = array_map( function( $post ) use ( $progress ) {
             self::$indexing = $post->ID;
 
-            $language = apply_filters( 'redipress/post_language', $post->lang ?? null, $post );
-            $language = apply_filters( 'redipress/post_language/' . $post->ID, $language, $post );
+            $language = apply_filters( 'redipress/index/posts/language', $post->lang ?? null, $post );
+            $language = apply_filters( 'redipress/index/posts/language/' . $post->ID, $language, $post );
 
             // Sanity check.
             if ( ! $post instanceof \WP_Post ) {

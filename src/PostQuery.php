@@ -152,6 +152,7 @@ class PostQuery {
         $filters          = $this->query_builder->get_filters() ?: [];
         $geofilter        = $this->query_builder->get_geofilter() ?: [];
         $reduce_functions = $this->query_builder->get_reduce_functions() ?: [];
+        $reduce_by        = $this->query_builder->get_reduce_by() ?: [];
         $groupby          = $this->query_builder->get_groupby() ?: [];
 
         // Filters for query parts
@@ -161,6 +162,7 @@ class PostQuery {
         $geofilter        = apply_filters( 'redipress/geofilter', $geofilter );
         $groupby          = apply_filters( 'redipress/groupby', $groupby );
         $reduce_functions = apply_filters( 'redipress/reduce_functions', $reduce_functions );
+        $reduce_by        = apply_filters( 'redipress/reduce_by', $reduce_by );
         $load             = apply_filters( 'redipress/load', [ 'post_object' ] );
 
         if ( ! empty( $sortby ) || ! empty( $applies ) || ! empty( $filters ) || ! empty( $groupby ) ) {
@@ -169,12 +171,18 @@ class PostQuery {
             }
 
             // Form the return field clause
-            $return_fields = array_map( function( string $field ) use ( $reduce_functions ) : array {
+            $return_fields = array_map( function( string $field ) use ( $reduce_functions, $reduce_by ) : array {
+                $reduce_nargs = 1;
+                if ( ! empty( $reduce_by[ $field ] ) ) {
+                    $reduce_by_params = array_merge( ['BY'], explode( ' ', $reduce_by[ $field ] ) );
+                    $reduce_nargs    += count( $reduce_by_params );
+                }
                 $return = [
                     'REDUCE',
                     $reduce_functions[ $field ] ?? 'FIRST_VALUE',
-                    1,
+                    $reduce_nargs,
                     '@' . $field,
+                    ...$reduce_by_params ?? [],
                     'AS',
                     $field,
                 ];

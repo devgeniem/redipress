@@ -262,6 +262,7 @@ To customize the RediSearch query, you can filter individual query parts with th
 - `redipress/filters`
 - `redipress/groupby`
 - `redipress/reduce_functions`
+- `redipress/reduce_by`
 - `redipress/load`
 
 ## Expanding

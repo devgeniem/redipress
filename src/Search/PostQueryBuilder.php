@@ -78,6 +78,7 @@ class PostQueryBuilder extends QueryBuilder {
         'meta_key'            => null,
         'weight'              => null,
         'reduce_functions'    => null,
+        'reduce_by'           => null,
         'geolocation'         => null,
     ];
 

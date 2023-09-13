@@ -50,6 +50,13 @@ abstract class QueryBuilder {
     protected $reduce_functions = [];
 
     /**
+     * Reduce by properties for return fields
+     *
+     * @var array
+     */
+    protected $reduce_by = [];
+
+    /**
      * Index info
      *
      * @var array
@@ -166,6 +173,15 @@ abstract class QueryBuilder {
      */
     public function get_reduce_functions() : array {
         return $this->reduce_functions;
+    }
+
+    /**
+     * Return possible reduce by properties
+     *
+     * @return array
+     */
+    public function get_reduce_by() : array {
+        return $this->reduce_by;
     }
 
     /**
@@ -331,6 +347,17 @@ abstract class QueryBuilder {
      */
     protected function reduce_functions() : string {
         $this->reduce_functions = array_merge( $this->reduce_functions, $this->query->query['reduce_functions'] );
+
+        return '';
+    }
+
+    /**
+     * Reduce by handling
+     *
+     * @return string
+     */
+    protected function reduce_by() : string {
+        $this->reduce_by = array_merge( $this->reduce_by, $this->query->query['reduce_by'] );
 
         return '';
     }

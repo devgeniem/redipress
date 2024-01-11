@@ -1039,7 +1039,7 @@ abstract class QueryBuilder {
             ];
 
             // Escape dashes from the values
-            $clause['value'] = Utility::escape_string( $clause['value'] );
+            $clause['value'] = Utility::escape_value_by_meta_type( $clause['value'], $type );
 
             // Run the appropriate function if it exists
             if ( method_exists( $this, 'meta_' . $compare_map[ strtoupper( $compare ) ] ) ) {

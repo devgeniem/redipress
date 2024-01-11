@@ -121,6 +121,23 @@ class Utility {
     }
 
     /**
+     * Escapes a string value but prevents numeric values from being slahed. 
+     * Numeric values will be casted to the correct type.
+     *
+     * @param mixed $string The string to escape.
+     * @param string $meta_type MySQL data type.
+     * @return mixed depending on the meta_type parameter and input string 
+     * the return value will be either string (or array of strings), int or float.
+     */
+    public static function escape_value_by_meta_type( $string, $meta_type = 'CHAR' ):mixed{
+		if ( is_numeric( $string ) && preg_match( '/^(?:SIGNED|UNSIGNED|NUMERIC(?:\(\d+(?:,\s?\d+)?\))?|DECIMAL(?:\(\d+(?:,\s?\d+)?\))?)$/', $meta_type ) ) {
+            return floatval( $string ) ? (float)$string : (int)$string;
+		}
+
+        return self::escape_string( $string );
+    }
+
+    /**
      * Escape a string
      *
      * @param string|array|null $string The string or array of strings to escape.

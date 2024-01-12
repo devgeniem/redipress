@@ -1038,7 +1038,8 @@ abstract class QueryBuilder {
                 'NOT IN'      => 'not_in',
             ];
 
-            // Escape dashes from the values
+            // Escape dashes from the values. To prevent numeric values from being escaped, 
+            // meta_query's type attribute must be set to numeric data type.
             $clause['value'] = Utility::escape_value_by_meta_type( $clause['value'], $type );
 
             // Run the appropriate function if it exists

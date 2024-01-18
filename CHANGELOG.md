@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [2.0.9] - 2024-01-18
+
 ### Fixed
 - Prevent add slashes to float values on meta_queries.
 

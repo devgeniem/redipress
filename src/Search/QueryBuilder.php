@@ -350,11 +350,11 @@ abstract class QueryBuilder {
         $terms = apply_filters( 'redipress/search_terms/raw/' . static::TYPE, $terms );
 
         // Remove a list of forbidden characters if they appear as the very last character ignoring trailing whitespace.
+        $terms                     = rtrim( $terms );
         $forbidden_last_characters = str_split( '*/`' );
 
-        while ( in_array( substr( rtrim( $terms ), -1 ), $forbidden_last_characters, true ) ) {
-            $position = strrpos( $terms, substr( rtrim( $terms ), -1 ) );
-            $terms    = substr( $terms, 0, $position );
+        while ( in_array( substr( $terms, -1 ), $forbidden_last_characters, true ) ) {
+            $terms = substr( $terms, 0, -1 );
         }
 
         // Remove a list of forbidden characters based on RediSearch restrictions.

@@ -349,6 +349,14 @@ abstract class QueryBuilder {
         $terms = apply_filters( 'redipress/search_terms/raw', $terms );
         $terms = apply_filters( 'redipress/search_terms/raw/' . static::TYPE, $terms );
 
+        // Remove a list of forbidden characters if they appear as the very last character ignoring trailing whitespace.
+        $forbidden_last_characters = str_split( '*/`' );
+
+        while ( in_array( substr( rtrim( $terms ), -1 ), $forbidden_last_characters, true ) ) {
+            $position = strrpos( $terms, substr( rtrim( $terms ), -1 ) );
+            $terms    = substr( $terms, 0, $position );
+        }
+
         // Remove a list of forbidden characters based on RediSearch restrictions.
         $forbidden_characters = str_split( ',.<>{}[]"\':;!?@#$%^&()+=~' );
 

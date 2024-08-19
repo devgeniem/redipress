@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [2.0.10] - 2024-08-16
+
+### Fixed
+- Strip forbidden characters from the end of search term to avoid syntax errors.
+
 ## [2.0.9] - 2024-01-18
 
 ### Fixed

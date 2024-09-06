@@ -539,9 +539,9 @@ abstract class QueryBuilder {
     /**
      * WP_Query meta_query parameter.
      *
-     * @return string|null
+     * @return string
      */
-    protected function meta_query() : ?string {
+    protected function meta_query() : string {
         if ( ! empty( $this->meta_query ) ) {
             return $this->meta_query;
         }

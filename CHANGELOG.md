@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [2.0.11] - 2024-09-06
+
+### Fixed
+- RediPress now properly forwards queries with NOT EXISTS to MySQL if it cannot handle them.
+
 ## [2.0.10] - 2024-08-16
 
 ### Fixed

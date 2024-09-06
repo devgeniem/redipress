@@ -539,9 +539,9 @@ abstract class QueryBuilder {
     /**
      * WP_Query meta_query parameter.
      *
-     * @return string|null
+     * @return string
      */
-    protected function meta_query() : ?string {
+    protected function meta_query() : string {
         if ( ! empty( $this->meta_query ) ) {
             return $this->meta_query;
         }
@@ -559,7 +559,7 @@ abstract class QueryBuilder {
             return $query;
         }
         else {
-            return null;
+            return '';
         }
     }
 
@@ -1046,7 +1046,7 @@ abstract class QueryBuilder {
                 'NOT IN'      => 'not_in',
             ];
 
-            // Escape dashes from the values. To prevent numeric values from being escaped, 
+            // Escape dashes from the values. To prevent numeric values from being escaped,
             // meta_query's type attribute must be set to numeric data type.
             $clause['value'] = Utility::escape_value_by_meta_type( $clause['value'], $type );
 

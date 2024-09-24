@@ -20,7 +20,13 @@ function get_post( $post_id ) {
 
     $index = Settings::get( 'posts_index' );
 
-    $doc_id = PostIndex::get_document_id( \get_post( $post_id ), $post_id );
+    $post = \get_post( $post_id );
+
+    if ( empty( $post ) ) {
+        return null;
+    }
+
+    $doc_id = PostIndex::get_document_id( $post, $post_id );
 
     $result = $client->raw_command( 'HGETALL', [ $index . ':' . $doc_id ] );
 

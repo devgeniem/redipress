@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Fixed
+- Fixes a problem during indexing missing posts when custom posts are not actually posts.
+
 ## [2.0.11] - 2024-09-06
 
 ### Fixed

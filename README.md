@@ -15,25 +15,33 @@ RediPress is also built with extensive amount of hooks and filters to customize 
 
 <!-- code_chunk_output -->
 
-- [Requirements](#requirements)
-- [Installation and initialization](#installation-and-initialization)
-- [Usage](#usage)
-  - [Extra parameters](#extra-parameters)
-    - [Weights](#weights)
-      - [Post types](#post-types)
-      - [Authors](#authors)
-      - [Taxonomy terms](#taxonomy-terms)
-      - [Meta values](#meta-values)
-    - [Fuzzy matching](#fuzzy-matching)
-    - [Multisite search](#multisite-search)
-- [Expanding](#expanding)
-  - [Adding custom fields](#adding-custom-fields)
-  - [Modifying the post object](#modifying-the-post-object)
-- [Third party plugins](#third-party-plugins)
-  - [Advanced Custom Fields](#advanced-custom-fields)
-  - [Polylang](#polylang)
-- [Troubleshooting](#troubleshooting)
-- [WP-CLI](#WP-CLI)
+- [RediPress](#redipress)
+- [Table of Contents](#table-of-contents)
+  - [Requirements](#requirements)
+  - [Installation and initialization](#installation-and-initialization)
+    - [Indexing multisite installations](#indexing-multisite-installations)
+  - [Usage](#usage)
+    - [Extra parameters](#extra-parameters)
+      - [Geolocation](#geolocation)
+        - [Sorting](#sorting)
+      - [Weights](#weights)
+        - [Post types](#post-types)
+        - [Authors](#authors)
+        - [Taxonomy terms](#taxonomy-terms)
+        - [Meta values](#meta-values)
+      - [Fuzzy matching](#fuzzy-matching)
+      - [Multisite search](#multisite-search)
+    - [Filters](#filters)
+      - [Query parts](#query-parts)
+  - [Expanding](#expanding)
+    - [Adding custom fields](#adding-custom-fields)
+    - [Modifying the post object](#modifying-the-post-object)
+  - [Third party plugins](#third-party-plugins)
+    - [Advanced Custom Fields](#advanced-custom-fields)
+    - [Polylang](#polylang)
+  - [Troubleshooting](#troubleshooting)
+  - [WP-CLI](#wp-cli)
+    - [command: wp redipress delete](#command-wp-redipress-delete)
 
 <!-- /code_chunk_output -->
 
@@ -328,12 +336,13 @@ If you run into problems you can try dropping all indexes by running `wp redipre
 
 ### command: wp redipress delete
 
-description: Delete posts from the index by the arguments.
-arguments:
+Delete posts from the index by the arguments.
+
+Arguments:
 - `document field:` Any field from the document that should match the given value.
 - `limit:` If not defined the default value is 100.
 
-example usage:
+Example usage:
 ```bash
-wp redipress delete --blog_id=1 --post_type=article --limit=500
+wp redipress delete posts --blog_id=1 --post_type=article --limit=500
 ```

@@ -45,6 +45,9 @@ class Delete implements Command {
         // Default limit to 100.
         $limit = $assoc_args['limit'] ?? '100';
 
+        // Remove the optional limit parameter, that should not be passed to the Redisearch query.
+        unset( $assoc_args['limit'] );
+
         if ( count( $args ) === 1 ) {
             $this->index = $args[0];
             return $this->delete_posts( $assoc_args, $limit );

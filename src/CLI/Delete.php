@@ -5,6 +5,7 @@
 
 namespace Geniem\RediPress\CLI;
 
+use Geniem\RediPress\Redis\Client;
 use WP_CLI;
 
 /**
@@ -13,13 +14,24 @@ use WP_CLI;
 class Delete implements Command {
 
     /**
+     * RediPress wrapper for the Predis client
+     *
+     * @var Client
+     */
+    protected $client;
+
+    /**
+     * Index name
+     *
+     * @var string
+     */
+    protected $index;
+
+    /**
      * Class constructor.
      */
     public function __construct() {
-
-        // Get RediPress settings.
-        $this->client = apply_filters( 'redipress/client', null );
-        $this->index  = \Geniem\RediPress\Settings::get( 'index' );
+        $this->client = \apply_filters( 'redipress/client', null );
     }
 
     /**
@@ -29,17 +41,21 @@ class Delete implements Command {
      * @param array $assoc_args The optional command parameters.
      * @return boolean
      */
-    public function run( array $args = [], array $assoc_args = [] ) : bool {
-
+    public function run( array $args = [], array $assoc_args = [] ): bool {
         // Default limit to 100.
         $limit = $assoc_args['limit'] ?? '100';
 
-        // Blog_id and post_type.
-        if ( ! empty( $assoc_args ) ) {
+        // Remove the optional limit parameter, that should not be passed to the Redisearch query.
+        unset( $assoc_args['limit'] );
+
+        if ( count( $args ) === 1 ) {
+            $this->index = $args[0];
             return $this->delete_posts( $assoc_args, $limit );
         }
-
-        WP_CLI::error( 'RediPress: "delete" command doesn\'t accept more than one parameter.' );
+        elseif ( count( $args ) > 1 ) {
+            WP_CLI::error( 'RediPress: "delete" command does not accept more than one parameter.' );
+            return false;
+        }
 
         return false;
     }
@@ -47,13 +63,12 @@ class Delete implements Command {
     /**
      * Delete posts from the index.
      *
-     * @param int $args The query args.
-     * @param int $query_vars Query limit.
+     * @param array $args The query args.
+     * @param int   $limit Query limit.
      * @return boolean
      */
-    public function delete_posts( $query_vars, $limit ) {
-
-        $doc_ids = $this->get_doc_ids( $query_vars, $limit );
+    public function delete_posts( $args, $limit ) {
+        $doc_ids = $this->get_doc_ids( $args, $limit );
 
         $removed_doc_ids = [];
 
@@ -61,7 +76,7 @@ class Delete implements Command {
         // run the delete command in RediSearch index.
         if ( ! empty( $doc_ids ) && is_array( $doc_ids ) ) {
             foreach ( $doc_ids as $doc_id ) {
-                $this->delete_index( $doc_id );
+                $this->delete_from_index( $doc_id );
                 $removed_doc_ids[] = $doc_id;
             }
         }
@@ -83,11 +98,11 @@ class Delete implements Command {
     /**
      * Get the doc ids.
      *
-     * @param int $args The query args.
-     * @param int $query_vars Query limit.
+     * @param array $args The query args.
+     * @param int   $limit Query limit.
      * @return array An array of doc ids.
      */
-    protected function get_doc_ids( $query_vars, $limit ) {
+    protected function get_doc_ids( $args, $limit ) {
 
         // Get the posts.
         // Do the RediSearch query.
@@ -95,7 +110,7 @@ class Delete implements Command {
             'FT.SEARCH',
             [
                 $this->index,
-                $this->build_where( $query_vars ),
+                $this->build_where( $args ),
                 'RETURN',
                 1,
                 'post_id',
@@ -118,13 +133,11 @@ class Delete implements Command {
      * @param string $doc_id RediSearch doc_id.
      * @return void
      */
-    protected function delete_index( $doc_id ) {
-
-        // Do the delete.
+    protected function delete_from_index( $doc_id ) {
         if ( is_string( $doc_id ) ) {
-            // Do the delete from index.
+            // Delete post from the index.
             $this->client->raw_command(
-                'HDEL',
+                'DEL',
                 [
                     $this->index,
                     $doc_id,
@@ -166,7 +179,7 @@ class Delete implements Command {
                         $where = $where . ' ';
                     }
 
-                    $idx++;
+                    ++$idx;
                 }
             }
         }
@@ -179,8 +192,8 @@ class Delete implements Command {
      *
      * @return integer
      */
-    public static function get_min_parameters() : int {
-        return 0;
+    public static function get_min_parameters(): int {
+        return 1;
     }
 
     /**
@@ -188,7 +201,7 @@ class Delete implements Command {
      *
      * @return integer
      */
-    public static function get_max_parameters() : int {
-        return 3;
+    public static function get_max_parameters(): int {
+        return 1;
     }
 }

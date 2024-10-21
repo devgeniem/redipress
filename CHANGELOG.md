@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## [2.0.12] - 2024-10-18
+## [2.0.12] - 2024-10-21
 
 ### Fixed
 - Fix delete command.

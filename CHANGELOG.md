@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Fixed
+- Remove INFIELDS from FT.AGGREGATE queries, INFIELDS has no effect there.
+  - See https://redis.io/docs/latest/commands/ft.aggregate/
+- Fix incompatibility with Redisearch versions >= 2.8.4.
+  - Remove properties present in GROUPBY from the reducers, they are implicitly included and produce a duplicate property name error when included.
+
 ## [2.0.12] - 2024-10-21
 
 ### Fixed

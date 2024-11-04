@@ -78,7 +78,7 @@ class PostQuery {
         add_filter( 'posts_pre_query', [ $this, 'posts_pre_query' ], 10, 2 );
 
         // Reverse filter for getting the Search instance.
-        add_filter( 'redipress/search_instance', function( $value ) {
+        add_filter( 'redipress/search_instance', function ( $value ) {
             return $this;
         }, 1, 1 );
     }
@@ -88,7 +88,7 @@ class PostQuery {
      *
      * @return Client
      */
-    public function get_client() : Client {
+    public function get_client(): Client {
         return $this->client;
     }
 
@@ -168,8 +168,11 @@ class PostQuery {
                 $groupby = [ 'post_id' ];
             }
 
+            // Remove GROUPBY values from the reducers, they are implicitly included.
+            $return = array_diff( $return, $groupby );
+
             // Form the return field clause
-            $return_fields = array_map( function( string $field ) use ( $reduce_functions ) : array {
+            $return_fields = array_map( function ( string $field ) use ( $reduce_functions ): array {
                 $return = [
                     'REDUCE',
                     $reduce_functions[ $field ] ?? 'FIRST_VALUE',
@@ -184,13 +187,12 @@ class PostQuery {
 
             // Form the final query
             $command = array_merge(
-                [ $this->index, $search_query_string, 'INFIELDS', count( $infields ) ],
+                [ $this->index, $search_query_string ],
                 $geofilter,
-                $infields,
-                array_merge( [ 'LOAD', count( $load ) ], array_map( function( $l ) {
+                array_merge( [ 'LOAD', count( $load ) ], array_map( function ( $l ) {
                     return '@' . $l;
                 }, $load ) ),
-                array_merge( [ 'GROUPBY', count( $groupby ) ], array_map( function( $g ) {
+                array_merge( [ 'GROUPBY', count( $groupby ) ], array_map( function ( $g ) {
                     return '@' . $g;
                 }, $groupby ) ),
                 array_reduce( $return_fields, 'array_merge', [] ),
@@ -217,12 +219,11 @@ class PostQuery {
                 $filter_keys = $matches[1];
 
                 $count_command = array_merge(
-                    [ $this->index, $search_query_string, 'INFIELDS', count( $infields ) ],
+                    [ $this->index, $search_query_string ],
                     $geofilter,
-                    $infields,
                     array_merge( $applies ),
                     array_merge( $filters ),
-                    array_merge( [ 'GROUPBY', count( $filter_keys ) ], array_map( function( $f ) {
+                    array_merge( [ 'GROUPBY', count( $filter_keys ) ], array_map( function ( $f ) {
                         return '@' . $f;
                     }, $filter_keys ) ),
                     [ 'REDUCE', 'COUNT', 0, 'AS', 'count' ],
@@ -241,9 +242,9 @@ class PostQuery {
             }
 
             // Clean the aggregate output to match usual key-value pairs
-            $results = array_map( function( $result ) {
+            $results = array_map( function ( $result ) {
                 if ( is_array( $result ) ) {
-                    return array_map( function( $item ) {
+                    return array_map( function ( $item ) {
                         // If we are dealing with an array, just turn it into a string
                         if ( is_array( $item ) ) {
                             return implode( ' ', $item );
@@ -259,7 +260,7 @@ class PostQuery {
             }, $results );
 
             // Store the search query string so that in can be debugged easily via WP_Query.
-            $query->redisearch_query = 'FT.AGGREGATE ' . implode( ' ', array_map( function( $comm ) {
+            $query->redisearch_query = 'FT.AGGREGATE ' . implode( ' ', array_map( function ( $comm ) {
                 if ( \strpos( $comm, ' ' ) !== false ) {
                     return '"' . $comm . '"';
                 }
@@ -300,7 +301,7 @@ class PostQuery {
             );
 
             // Store the search query string so that in can be debugged easily via WP_Query.
-            $query->redisearch_query = 'FT.SEARCH ' . implode( ' ', array_map( function( $comm ) {
+            $query->redisearch_query = 'FT.SEARCH ' . implode( ' ', array_map( function ( $comm ) {
                 if ( \strpos( $comm, ' ' ) !== false ) {
                     return '"' . $comm . '"';
                 }
@@ -314,8 +315,7 @@ class PostQuery {
         $counts = $this->client->raw_command(
             'FT.AGGREGATE',
             array_merge(
-                [ $this->index, $count_search_query_string, 'INFIELDS', count( $infields ) ],
-                $infields,
+                [ $this->index, $count_search_query_string ],
                 [ 'GROUPBY', 1, '@post_type', 'REDUCE', 'COUNT', '0', 'AS', 'amount' ]
             )
         );
@@ -336,7 +336,7 @@ class PostQuery {
      * @param \WP_Query  $query The WP_Query object.
      * @return array Results or null if no results.
      */
-    public function posts_pre_query( ?array $posts, \WP_Query $query ) : ?array {
+    public function posts_pre_query( ?array $posts, \WP_Query $query ): ?array {
         global $wpdb;
 
         // If the query is empty, we are probably dealing with the front page and we want to skip RediSearch with that.
@@ -450,7 +450,7 @@ class PostQuery {
      * @param \WP_Query $query The WP_Query instance.
      * @return array
      */
-    public function posts_results_single( array $posts, \WP_Query $query ) : array {
+    public function posts_results_single( array $posts, \WP_Query $query ): array {
         remove_filter( 'posts_results', [ $this, 'posts_results_single' ], 10 );
 
         return array_map( '\\Geniem\\RediPress\\get_post', array_column( $posts, 'ID' ) );
@@ -462,10 +462,10 @@ class PostQuery {
      * @param array $results Original array to format.
      * @return array
      */
-    public function format_results( array $results ) : array {
+    public function format_results( array $results ): array {
         $results = Utility::format( $results );
 
-        return array_map( function( array $result ) : ?\WP_Post {
+        return array_map( function ( array $result ): ?\WP_Post {
             if ( empty( $result['post_object'] ) ) {
                 $formatted = Utility::format( $result );
                 $post_obj  = $formatted['post_object'] ?? null;

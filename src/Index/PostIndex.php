@@ -106,7 +106,7 @@ class PostIndex extends Index {
      *
      * @return int
      */
-    public static function index_total() : int {
+    public static function index_total(): int {
         global $wpdb;
         $ids = intval( $wpdb->get_row( "SELECT count(*) as count FROM $wpdb->posts" )->count ); // phpcs:ignore
         return $ids;
@@ -117,7 +117,7 @@ class PostIndex extends Index {
      *
      * @return array
      */
-    public function define_core_fields() : array {
+    public function define_core_fields(): array {
         // Define the WordPress core fields
         $core_schema_fields = [
             new TextField([
@@ -143,7 +143,7 @@ class PostIndex extends Index {
                 'name' => 'post_author',
             ]),
             new TextField([
-                'name' => 'post_author_id',
+                'name'     => 'post_author_id',
                 'sortable' => true,
             ]),
             new TextField([
@@ -153,6 +153,7 @@ class PostIndex extends Index {
             new NumericField([
                 'name'     => 'menu_order',
                 'sortable' => true,
+                'unf'      => true,
             ]),
             new TextField([
                 'name'     => 'post_status',
@@ -165,6 +166,7 @@ class PostIndex extends Index {
             new NumericField([
                 'name'     => 'post_date',
                 'sortable' => true,
+                'unf'      => true,
             ]),
             new TextField([
                 'name'     => 'post_parent',
@@ -261,7 +263,7 @@ class PostIndex extends Index {
      * @param  array|null $args Array containing Limit & offset details or null if not doing a partial index.
      * @return int              Amount of items indexed.
      */
-    public function index_all( array $args = null, array $query_args = [] ) : int {
+    public function index_all( array $args = null, array $query_args = [] ): int {
         global $wpdb;
 
         define( 'WP_IMPORTING', true );
@@ -311,13 +313,13 @@ class PostIndex extends Index {
             $progress = null;
         }
 
-        $posts = array_map( function( $row ) {
+        $posts = array_map( function ( $row ) {
             return get_post( $row->ID );
         }, $ids );
 
         $posts = apply_filters( 'redipress/index/posts/custom', $posts );
 
-        $result = array_map( function( $post ) use ( $progress ) {
+        $result = array_map( function ( $post ) use ( $progress ) {
             self::$indexing = $post->ID;
 
             $language = apply_filters( 'redipress/index/posts/language', $post->lang ?? null, $post );
@@ -362,7 +364,7 @@ class PostIndex extends Index {
      * @param mixed    $post_id The current doc id set for the post.
      * @return string
      */
-    public static function get_document_id( \WP_Post $post, $post_id = null ) : string {
+    public static function get_document_id( \WP_Post $post, $post_id = null ): string {
         if ( $post_id && (string) $post->ID !== (string) $post_id ) {
             $id = $post_id;
         }
@@ -386,7 +388,7 @@ class PostIndex extends Index {
      * @param  \WP_REST_Request|null $request Rest request details or null if not rest api request.
      * @return int                            Amount of items indexed.
      */
-    public function index_missing( \WP_REST_Request $request = null, array $query_args = [] ) : int {
+    public function index_missing( \WP_REST_Request $request = null, array $query_args = [] ): int {
         global $wpdb;
 
         \do_action( 'redipress/before_index_all', $request );
@@ -421,7 +423,7 @@ class PostIndex extends Index {
 
         $progress = \WP_CLI\Utils\make_progress_bar( __( 'Checking existing posts', 'redipress' ), $count );
 
-        $posts = array_filter( $ids, function( $row ) use ( $progress ) {
+        $posts = array_filter( $ids, function ( $row ) use ( $progress ) {
             $present = \Geniem\RediPress\get_post( $row->ID );
 
             $progress->tick();
@@ -431,7 +433,7 @@ class PostIndex extends Index {
 
         $progress->finish();
 
-        $posts = array_map( function( $id ) {
+        $posts = array_map( function ( $id ) {
             return \get_post( $id );
         }, $posts );
 
@@ -441,7 +443,7 @@ class PostIndex extends Index {
 
         $count += count( $custom_posts );
 
-        $custom_posts = array_filter( $custom_posts, function( $row ) {
+        $custom_posts = array_filter( $custom_posts, function ( $row ) {
             $present = \Geniem\RediPress\get_post( $row->ID );
 
             return empty( $present );
@@ -460,7 +462,7 @@ class PostIndex extends Index {
             $progress = null;
         }
 
-        $result = array_map( function( $post ) use ( $progress ) {
+        $result = array_map( function ( $post ) use ( $progress ) {
             self::$indexing = $post->ID;
 
             $language = apply_filters( 'redipress/post_language', $post->lang ?? null, $post );
@@ -586,7 +588,7 @@ class PostIndex extends Index {
      * @param \WP_Post $post The post object to convert.
      * @return array
      */
-    public function convert_post( \WP_Post $post ) : array {
+    public function convert_post( \WP_Post $post ): array {
         $settings = new Settings();
 
         \do_action( 'redipress/before_index_post', $post );
@@ -628,7 +630,7 @@ class PostIndex extends Index {
 
         $additional_fields = array_diff( $fields, $core_field_names );
 
-        $additional_values = array_map( function( $field ) use ( $post ) {
+        $additional_values = array_map( function ( $field ) use ( $post ) {
             $value = self::get( $post->ID, $field );
 
             $value = apply_filters( 'redipress/additional_field/' . $post->ID . '/' . $field, $value, $post );
@@ -655,7 +657,7 @@ class PostIndex extends Index {
 
         $additions = array_combine( $additional_fields, $additional_values );
 
-        $additions = array_filter( $additions, function( $item ) {
+        $additions = array_filter( $additions, function ( $item ) {
             return ! is_null( $item );
         });
 
@@ -782,7 +784,7 @@ class PostIndex extends Index {
      * @param  string $string Unescaped string.
      * @return string         Escaped $string.
      */
-    public function escape_string( ?string $string = '' ) : string {
+    public function escape_string( ?string $string = '' ): string {
         return Utility::escape_string( $string );
     }
 
@@ -792,7 +794,7 @@ class PostIndex extends Index {
      * @param  \WP_Post $post Post object.
      * @return string         Post content.
      */
-    public function get_post_content( \WP_Post $post ) : string {
+    public function get_post_content( \WP_Post $post ): string {
         $post_content = $post->post_content;
 
         switch ( $post->post_type ) { // Handle post content by post type
@@ -818,7 +820,7 @@ class PostIndex extends Index {
                                             $pdf          = $parser->parseContent( $file_content );
                                             $post_content = $pdf->getText();
                                         }
-                                        catch( \Exception $e ) {
+                                        catch ( \Exception $e ) {
                                             error_log( 'RediPress PDF indexing error: ' . $e->getMessage() );
                                         }
                                     }
@@ -843,10 +845,10 @@ class PostIndex extends Index {
 
                                         $post_content = $this->io_factory_get_text( $phpword );
                                     }
-                                    catch( \Exception $e ) {
+                                    catch ( \Exception $e ) {
                                         error_log( 'RediPress Office indexing error: ' . $e->getMessage() );
                                     }
-                                    catch( \ValueError $e ) {
+                                    catch ( \ValueError $e ) {
                                         error_log( 'RediPress Office file not found: ' . $post->post_title );
                                     }
                                     break;
@@ -875,7 +877,7 @@ class PostIndex extends Index {
         $post_content = str_replace( '\r', ' ', $post_content );
 
         // Replace multiple whitespaces with a single space
-        $post_content = preg_replace('/\s+/S', ' ', $post_content);
+        $post_content = preg_replace( '/\s+/S', ' ', $post_content );
 
         return $post_content;
     }
@@ -886,7 +888,7 @@ class PostIndex extends Index {
      * @param null|string $content The content to strip.
      * @return string
      */
-    private function strip_tags_except_comments( ?string $content ) : string {
+    private function strip_tags_except_comments( ?string $content ): string {
         if ( ! $content ) {
             return '';
         }
@@ -908,7 +910,7 @@ class PostIndex extends Index {
      * @param  mixed $current Current item to check for text.
      * @return string         Text content.
      */
-    public function io_factory_get_text( $current ) : string {
+    public function io_factory_get_text( $current ): string {
         $post_content = '';
         if ( \method_exists( $current, 'getText' ) ) {
             $post_content .= $current->getText() . "\n";
@@ -933,7 +935,7 @@ class PostIndex extends Index {
      * @param  \WP_Post $post Attachment post object.
      * @return string|null    File content or null if couldn't retrieve.
      */
-    public function get_uploaded_media_content( \WP_Post $post ) : ?string {
+    public function get_uploaded_media_content( \WP_Post $post ): ?string {
         $content   = null;
         $file_path = \get_attached_file( $post->ID );
 
@@ -955,8 +957,8 @@ class PostIndex extends Index {
     /**
      * Add a post to the database
      *
-     * @param array      $converted_post         The post in array form.
-     * @param string|int $id                     The document ID for RediSearch.
+     * @param array      $converted_post The post in array form.
+     * @param string|int $id             The document ID for RediSearch.
      * @return mixed
      */
     public function add_post( array $converted_post, $id ) {
@@ -977,11 +979,11 @@ class PostIndex extends Index {
      * Delete document items by field name and value.
      *
      * @param string $field_name The RediPress index field name.
-     * @param        $value      The value to look for by the name.
+     * @param mixed  $value      The value to look for by the name.
      *
      * @return int The number of items deleted.
      */
-    public function delete_by_field( string $field_name, $value ) : int {
+    public function delete_by_field( string $field_name, $value ): int {
         // TODO: handle numeric fields.
         $return = $this->client->raw_command( 'FT.SEARCH', [ $this->index, '@' . $field_name . ':(' . $value . ')' ] );
 
@@ -1005,7 +1007,7 @@ class PostIndex extends Index {
      * @param string $language The language name.
      * @return boolean
      */
-    protected function is_language_supported( string $language ) : bool {
+    protected function is_language_supported( string $language ): bool {
         return in_array( $language, [
             'arabic',
             'danish',
@@ -1032,7 +1034,7 @@ class PostIndex extends Index {
      *
      * @return integer|null
      */
-    public static function indexing() : ?int {
+    public static function indexing(): ?int {
         return self::$indexing;
     }
 

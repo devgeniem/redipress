@@ -27,6 +27,13 @@ class NumericField extends SchemaField {
     public $sortable = false;
 
     /**
+     * Whether the field is un-normalized.
+     *
+     * @var boolean
+     */
+    public $unf = false;
+
+    /**
      * Field constructor
      *
      * @param array $args Associative array of following arguments to create a numeric field:
@@ -44,6 +51,7 @@ class NumericField extends SchemaField {
         }
 
         $this->sortable = $args['sortable'] ?? false;
+        $this->unf      = $args['unf'] ?? $this->unf;
     }
 
     /**
@@ -56,6 +64,10 @@ class NumericField extends SchemaField {
 
         if ( $this->sortable ) {
             $export[] = 'SORTABLE';
+        }
+
+        if ( $this->unf ) {
+            $export[] = 'UNF';
         }
 
         return $export;

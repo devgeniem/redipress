@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [2.0.13] - 2024-11-04
+
 ### Fixed
 - Remove INFIELDS from FT.AGGREGATE queries, INFIELDS has no effect there.
   - See https://redis.io/docs/latest/commands/ft.aggregate/

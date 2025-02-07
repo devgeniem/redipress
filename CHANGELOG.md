@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [2.0.14] - 2025-02-07
+
+### Fixed
+- Fix geolocation query.
+  - Correctly unwrap the filters into a string.
+  - Load keys present in the applies to avoid errors in count command.
+
 ## [2.0.13] - 2024-11-04
 
 ### Fixed

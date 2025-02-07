@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 - Fix geolocation query.
-  - Correctly unwrap the filters into a string.
+  - Change the geolocation filter to string.
   - Load keys present in the applies to avoid errors in count command.
 
 ## [2.0.13] - 2024-11-04

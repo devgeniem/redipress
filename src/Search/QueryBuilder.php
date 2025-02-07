@@ -125,15 +125,7 @@ abstract class QueryBuilder {
         if ( ! empty( $this->filters ) ) {
             return [
                 'FILTER',
-                implode(
-                    ' && ',
-                    array_map(
-                        function ( $filter ) {
-                            return implode( ' ', $filter );
-                        },
-                        $this->filters
-                    )
-                ),
+                implode( ' && ', $this->filters )
             ];
         }
         else {
@@ -1395,11 +1387,14 @@ abstract class QueryBuilder {
                 'redipress__distance',
             ];
 
-            $this->filters[] = [
-                '@redipress__distance',
-                $compare,
-                $distance,
-            ];
+            $this->filters[] = implode(
+                ' ',
+                [
+                    '@redipress__distance',
+                    $compare,
+                    $distance,
+                ]
+            );
 
             $this->return_fields[] = $clause['field'];
         }

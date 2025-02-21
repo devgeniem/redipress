@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## [2.0.14] - 2025-02-07
+## [2.0.14] - 2025-02-21
 
 ### Fixed
 - Fix geolocation query.

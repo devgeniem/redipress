@@ -217,10 +217,21 @@ class PostQuery {
                 preg_match_all( '/@([^ ]+)/', implode( ' ', array_merge( $filters ) ), $matches );
 
                 $filter_keys = $matches[1];
+                $apply_keys  = [];
+
+                // Keys in the applies need to be loaded in the query.
+                if ( ! empty( $applies ) ) {
+                    preg_match_all( '/@([^ ,]+)/', implode( ' ', array_merge( $applies ) ), $matches );
+
+                    $apply_keys = array_unique( $matches[1] );
+                }
 
                 $count_command = array_merge(
                     [ $this->index, $search_query_string ],
                     $geofilter,
+                    array_merge( [ 'LOAD', count( $apply_keys ) ], array_map( function ( $l ) {
+                        return '@' . $l;
+                    }, $apply_keys ) ),
                     array_merge( $applies ),
                     array_merge( $filters ),
                     array_merge( [ 'GROUPBY', count( $filter_keys ) ], array_map( function ( $f ) {

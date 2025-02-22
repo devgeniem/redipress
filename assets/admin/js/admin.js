@@ -34,7 +34,7 @@ class RediPressAdmin {
         this.cached.$redipress_drop_index            = $( '#redipress_drop_index' );
         this.cached.$redipress_index_all             = $( '#redipress_index_all' );
         this.cached.$redipress_current_index         = $( '#redipress_current_index' );
-        this.cached.$redipress_index_count_delimeter = $( '#redipress_index_count_delimeter' );
+        this.cached.$redipress_index_count_delimiter = $( '#redipress_index_count_delimiter' );
         this.cached.$redipress_max_index             = $( '#redipress_max_index' );
     }
 
@@ -77,7 +77,7 @@ class RediPressAdmin {
                     this.cached.$redipress_index_info.text( __( 'Unprecedented response: ', 'redipress' ) + data );
                     break;
             }
-        }).catch( ( error ) => this.errorHander( error ) );
+        }).catch( ( error ) => this.errorHandler( error ) );
     }
 
     /**
@@ -105,7 +105,7 @@ class RediPressAdmin {
                         this.cached.$redipress_index_info.text( __( 'Unprecedented response: ', 'redipress' ) + data );
                         break;
                 }
-            }).catch( ( error ) => this.errorHander( error ) );
+            }).catch( ( error ) => this.errorHandler( error ) );
         }
     }
 
@@ -125,7 +125,7 @@ class RediPressAdmin {
 
             this.restApiCall( '/schedule_index_all', 'POST', formData ).then( () => {
                 this.cached.$redipress_index_info.text( __( 'Indexing started...', 'redipress' ) );
-            }).catch( ( error ) => this.errorHander( error ) );
+            }).catch( ( error ) => this.errorHandler( error ) );
         }
     }
 
@@ -134,7 +134,7 @@ class RediPressAdmin {
      *
      * @param {String} error Error message from server.
      */
-    errorHander( error ) {
+    errorHandler( error ) {
         this.cached.$redipress_index_info.text( __( 'Unprecedented response: ', 'redipress' ) + error );
     }
 

@@ -132,7 +132,7 @@ class Utility {
     public static function escape_value_by_meta_type( $string, $meta_type = 'CHAR' ):mixed{
 
         // Possible numeric MySQL data type values for WP meta query are SIGNED, UNSIGNED, NUMERIC and DECIMAL.
-        // For NUMERIC and DECIMAL declaration also data precicion and scale can be specified.
+        // For NUMERIC and DECIMAL declaration also data precision and scale can be specified.
         // https://dev.mysql.com/doc/refman/8.0/en/numeric-type-syntax.html
         
         if ( is_numeric( $string ) && preg_match( '/^(?:SIGNED|UNSIGNED|NUMERIC(?:\(\d+(?:,\s?\d+)?\))?|DECIMAL(?:\(\d+(?:,\s?\d+)?\))?)$/', $meta_type ) ) {

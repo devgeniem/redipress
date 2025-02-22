@@ -504,7 +504,7 @@ class Settings {
                 <p>
                     <?php \esc_html_e( 'Items in index:', 'redipress' ); ?>
                     <span id="redipress_current_index"><?php echo \intval( $current_index ); ?></span>
-                    <span id="redipress_index_count_delimeter">/</span>
+                    <span id="redipress_index_count_delimiter">/</span>
                     <span id="redipress_max_index"><?php echo \intval( $max_index ); ?></span>
                 </p>
             </div>

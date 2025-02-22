@@ -225,7 +225,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - A bug where the response formatting function crashed with non-key-value lists.
 - A bug where query_var value 0 resulted in skipping the query.
 - A bug in the Polylang main query fix when no 'lang' query var was set
-- REST API compability.
+- REST API compatibility.
 - Wrong number of results were shown in the DustPress Debugger.
 
 ## [1.5.4] - 2020-06-10

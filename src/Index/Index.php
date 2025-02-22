@@ -363,7 +363,7 @@ abstract class Index {
      * @param mixed  $post_id The post ID.
      * @param string $field   The field name.
      * @param mixed  $data    The data.
-     * @param string $method  The method to use with multiple values. Defaults to "use_last". Possibilites: use_last, concat, concat_with_spaces, array_merge, sum, custom (needs filter).
+     * @param string $method  The method to use with multiple values. Defaults to "use_last". Possibilities: use_last, concat, concat_with_spaces, array_merge, sum, custom (needs filter).
      * @return void
      */
     public static function store( $post_id, string $field, $data, string $method = 'use_last' ) : void {

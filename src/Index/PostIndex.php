@@ -5,17 +5,16 @@
 
 namespace Geniem\RediPress\Index;
 
-use Geniem\RediPress\Settings,
-    Geniem\RediPress\Entity\SchemaField,
-    Geniem\RediPress\Entity\NumericField,
-    Geniem\RediPress\Entity\TagField,
-    Geniem\RediPress\Entity\TextField,
-    Geniem\RediPress\Redis\Client,
-    Geniem\RediPress\Utility,
-    Smalot\PdfParser\Parser as PdfParser,
-    PhpOffice\PhpWord\IOFactory,
-    Geniem\RediPress\Rest,
-    WP_CLI\Utils;
+use Geniem\RediPress\Settings;
+use Geniem\RediPress\Entity\NumericField;
+use Geniem\RediPress\Entity\TagField;
+use Geniem\RediPress\Entity\TextField;
+use Geniem\RediPress\Redis\Client;
+use Geniem\RediPress\Rest;
+use Geniem\RediPress\Utility;
+use Smalot\PdfParser\Parser as PdfParser;
+use PhpOffice\PhpWord\IOFactory;
+use WP_CLI\Utils;
 
 /**
  * RediPress post index class
@@ -84,21 +83,21 @@ class PostIndex extends Index {
         \add_action( static::HOOKS['schedule_partial_index'], [ $this, 'schedule_partial_index' ], 50, 1 );
 
         // Register CLI bindings
-        add_filter( 'redipress/cli/index_all', [ $this, 'index_all' ], 50, 2 );
-        add_filter( 'redipress/cli/index_missing', [ $this, 'index_missing' ], 50, 2 );
-        add_action( 'redipress/cli/index_single', [ $this, 'index_single' ], 50, 1 );
-        add_filter( 'redipress/index/posts/create', [ $this, 'create' ], 50, 1 );
-        add_filter( 'redipress/index/posts/drop', [ $this, 'drop' ], 50, 2 );
+        \add_filter( 'redipress/cli/index_all', [ $this, 'index_all' ], 50, 2 );
+        \add_filter( 'redipress/cli/index_missing', [ $this, 'index_missing' ], 50, 2 );
+        \add_action( 'redipress/cli/index_single', [ $this, 'index_single' ], 50, 1 );
+        \add_filter( 'redipress/index/posts/create', [ $this, 'create' ], 50, 1 );
+        \add_filter( 'redipress/index/posts/drop', [ $this, 'drop' ], 50, 2 );
         // Register external actions
-        add_action( 'redipress/delete_post', [ $this, 'delete_post' ], 50, 1 );
-        add_action( 'redipress/index_post', [ $this, 'upsert' ], 50, 3 );
+        \add_action( 'redipress/delete_post', [ $this, 'delete_post' ], 50, 1 );
+        \add_action( 'redipress/index_post', [ $this, 'upsert' ], 50, 3 );
 
         // Register indexing hooks
-        add_action( 'save_post', [ $this, 'upsert' ], 500, 3 );
-        add_action( 'delete_post', [ $this, 'delete' ], 10, 1 );
+        \add_action( 'save_post', [ $this, 'upsert' ], 500, 3 );
+        \add_action( 'delete_post', [ $this, 'delete' ], 10, 1 );
 
         // Register taxonomy actions
-        add_action( 'set_object_terms', [ $this, 'index_single' ], 50, 1 );
+        \add_action( 'set_object_terms', [ $this, 'index_single' ], 50, 1 );
     }
 
     /**
@@ -108,8 +107,8 @@ class PostIndex extends Index {
      */
     public static function index_total(): int {
         global $wpdb;
-        $ids = intval( $wpdb->get_row( "SELECT count(*) as count FROM $wpdb->posts" )->count ); // phpcs:ignore
-        return $ids;
+
+        return intval( $wpdb->get_row( "SELECT count(*) as count FROM $wpdb->posts" )->count ); // phpcs:ignore
     }
 
     /**
@@ -182,7 +181,7 @@ class PostIndex extends Index {
         ];
 
         if ( \is_multisite() ) {
-            \array_unshift(
+            array_unshift(
                 $core_schema_fields,
                 new TextField([
                     'name'     => 'blog_id',
@@ -192,7 +191,7 @@ class PostIndex extends Index {
         }
 
         // Add taxonomies to core fields
-        $taxonomies = get_taxonomies();
+        $taxonomies = \get_taxonomies();
 
         foreach ( $taxonomies as $taxonomy ) {
             $taxonomy = str_replace( '-', '_', $taxonomy );
@@ -229,7 +228,7 @@ class PostIndex extends Index {
 
             // Make sure we don't create new cron jobs if one is already running
             $cron = \get_option( 'cron' );
-            foreach ( $cron as $timestamp => $events ) {
+            foreach ( $cron as $events ) {
                 foreach ( $events as $hook => $args ) {
                     if ( $hook === static::HOOKS['schedule_partial_index'] ) {
                         return true;
@@ -238,11 +237,12 @@ class PostIndex extends Index {
             }
 
             $offset = $args->get_param( 'offset' ) ?? 0;
+
             return \wp_schedule_single_event( time(), static::HOOKS['schedule_partial_index'], [ $offset ], true );
         }
 
         // Run index
-        $offset = \is_int( $args ) ? $args : 0;
+        $offset = is_int( $args ) ? $args : 0;
         $count  = $this->index_all([
             'limit'  => \apply_filters( static::HOOKS['schedule_partial_index_limit'], 400 ),
             'offset' => $offset,
@@ -252,18 +252,18 @@ class PostIndex extends Index {
         if ( $count ) {
             return \wp_schedule_single_event( time(), static::HOOKS['schedule_partial_index'], [ $offset + $count ], true );
         }
-        else {
-            return true;
-        }
+
+        return true;
     }
 
     /**
      * Index all or a part of posts to the RediSearch database
      *
      * @param  array|null $args Array containing Limit & offset details or null if not doing a partial index.
-     * @return int              Amount of items indexed.
+     * @param  array      $query_args Additional query arguments to filter the posts.
+     * @return int        Amount of items indexed.
      */
-    public function index_all( array $args = null, array $query_args = [] ): int {
+    public function index_all( ?array $args = null, array $query_args = [] ): int {
         global $wpdb;
 
         define( 'WP_IMPORTING', true );
@@ -279,7 +279,7 @@ class PostIndex extends Index {
                 $params = [];
 
                 foreach ( $query_args as $key => $value ) {
-                    $wheres[] = esc_sql( $key ) . ' = %s';
+                    $wheres[] = \esc_sql( $key ) . ' = %s';
                     $params[] = $value;
                 }
 
@@ -299,6 +299,7 @@ class PostIndex extends Index {
 
         if ( empty( $ids ) ) {
             \WP_CLI::error( 'No posts matching the criteria were found.' );
+
             return 0;
         }
 
@@ -314,16 +315,16 @@ class PostIndex extends Index {
         }
 
         $posts = array_map( function ( $row ) {
-            return get_post( $row->ID );
+            return \get_post( $row->ID );
         }, $ids );
 
-        $posts = apply_filters( 'redipress/index/posts/custom', $posts );
+        $posts = \apply_filters( 'redipress/index/posts/custom', $posts );
 
         $result = array_map( function ( $post ) use ( $progress ) {
             self::$indexing = $post->ID;
 
-            $language = apply_filters( 'redipress/index/posts/language', $post->lang ?? null, $post );
-            $language = apply_filters( 'redipress/index/posts/language/' . $post->ID, $language, $post );
+            $language = \apply_filters( 'redipress/index/posts/language', $post->lang ?? null, $post );
+            $language = \apply_filters( 'redipress/index/posts/language/' . $post->ID, $language, $post );
 
             // Sanity check.
             if ( ! $post instanceof \WP_Post ) {
@@ -374,6 +375,7 @@ class PostIndex extends Index {
         else {
             $id = $post->ID;
         }
+
         if ( ! \is_multisite() ) {
             return $id;
         }
@@ -388,7 +390,7 @@ class PostIndex extends Index {
      * @param  \WP_REST_Request|null $request Rest request details or null if not rest api request.
      * @return int                            Amount of items indexed.
      */
-    public function index_missing( \WP_REST_Request $request = null, array $query_args = [] ): int {
+    public function index_missing( ?\WP_REST_Request $request = null, array $query_args = [] ): int {
         global $wpdb;
 
         \do_action( 'redipress/before_index_all', $request );
@@ -439,7 +441,7 @@ class PostIndex extends Index {
 
         $custom_posts = [];
 
-        $custom_posts = apply_filters( 'redipress/custom_posts', $custom_posts );
+        $custom_posts = \apply_filters( 'redipress/custom_posts', $custom_posts );
 
         $count += count( $custom_posts );
 
@@ -465,12 +467,13 @@ class PostIndex extends Index {
         $result = array_map( function ( $post ) use ( $progress ) {
             self::$indexing = $post->ID;
 
-            $language = apply_filters( 'redipress/post_language', $post->lang ?? null, $post );
-            $language = apply_filters( 'redipress/post_language/' . $post->ID, $language, $post );
+            $language = \apply_filters( 'redipress/post_language', $post->lang ?? null, $post );
+            $language = \apply_filters( 'redipress/post_language/' . $post->ID, $language, $post );
 
             // Sanity check.
             if ( ! $post instanceof \WP_Post ) {
                 $progress->tick();
+
                 return;
             }
 
@@ -507,7 +510,7 @@ class PostIndex extends Index {
      * @return mixed
      */
     public function index_single( int $post_id ) {
-        $post = get_post( $post_id );
+        $post = \get_post( $post_id );
 
         // Bail early if not found
         if ( ! $post ) {
@@ -538,7 +541,7 @@ class PostIndex extends Index {
     public function upsert( $post_id, \WP_Post $post, bool $update = null ) {
         // Run a list of checks if we really want to do this or not.
         if (
-            wp_is_post_revision( $post_id ) ||
+            \wp_is_post_revision( $post_id ) ||
             defined( 'DOING_AUTOSAVE' )
         ) {
             return;
@@ -556,7 +559,7 @@ class PostIndex extends Index {
 
         $result = $this->add_post( $converted, self::get_document_id( $post, $post_id ) );
 
-        do_action( 'redipress/new_post_added', $result, $post );
+        \do_action( 'redipress/new_post_added', $result, $post );
 
         $this->maybe_write_to_disk( 'new_post_added' );
 
@@ -597,8 +600,8 @@ class PostIndex extends Index {
         $search_index = [];
 
         // Get the author data
-        $author_field = apply_filters( 'redipress/post_author_field', 'display_name', $post->ID, $post );
-        $user_object  = get_userdata( $post->post_author );
+        $author_field = \apply_filters( 'redipress/post_author_field', 'display_name', $post->ID, $post );
+        $user_object  = \get_userdata( $post->post_author );
 
         if ( $user_object instanceof \WP_User ) {
             $post_author = $user_object->{ $author_field };
@@ -607,7 +610,7 @@ class PostIndex extends Index {
             $post_author = '';
         }
 
-        $args['post_author'] = apply_filters( 'redipress/post_author', $post_author, $post->ID, $post );
+        $args['post_author'] = \apply_filters( 'redipress/post_author', $post_author, $post->ID, $post );
 
         if ( ! $settings->get( 'disable_post_author_search' ) ) {
             $search_index[] = $args['post_author'];
@@ -633,8 +636,8 @@ class PostIndex extends Index {
         $additional_values = array_map( function ( $field ) use ( $post ) {
             $value = self::get( $post->ID, $field );
 
-            $value = apply_filters( 'redipress/additional_field/' . $post->ID . '/' . $field, $value, $post );
-            $value = apply_filters( 'redipress/additional_field/' . $field, $value, $post->ID, $post );
+            $value = \apply_filters( 'redipress/additional_field/' . $post->ID . '/' . $field, $value, $post );
+            $value = \apply_filters( 'redipress/additional_field/' . $field, $value, $post->ID, $post );
 
             $type = $this->get_field_type( $field );
 
@@ -666,22 +669,22 @@ class PostIndex extends Index {
         $tax = [];
 
         // Handle the taxonomies
-        if ( post_type_exists( $post->post_type ) ) {
-            $taxonomies = get_object_taxonomies( $post->post_type );
+        if ( \post_type_exists( $post->post_type ) ) {
+            $taxonomies = \get_object_taxonomies( $post->post_type );
         }
         else {
-            $taxonomies = get_taxonomies();
+            $taxonomies = \get_taxonomies();
         }
 
-        $taxonomies = apply_filters( 'redipress/taxonomies', $taxonomies, $post->post_type, $post );
+        $taxonomies = \apply_filters( 'redipress/taxonomies', $taxonomies, $post->post_type, $post );
 
         $wanted_taxonomies = $settings->get( 'taxonomies' ) ?: [];
 
         foreach ( $taxonomies as $taxonomy ) {
-            $terms = get_the_terms( $post->ID, $taxonomy ) ?: [];
+            $terms = \get_the_terms( $post->ID, $taxonomy ) ?: [];
 
             if ( ! empty( $post->taxonomies[ $taxonomy ] ) ) {
-                $custom_terms = get_terms([
+                $custom_terms = \get_terms([
                     'taxonomy'               => $taxonomy,
                     'include'                => $post->taxonomies[ $taxonomy ],
                     'hide_empty'             => false,
@@ -727,28 +730,28 @@ class PostIndex extends Index {
 
         // Gather the additional search index
         $search_index = array_merge( $search_index, (array) self::get( $post->ID, 'search_index' ) );
-        $search_index = apply_filters( 'redipress/search_index', implode( ' ', $search_index ), $post->ID, $post );
-        $search_index = apply_filters( 'redipress/search_index/' . $post->ID, $search_index, $post );
+        $search_index = \apply_filters( 'redipress/search_index', implode( ' ', $search_index ), $post->ID, $post );
+        $search_index = \apply_filters( 'redipress/search_index/' . $post->ID, $search_index, $post );
 
-        $search_index = apply_filters( 'redipress/index_strings', $search_index, $post );
+        $search_index = \apply_filters( 'redipress/index_strings', $search_index, $post );
         $search_index = trim( $this->escape_string( $search_index ) );
 
         // Filter the post object that will be added to the database serialized.
-        $post_object = apply_filters( 'redipress/post_object', $post );
+        $post_object = \apply_filters( 'redipress/post_object', $post );
 
-        $post_title = apply_filters( 'redipress/post_title', $post->post_title );
-        $post_title = apply_filters( 'redipress/index_strings', $post_title, $post );
+        $post_title = \apply_filters( 'redipress/post_title', $post->post_title );
+        $post_title = \apply_filters( 'redipress/index_strings', $post_title, $post );
         $post_title = $this->escape_string( $post_title );
 
-        $post_excerpt = apply_filters( 'redipress/post_excerpt', $post->post_excerpt );
-        $post_excerpt = apply_filters( 'redipress/index_strings', $post_excerpt, $post );
+        $post_excerpt = \apply_filters( 'redipress/post_excerpt', $post->post_excerpt );
+        $post_excerpt = \apply_filters( 'redipress/index_strings', $post_excerpt, $post );
         $post_excerpt = $this->escape_string( $post_excerpt );
 
         $post_content = $this->get_post_content( $post );
 
-        $post_password = apply_filters( 'redipress/post_password', $post->post_password ?? '' );
+        $post_password = \apply_filters( 'redipress/post_password', $post->post_password ?? '' );
 
-        $post_status = apply_filters( 'redipress/post_status', $post->post_status ?? 'publish' );
+        $post_status = \apply_filters( 'redipress/post_status', $post->post_status ?? 'publish' );
 
         // Get rest of the fields
         $rest = [
@@ -764,7 +767,7 @@ class PostIndex extends Index {
             'post_status'    => $post_status,
             'post_password'  => $post_password ?: 'redipress___no_password_set',
             'post_object'    => serialize( $post_object ),
-            'permalink'      => get_permalink( $post->ID ),
+            'permalink'      => \get_permalink( $post->ID ),
             'menu_order'     => intval( $post->menu_order ),
             'search_index'   => $search_index,
         ];
@@ -773,7 +776,7 @@ class PostIndex extends Index {
             $rest['blog_id'] = $post->blog_id ?? \get_current_blog_id();
         }
 
-        do_action( 'redipress/indexed_post', $post );
+        \do_action( 'redipress/indexed_post', $post );
 
         return $this->client->convert_associative( array_merge( $args, $rest, $tax, $additions ) );
     }
@@ -800,12 +803,12 @@ class PostIndex extends Index {
         switch ( $post->post_type ) { // Handle post content by post type
             case 'attachment':
                 // Check if mime type is supported
-                if ( \in_array( $post->post_mime_type, static::SUPPORTED_MIME_TYPES, true ) ) {
+                if ( in_array( $post->post_mime_type, static::SUPPORTED_MIME_TYPES, true ) ) {
                     $settings = new Settings();
 
                     // Check if mime type is enabled @TODO: throws a warning
-                    $enabled_mime_types = $settings->get( 'mime_types' ) ?: \array_values( static::SUPPORTED_MIME_TYPES );
-                    if ( \in_array( $post->post_mime_type, $enabled_mime_types, true ) ) {
+                    $enabled_mime_types = $settings->get( 'mime_types' ) ?: array_values( static::SUPPORTED_MIME_TYPES );
+                    if ( in_array( $post->post_mime_type, $enabled_mime_types, true ) ) {
 
                         // Get file content
                         $file_content = $this->get_uploaded_media_content( $post );
@@ -839,9 +842,9 @@ class PostIndex extends Index {
                                     try {
                                         // We need to create a temporary file to read from as PhpOffice\PhpWord can't read from string
                                         $tmpfile = \wp_tempnam();
-                                        \file_put_contents( $tmpfile, $file_content ); // phpcs:ignore -- We need to write to disk temporarily
+                                        file_put_contents( $tmpfile, $file_content ); // phpcs:ignore -- We need to write to disk temporarily
                                         $phpword = IOFactory::load( $tmpfile, $mime_type_reader[ $post->post_mime_type ] );
-                                        \unlink( $tmpfile ); // phpcs:ignore -- We should remove the temporary file after it has been parsed
+                                        unlink( $tmpfile ); // phpcs:ignore -- We should remove the temporary file after it has been parsed
 
                                         $post_content = $this->io_factory_get_text( $phpword );
                                     }
@@ -868,7 +871,7 @@ class PostIndex extends Index {
         // Handle the post content
         $post_content = $this->strip_tags_except_comments( $post_content );
         $post_content = \apply_filters( 'redipress/post_content', $post_content, $post );
-        $post_content = apply_filters( 'redipress/index_strings', $post_content, $post );
+        $post_content = \apply_filters( 'redipress/index_strings', $post_content, $post );
         $post_content = $this->escape_string( $post_content );
 
         // Replace unwanted characters with space to keep spaces for example after a line break.
@@ -912,15 +915,15 @@ class PostIndex extends Index {
      */
     public function io_factory_get_text( $current ): string {
         $post_content = '';
-        if ( \method_exists( $current, 'getText' ) ) {
+        if ( method_exists( $current, 'getText' ) ) {
             $post_content .= $current->getText() . "\n";
         }
-        elseif ( \method_exists( $current, 'getSections' ) ) {
+        elseif ( method_exists( $current, 'getSections' ) ) {
             foreach ( $current->getSections() as $section ) {
                 $post_content .= $this->io_factory_get_text( $section ) . "\n";
             }
         }
-        elseif ( \method_exists( $current, 'getElements' ) ) {
+        elseif ( method_exists( $current, 'getElements' ) ) {
             foreach ( $current->getElements() as $element ) {
                 $post_content .= $this->io_factory_get_text( $element ) . "\n";
             }
@@ -940,7 +943,7 @@ class PostIndex extends Index {
         $file_path = \get_attached_file( $post->ID );
 
         // File doesn't exist locally (wp stateless or similar)
-        if ( ! \file_exists( $file_path ) ) {
+        if ( ! file_exists( $file_path ) ) {
             $args    = \apply_filters( 'redipress/get_uploaded_media_content/wp_remote_get', [] );
             $request = \wp_remote_get( $post->guid, $args );
             if ( ! \is_wp_error( $request ) ) {
@@ -948,7 +951,7 @@ class PostIndex extends Index {
             }
         }
         else {
-            $content = \file_get_contents( $file_path );
+            $content = file_get_contents( $file_path );
         }
 
         return $content;

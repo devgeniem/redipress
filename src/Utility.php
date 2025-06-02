@@ -18,7 +18,7 @@ class Utility {
      * @param array $source The original array to format.
      * @return array
      */
-    public static function format( array $source ) : array {
+    public static function format( array $source ): array {
         // Don't bother with an empty array
         if ( empty( $source ) ) {
             return $source;
@@ -33,7 +33,7 @@ class Utility {
         }
 
         // If the data to handle is a list rather than a key-value object, bail early.
-        $list = array_reduce( $source, function( $carry = true, $item = null ) {
+        $list = array_reduce( $source, function ( $carry = true, $item = null ) {
             if ( $carry === false ) {
                 return false;
             }
@@ -97,8 +97,8 @@ class Utility {
      * @param array $schema The array to get the names from.
      * @return array
      */
-    public static function get_schema_fields( array $schema = [] ) : array {
-        return array_map( function( $field ) : ?string {
+    public static function get_schema_fields( array $schema = [] ): array {
+        return array_map( function ( $field ): ?string {
             return $field[1] ?? null;
         }, $schema );
     }
@@ -130,7 +130,6 @@ class Utility {
      * the return value will be either string (or array of strings), int or float.
      */
     public static function escape_value_by_meta_type( $string, $meta_type = 'CHAR' ):mixed{
-
         // Possible numeric MySQL data type values for WP meta query are SIGNED, UNSIGNED, NUMERIC and DECIMAL.
         // For NUMERIC and DECIMAL declaration also data precicion and scale can be specified.
         // https://dev.mysql.com/doc/refman/8.0/en/numeric-type-syntax.html
@@ -170,6 +169,6 @@ class Utility {
             $replace[] = '\\)';
         }
 
-        return \str_replace( $search, $replace, $string );
+        return str_replace( $search, $replace, $string );
     }
 }

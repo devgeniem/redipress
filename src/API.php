@@ -6,30 +6,21 @@
 namespace Geniem\RediPress;
 
 use Geniem\RediPress\Index\PostIndex;
-use Geniem\RediPress\Index\UserIndex;
 
 /**
  * Get one post with its from RediPress index.
  *
  * @param mixed $post_id The ID to fetch.
- * @return WP_Post|null The post to fetch or null if not found.
+ * @return \WP_Post|bool|null The post to fetch or null if not found.
  */
 function get_post( $post_id ) {
-    $settings = new Settings();
-    $client   = apply_filters( 'redipress/client', null );
+    $client = \apply_filters( 'redipress/client', null );
 
     $index = Settings::get( 'posts_index' );
 
     $doc_id = PostIndex::get_document_id( \get_post( $post_id ), $post_id );
 
     $result = $client->raw_command( 'HGETALL', [ $index . ':' . $doc_id ] );
-
-    $query = (object) [
-        'redisearch_query' => "HGETALL $index:$doc_id",
-        'query_vars'       => [
-            'post_id' => $post_id,
-        ],
-    ];
 
     // If nothing is found, just return null
     if ( ! $result ) {
@@ -39,7 +30,7 @@ function get_post( $post_id ) {
     $result = Utility::format( $result );
 
     if ( ! empty( $result['post_object'] ) ) {
-        $post_object = maybe_unserialize( $result['post_object'] );
+        $post_object = \maybe_unserialize( $result['post_object'] );
 
         if ( $post_object instanceof \WP_Post ) {
             return $post_object;
@@ -60,7 +51,7 @@ function get_post( $post_id ) {
  * @return array
  */
 function update_value( $doc_id, $field, $value, $score = 1, $users = false ) {
-    $client = apply_filters( 'redipress/client', null );
+    $client = \apply_filters( 'redipress/client', null );
 
     if ( $users ) {
         $index       = Settings::get( 'users_index' );
@@ -125,10 +116,10 @@ function update_value( $doc_id, $field, $value, $score = 1, $users = false ) {
 /**
  * Escape dashes from string
  *
- * @param  string $string Unescaped string.
- * @return string         Escaped $string.
+ * @param  ?string $string Unescaped string.
+ * @return string          Escaped $string.
  */
-function escape_string( ?string $string = '' ) : string {
+function escape_string( ?string $string = '' ): string {
     return Utility::escape_string( $string );
 }
 
@@ -139,10 +130,10 @@ function escape_string( ?string $string = '' ) : string {
  * @param array  $index The index.
  * @return string|null
  */
-function get_field_type( string $key, array $index ) : ?string {
+function get_field_type( string $key, array $index ): ?string {
     $fields = Utility::format( $index['attributes'] );
 
-    $field_type = array_reduce( $fields, function( $carry = null, $item = null ) use ( $key ) {
+    $field_type = array_reduce( $fields, function ( $carry = null, $item = null ) use ( $key ) {
         if ( ! empty( $carry ) ) {
             return $carry;
         }
@@ -166,7 +157,7 @@ function get_field_type( string $key, array $index ) : ?string {
  */
 function delete_doc( $doc_id ) {
 
-    $client = apply_filters( 'redipress/client', null );
+    $client = \apply_filters( 'redipress/client', null );
     $index  = Settings::get( 'index' );
 
     if ( ! empty( $doc_id ) && ! empty( $client ) && ! empty( $index ) ) {

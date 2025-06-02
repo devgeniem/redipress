@@ -5,8 +5,6 @@
 
 namespace Geniem\RediPress\CLI;
 
-use WP_CLI;
-
 /**
  * RediPress CLI drop index command class.
  */
@@ -19,12 +17,12 @@ class Drop implements Command {
      * @param array $assoc_args The optional command parameters.
      * @return boolean
      */
-    public function run( array $args = [], array $assoc_args = [] ) : bool {
+    public function run( array $args = [], array $assoc_args = [] ): bool {
         if ( count( $args ) === 1 ) {
             return $this->drop_index( $args[0], $assoc_args );
         }
         elseif ( count( $args ) > 1 ) {
-            WP_CLI::error( 'RediPress: "drop" command does not accept more than two parameters.' );
+            \WP_CLI::error( 'RediPress: "drop" command does not accept more than two parameters.' );
             return false;
         }
     }
@@ -40,10 +38,10 @@ class Drop implements Command {
     public function drop_index( string $index, array $assoc_args ) {
         switch ( $index ) {
             case 'posts':
-                $return = apply_filters( 'redipress/index/posts/drop', 'method not found', $assoc_args );
+                $return = \apply_filters( 'redipress/index/posts/drop', 'method not found', $assoc_args );
                 break;
             case 'users':
-                $return = apply_filters( 'redipress/index/users/drop', 'method not found', $assoc_args );
+                $return = \apply_filters( 'redipress/index/users/drop', 'method not found', $assoc_args );
                 break;
             default:
                 throw new \Exception( 'Index type ' . $index . ' is not supported.' );
@@ -69,7 +67,7 @@ class Drop implements Command {
      *
      * @return integer
      */
-    public static function get_min_parameters() : int {
+    public static function get_min_parameters(): int {
         return 1;
     }
 
@@ -78,7 +76,7 @@ class Drop implements Command {
      *
      * @return integer
      */
-    public static function get_max_parameters() : int {
+    public static function get_max_parameters(): int {
         return 1;
     }
 }

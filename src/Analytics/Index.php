@@ -123,7 +123,7 @@ class Index {
      *
      * @return array
      */
-    public function get_schema_fields() : array {
+    public function get_schema_fields(): array {
         // Filter to add possible more fields.
         $schema_fields = apply_filters( 'redipress/schema_fields', $this->core_schema_fields );
 
@@ -133,7 +133,7 @@ class Index {
         $raw_schema = array_reduce(
             $schema_fields,
             // Convert SchemaField objects into raw arrays
-            fn( ?array $c, SchemaField $field ) : array => array_merge( $c, $field->get() ),
+            fn( ?array $c, SchemaField $field ): array => array_merge( $c, $field->get() ),
             []
         );
 
@@ -202,7 +202,7 @@ class Index {
      *
      * @return string
      */
-    public static function get_tag_separator() : string {
+    public static function get_tag_separator(): string {
         return apply_filters( 'redipress/tag_separator', self::TAG_SEPARATOR );
     }
 }

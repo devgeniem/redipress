@@ -15,9 +15,9 @@ class Polylang {
      */
     public function __construct() {
         // Filter the query before RediPress to handle localizations.
-        add_filter( 'posts_pre_query', [ $this, 'posts_pre_query' ], 9, 2 );
+        \add_filter( 'posts_pre_query', [ $this, 'posts_pre_query' ], 9, 2 );
         // Add the query var filter
-        add_filter( 'redipress/query_vars', [ $this, 'add_query_var' ], 10, 1 );
+        \add_filter( 'redipress/query_vars', [ $this, 'add_query_var' ], 10, 1 );
     }
 
     /**
@@ -30,7 +30,7 @@ class Polylang {
      * @param \WP_Query  $query The WP_Query object.
      * @return array Results or null if no results.
      */
-    public function posts_pre_query( ?array $posts, \WP_Query $query ) : ?array {
+    public function posts_pre_query( ?array $posts, \WP_Query $query ): ?array {
 
         // For singular views.
         if ( $query->is_singular() ) {
@@ -118,8 +118,8 @@ class Polylang {
      * @param array $query_vars The query_vars to modify.
      * @return array
      */
-    public function add_query_var( array $query_vars ) : array {
-        $query_vars['lang'] = function ( \Geniem\RediPress\Search\QueryBuilder $query_builder ) : string {
+    public function add_query_var( array $query_vars ): array {
+        $query_vars['lang'] = function ( \Geniem\RediPress\Search\QueryBuilder $query_builder ): string {
             $query = $query_builder->get_query_instance();
 
             // No need to modify the query if this is the main query.

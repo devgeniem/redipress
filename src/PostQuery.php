@@ -5,15 +5,14 @@
 
 namespace Geniem\RediPress;
 
-use Geniem\RediPress\Settings,
-    Geniem\RediPress\Redis\Client,
-    Geniem\RediPress\Utility;
+use Geniem\RediPress\Settings;
+use Geniem\RediPress\Redis\Client;
+use Geniem\RediPress\Utility;
 
 /**
  * RediPress PostQuery class
  */
 class PostQuery {
-
     /**
      * RediPress wrapper for the Predis client
      *
@@ -75,10 +74,10 @@ class PostQuery {
         $this->index = Settings::get( 'posts_index' );
 
         // Add search filters
-        add_filter( 'posts_pre_query', [ $this, 'posts_pre_query' ], 10, 2 );
+        \add_filter( 'posts_pre_query', [ $this, 'posts_pre_query' ], 10, 2 );
 
         // Reverse filter for getting the Search instance.
-        add_filter( 'redipress/search_instance', function ( $value ) {
+        \add_filter( 'redipress/search_instance', function ( $value ) {
             return $this;
         }, 1, 1 );
     }
@@ -103,21 +102,21 @@ class PostQuery {
         $search_query = $this->query_builder->get_query();
 
         // Filter the search query as an array
-        $search_query = apply_filters( 'redipress/search_query', $search_query, $query );
+        $search_query = \apply_filters( 'redipress/search_query', $search_query, $query );
 
         // Filter the search query as a string
-        $search_query_string = apply_filters( 'redipress/search_query_string', implode( ' ', $search_query ), $query );
+        $search_query_string = \apply_filters( 'redipress/search_query_string', implode( ' ', $search_query ), $query );
 
         // Filter the query string for the count feature
-        $count_search_query_string = apply_filters( 'redipress/count_search_query_string', $search_query_string );
+        $count_search_query_string = \apply_filters( 'redipress/count_search_query_string', $search_query_string );
 
         $infields = array_merge( $this->default_search_fields, $this->query_builder->get_search_fields() );
 
         // Filter the list of fields from which the search is conducted.
-        $infields = array_unique( apply_filters( 'redipress/search_fields', $infields, $query ) );
+        $infields = array_unique( \apply_filters( 'redipress/search_fields', $infields, $query ) );
 
         // Filter the list of fields that will be returned with the query.
-        $return = array_unique( apply_filters( 'redipress/return_fields', $this->query_builder->get_return_fields(), $query ) );
+        $return = array_unique( \apply_filters( 'redipress/return_fields', $this->query_builder->get_return_fields(), $query ) );
 
         // If we are dealing with a singular view the limit and offset are clear.
         if ( $query->is_singular() ) {
@@ -155,13 +154,13 @@ class PostQuery {
         $groupby          = $this->query_builder->get_groupby() ?: [];
 
         // Filters for query parts
-        $sortby           = apply_filters( 'redipress/sortby', $sortby );
-        $applies          = apply_filters( 'redipress/applies', $applies );
-        $filters          = apply_filters( 'redipress/filters', $filters );
-        $geofilter        = apply_filters( 'redipress/geofilter', $geofilter );
-        $groupby          = apply_filters( 'redipress/groupby', $groupby );
-        $reduce_functions = apply_filters( 'redipress/reduce_functions', $reduce_functions );
-        $load             = apply_filters( 'redipress/load', [ 'post_object' ] );
+        $sortby           = \apply_filters( 'redipress/sortby', $sortby );
+        $applies          = \apply_filters( 'redipress/applies', $applies );
+        $filters          = \apply_filters( 'redipress/filters', $filters );
+        $geofilter        = \apply_filters( 'redipress/geofilter', $geofilter );
+        $groupby          = \apply_filters( 'redipress/groupby', $groupby );
+        $reduce_functions = \apply_filters( 'redipress/reduce_functions', $reduce_functions );
+        $load             = \apply_filters( 'redipress/load', [ 'post_object' ] );
 
         if ( ! empty( $sortby ) || ! empty( $applies ) || ! empty( $filters ) || ! empty( $groupby ) ) {
             if ( empty( $groupby ) ) {
@@ -286,7 +285,7 @@ class PostQuery {
              *
              * @see https://oss.redislabs.com/redisearch/Scoring/
              */
-            $scorer       = apply_filters( 'redipress/scorer', 'TFIDF', $query );
+            $scorer       = \apply_filters( 'redipress/scorer', 'TFIDF', $query );
             $scorer_array = [];
 
             // The default scorer (TFIDF) doesn't require the argument.
@@ -334,7 +333,7 @@ class PostQuery {
         \do_action( 'redipress/debug_query', $query, $results, 'posts' );
 
         // Return the results through a filter
-        return apply_filters( 'redipress/search_results', (object) [
+        return \apply_filters( 'redipress/search_results', (object) [
             'results' => $results,
             'counts'  => $counts,
         ], $query );
@@ -348,24 +347,23 @@ class PostQuery {
      * @return array Results or null if no results.
      */
     public function posts_pre_query( ?array $posts, \WP_Query $query ): ?array {
-        global $wpdb;
-
         // If the query is empty, we are probably dealing with the front page and we want to skip RediSearch with that.
         if ( empty( $query->query ) ) {
             $query->is_front_page = true;
+
             return null;
         }
 
         // We don't want to mess with the singular queries.
         if ( $query->is_singular() ) {
-            add_filter( 'posts_results', [ $this, 'posts_results_single' ], 10, 2 );
+            \add_filter( 'posts_results', [ $this, 'posts_results_single' ], 10, 2 );
 
             return null;
         }
 
         // If we are on a multisite and have not explicitly defined that
         // we want to do stuff with other sites, use the current site
-        if ( is_multisite() ) {
+        if ( \is_multisite() ) {
             if ( empty( $query->query['blog'] ) ) {
                 if ( ! empty( $query->query_vars['blog'] ) ) {
                     $query->query['blog'] = $query->query_vars['blog'];
@@ -382,7 +380,7 @@ class PostQuery {
 
         $this->query_builder = new Search\PostQueryBuilder( $query, $this->index_info );
 
-        $post_status = apply_filters( 'redipress/post_status', $query->query['post_status'] ?? null );
+        $post_status = \apply_filters( 'redipress/post_status', $query->query['post_status'] ?? null );
 
         // If we don't have explicitly defined post status, just use publish
         if ( is_null( $post_status ) ) {
@@ -396,7 +394,7 @@ class PostQuery {
 
         // Only filter front-end search queries
         if ( $this->query_builder->enable() ) {
-            do_action( 'redipress/before_search', $this, $query );
+            \do_action( 'redipress/before_search', $this, $query );
 
             $raw_results = $this->search( $query );
 
@@ -408,10 +406,10 @@ class PostQuery {
                 }
 
                 if ( Settings::get( 'fallback' ) ) {
-                    return apply_filters( 'redipress/no_results', null, $query );
+                    return \apply_filters( 'redipress/no_results', null, $query );
                 }
                 else {
-                    return apply_filters( 'redipress/no_results', [], $query );
+                    return \apply_filters( 'redipress/no_results', [], $query );
                 }
             }
 
@@ -432,7 +430,7 @@ class PostQuery {
             $results = $this->format_results( $raw_results->results );
 
             // Filter the search results after the search has been conducted.
-            $results = apply_filters(
+            $results = \apply_filters(
                 'redipress/formatted_search_results',
                 $results,
                 Utility::format( $raw_results->results )
@@ -444,14 +442,13 @@ class PostQuery {
             $query->using_redisearch = true;
 
             if ( isset( $query->query['attributes'] ) && $query->query['attributes'] === 'ids' ) {
-                $results = \array_column( $results, 'ID' );
+                $results = array_column( $results, 'ID' );
             }
 
             return array_values( $results );
         }
-        else {
-            return null;
-        }
+
+        return null;
     }
 
     /**
@@ -462,7 +459,7 @@ class PostQuery {
      * @return array
      */
     public function posts_results_single( array $posts, \WP_Query $query ): array {
-        remove_filter( 'posts_results', [ $this, 'posts_results_single' ], 10 );
+        \remove_filter( 'posts_results', [ $this, 'posts_results_single' ], 10 );
 
         return array_map( '\\Geniem\\RediPress\\get_post', array_column( $posts, 'ID' ) );
     }
@@ -485,7 +482,7 @@ class PostQuery {
                 $post_obj = $result['post_object'];
             }
 
-            return maybe_unserialize( $post_obj );
+            return \maybe_unserialize( $post_obj );
         }, $results );
     }
 }

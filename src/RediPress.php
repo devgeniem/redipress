@@ -5,13 +5,13 @@
 
 namespace Geniem\RediPress;
 
-use Geniem\RediPressPlugin,
-    Geniem\RediPress\Settings,
-    Geniem\RediPress\Index\PostIndex,
-    Geniem\RediPress\Index\UserIndex,
-    Geniem\RediPress\Redis\Client,
-    Geniem\RediPress\Utility,
-    Geniem\RediPress\Rest;
+use Geniem\RediPressPlugin;
+use Geniem\RediPress\Settings;
+use Geniem\RediPress\Index\PostIndex;
+use Geniem\RediPress\Index\UserIndex;
+use Geniem\RediPress\Redis\Client;
+use Geniem\RediPress\Utility;
+use Geniem\RediPress\Rest;
 
 // Require the external API functions
 require_once( __DIR__ . '/API.php' );
@@ -52,11 +52,11 @@ class RediPress {
         $this->plugin = $plugin;
 
         // Initialize plugin functionalities in proper hook
-        add_action( 'init', [ $this, 'init' ], 2 );
+        \add_action( 'init', [ $this, 'init' ], 2 );
 
-        add_action( 'admin_menu', [ $this, 'add_settings_page' ] );
+        \add_action( 'admin_menu', [ $this, 'add_settings_page' ] );
 
-        add_action( 'rest_api_init', [ Rest::class, 'rest_api_init' ] );
+        \add_action( 'rest_api_init', [ Rest::class, 'rest_api_init' ] );
 
         // Register the CLI commands if WP CLI is available
         if ( defined( 'WP_CLI' ) ) {
@@ -96,7 +96,7 @@ class RediPress {
      *
      * @return boolean Whether the connection succeeded or not.
      */
-    protected function connect() : bool {
+    protected function connect(): bool {
         $client = new Client();
 
         try {
@@ -111,6 +111,7 @@ class RediPress {
         }
         catch ( \Exception $e ) {
             $this->plugin->show_admin_error( __( 'Connection to Redis server did not succeed.', 'redipress' ), $e->getMessage() );
+
             return false;
         }
     }
@@ -120,30 +121,28 @@ class RediPress {
      *
      * @return boolean Whether the Redisearch module is installed or not.
      */
-    protected function check_redisearch() : bool {
+    protected function check_redisearch(): bool {
         $modules = $this->connection->raw_command( 'MODULE', [ 'LIST' ] );
 
-        $redisearch = array_reduce( $modules, function( $carry, $item = null ) {
+        $redisearch = array_reduce( $modules, function ( $carry, $item = null ) {
             if ( $carry === true || ( ! empty( $item[1] ) && $item[1] === 'search' ) ) {
                 return true;
             }
-            else {
-                return false;
-            }
+
+            return false;
         });
 
         if ( ! $redisearch ) {
             $this->plugin->show_admin_error( __( 'The Redisearch module is not loaded.', 'redipress' ) );
+
             return false;
         }
-        else {
 
-            // Initialize indexes.
-            // Run initialization inside 'init' hook only if in WP CLI to avoid code execution order errors.
-            defined( 'WP_CLI' ) ? add_action( 'init', fn() => $this->init_indexes(), 1000 ) : $this->init_indexes();
+        // Initialize indexes.
+        // Run initialization inside 'init' hook only if in WP CLI to avoid code execution order errors.
+        defined( 'WP_CLI' ) ? \add_action( 'init', fn() => $this->init_indexes(), 1000 ): $this->init_indexes();
 
-            return true;
-        }
+        return true;
     }
 
     /**
@@ -164,7 +163,7 @@ class RediPress {
      *
      * @return boolean Whether the Redisearch index exists or not.
      */
-    protected function check_indexes() : bool {
+    protected function check_indexes(): bool {
         foreach ( $this->indexes as $type => $info ) {
             $index = $this->indexes[ $type ];
 
@@ -175,6 +174,7 @@ class RediPress {
             // Create the index if it doesn't already exist
             if ( $raw_info === 'Unknown Index name' ) {
                 $this->plugin->show_admin_error( sprintf( __( 'RediPress: Index "%s" does not exist.', 'redipress' ), $type ) );
+
                 return false;
             }
 
@@ -182,6 +182,7 @@ class RediPress {
 
             if ( (int) $info['num_docs'] === 0 ) {
                 $this->plugin->show_admin_error( sprintf( __( 'RediPress: Index "%s" is empty, consider running the indexing function.', 'redipress' ), $type ) );
+
                 return false;
             }
             else {
@@ -202,8 +203,8 @@ class RediPress {
      *
      * @return bool
      */
-    protected function check_schema_integrity() : bool {
-        add_action( 'wp_loaded',  function() {
+    protected function check_schema_integrity(): bool {
+        \add_action( 'wp_loaded',  function () {
             foreach ( $this->indexes as $index_type => $info ) {
                 $index_name = Settings::get( "{$index_type}_index" );
 
@@ -211,11 +212,11 @@ class RediPress {
 
                 $info = Utility::format( $raw_info );
 
-                $index = apply_filters( "redipress/{$index_type}_index_instance", null );
+                $index = \apply_filters( "redipress/{$index_type}_index_instance", null );
 
                 [ $options, $schema_fields, $raw_schema ] = $index->get_schema_fields();
 
-                $fields = array_map( function( $field ) {
+                $fields = array_map( function ( $field ) {
                     // Remove some fields so that we can compare the output to our own schema
                     // definitions.
                     unset( $field[0] );
@@ -230,7 +231,7 @@ class RediPress {
                 usort( $fields, fn( $a, $b ) => $a[0] <=> $b[0] );
 
                 // Convert everything to strings.
-                $schema = array_map( function( $field ) {
+                $schema = array_map( function ( $field ) {
                     return array_map( 'strval', $field->get() );
                 }, $schema_fields );
 
@@ -238,18 +239,18 @@ class RediPress {
                 usort( $schema, fn( $a, $b ) => $a[0] <=> $b[0] );
 
                 $diff = array_diff(
-                    \array_map( 'json_encode', $schema ),
-                    \array_map( 'json_encode', $fields ),
+                    array_map( 'json_encode', $schema ),
+                    array_map( 'json_encode', $fields ),
                 );
 
                 if ( count( $diff ) > 0 ) {
-                    array_map( function( $json ) use ( $index_type ) {
+                    array_map( function ( $json ) use ( $index_type ) {
                         $field = json_decode( $json );
 
                         $this->plugin->show_admin_error(
                             sprintf(
                                 // translators: %s is the field name.
-                                __(
+                                \__(
                                     'RediSearch %1$s schema does not contain field %2$s which has been defined in the theme, or its definition has changed. Consider recreating the schema.',
                                     'redipress'
                                 ),
@@ -289,7 +290,6 @@ class RediPress {
      * @return void
      */
     protected function register_external_functionalities() {
-
         // Polylang
         if ( function_exists( 'pll_languages_list' ) ) {
             new \Geniem\RediPress\External\Polylang();
@@ -306,7 +306,7 @@ class RediPress {
      *
      * @return RediPressPlugin
      */
-    public function get_plugin() : RediPressPlugin {
+    public function get_plugin(): RediPressPlugin {
         return $this->plugin;
     }
 }

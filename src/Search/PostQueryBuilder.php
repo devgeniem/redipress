@@ -5,22 +5,14 @@
 
 namespace Geniem\RediPress\Search;
 
-use WP_Query;
-use Geniem\RediPress\Utility;
-
 /**
  * RediPress search query builder class
  */
 class PostQueryBuilder extends QueryBuilder {
-
     /**
-     * Group by
-     * If $sortby is defined we need to groupby sortby tags.
-     * We need to add @post_id by minimum to make sure that we have unique results.
-     *
-     * @var array
+     * Whether the builder is for posts or for users
      */
-    protected $groupby = [];
+    const TYPE = 'post';
 
     /**
      * Return fields
@@ -29,13 +21,6 @@ class PostQueryBuilder extends QueryBuilder {
      * @var array
      */
     protected $return_fields = [ 'post_object', 'post_date', 'post_type', 'post_id', 'post_parent' ];
-
-    /**
-     * Reduce functions for return fields
-     *
-     * @var array
-     */
-    protected $reduce_functions = [];
 
     /**
      * Mapped query vars
@@ -82,25 +67,6 @@ class PostQueryBuilder extends QueryBuilder {
     ];
 
     /**
-     * Possible applies for the query
-     *
-     * @var array
-     */
-    protected $applies = [];
-
-    /**
-     * Possible filters for the query
-     *
-     * @var array
-     */
-    protected $filters = [];
-
-    /**
-     * Whether the builder is for posts or for users
-     */
-    const TYPE = 'post';
-
-    /**
      * Query builder constructor
      *
      * @param \WP_Query $query      WP Query object.
@@ -113,12 +79,12 @@ class PostQueryBuilder extends QueryBuilder {
         $this->index_info = $index_info;
 
         $ignore_added_query_vars = array_map(
-            function( $code ) {
+            function ( $code ) {
                 return preg_replace( '/^\%(.+)\%$/', '\1', $code );
             }, $wp_rewrite->rewritecode
         );
 
-        $this->ignore_query_vars = apply_filters(
+        $this->ignore_query_vars = \apply_filters(
             'redipress/ignore_query_vars', array_merge(
                 [
 					'order',
@@ -137,11 +103,11 @@ class PostQueryBuilder extends QueryBuilder {
             )
         );
 
-        $this->ignore_query_vars = apply_filters( 'redipress/ignore_query_vars/' . static::TYPE, $this->ignore_query_vars );
+        $this->ignore_query_vars = \apply_filters( 'redipress/ignore_query_vars/' . static::TYPE, $this->ignore_query_vars );
 
         // Allow adding support for query vars via a filter
-        $this->query_vars = apply_filters( 'redipress/query_vars', $this->query_vars );
-        $this->query_vars = apply_filters( 'redipress/query_vars/' . static::TYPE, $this->query_vars );
+        $this->query_vars = \apply_filters( 'redipress/query_vars', $this->query_vars );
+        $this->query_vars = \apply_filters( 'redipress/query_vars/' . static::TYPE, $this->query_vars );
 
         $this->query_params = $this->query->query;
     }
@@ -151,7 +117,7 @@ class PostQueryBuilder extends QueryBuilder {
      *
      * @return array
      */
-    public function get_query() : array {
+    public function get_query(): array {
         if ( empty( $this->query->query['tax_query'] ) ) {
             $this->query->query['tax_query'] = true;
         }
@@ -164,19 +130,18 @@ class PostQueryBuilder extends QueryBuilder {
      *
      * @return string
      */
-    protected function s() : string {
+    protected function s(): string {
         return $this->conduct_search( 's' );
     }
 
     /**
      * WP_Query p parameter.
      *
-     * @return string
+     * @return ?string
      */
-    protected function p() : string {
-
+    protected function p(): ?string {
         if ( empty( $this->query->query_vars['p'] ) ) {
-            return false;
+            return null;
         }
 
         return '@post_id:' . $this->query->query_vars['p'];
@@ -187,8 +152,7 @@ class PostQueryBuilder extends QueryBuilder {
      *
      * @return string Redisearch query condition.
      */
-    protected function blog() : string {
-
+    protected function blog(): string {
         if ( empty( $this->query->query_vars['blog'] ) ) {
             $blog_id = \get_current_blog_id();
         }
@@ -214,12 +178,11 @@ class PostQueryBuilder extends QueryBuilder {
     /**
      * WP_Query post__in parameter.
      *
-     * @return string Redisearch query condition.
+     * @return ?string Redisearch query condition.
      */
-    protected function post__in() : string {
-
+    protected function post__in(): ?string {
         if ( empty( $this->query->query_vars['post__in'] ) ) {
-            return false;
+            return null;
         }
 
         $post__in = $this->query->query_vars['post__in'];
@@ -235,12 +198,11 @@ class PostQueryBuilder extends QueryBuilder {
     /**
      * WP_Query post__not_in parameter.
      *
-     * @return string Redisearch query condition.
+     * @return ?string Redisearch query condition.
      */
-    protected function post__not_in() : string {
-
+    protected function post__not_in(): ?string {
         if ( empty( $this->query->query_vars['post__not_in'] ) ) {
-            return false;
+            return null;
         }
 
         $post__not_in = $this->query->query_vars['post__not_in'];
@@ -258,14 +220,14 @@ class PostQueryBuilder extends QueryBuilder {
      *
      * @return ?string
      */
-    protected function post_type() : ?string {
+    protected function post_type(): ?string {
         $post_type = $this->query->query_vars['post_type'];
 
         if ( $post_type === 'any' ) {
-            $post_types = get_post_types( [ 'exclude_from_search' => false ] );
+            $post_types = \get_post_types( [ 'exclude_from_search' => false ] );
 
             if ( empty( $post_types ) ) {
-                return false;
+                return null;
             }
         }
         elseif ( ! empty( $post_type ) && is_array( $post_type ) ) {
@@ -292,11 +254,11 @@ class PostQueryBuilder extends QueryBuilder {
     /**
      * WP_Query author parameter.
      *
-     * @return string Redisearch query condition.
+     * @return ?string Redisearch query condition.
      */
-    protected function author() : string {
+    protected function author(): ?string {
         if ( empty( $this->query->query_vars['author'] ) ) {
-            return false;
+            return null;
         }
 
         $author = $this->query->query_vars['author'];
@@ -312,11 +274,11 @@ class PostQueryBuilder extends QueryBuilder {
     /**
      * WP_Query author__in parameter.
      *
-     * @return string Redisearch query condition.
+     * @return ?string Redisearch query condition.
      */
-    protected function author__in() : string {
+    protected function author__in(): ?string {
         if ( empty( $this->query->query_vars['author__in'] ) ) {
-            return false;
+            return null;
         }
 
         $author__in = $this->query->query_vars['author__in'];
@@ -332,11 +294,11 @@ class PostQueryBuilder extends QueryBuilder {
     /**
      * WP_Query author__not_in parameter.
      *
-     * @return string Redisearch query condition.
+     * @return ?string Redisearch query condition.
      */
-    protected function author__not_in() : string {
+    protected function author__not_in(): ?string {
         if ( empty( $this->query->query_vars['author__not_in'] ) ) {
-            return false;
+            return null;
         }
 
         $author__not_in = $this->query->query_vars['author__not_in'];
@@ -354,9 +316,9 @@ class PostQueryBuilder extends QueryBuilder {
      *
      * @return ?string
      */
-    protected function name() : ?string {
+    protected function name(): ?string {
         if ( empty( $this->query->query_vars['name'] ) ) {
-            return false;
+            return null;
         }
 
         $name = $this->query->query_vars['name'];
@@ -397,9 +359,8 @@ class PostQueryBuilder extends QueryBuilder {
 
             return '@post_name:(' . implode( '|', $names ) . ')';
         }
-        else {
-            return '';
-        }
+
+        return '';
     }
 
     /**
@@ -407,16 +368,15 @@ class PostQueryBuilder extends QueryBuilder {
      *
      * @return ?string
      */
-    protected function post_status() : ?string {
-
+    protected function post_status(): ?string {
         if ( empty( $this->query->query_vars['post_status'] ) ) {
-            return false;
+            return null;
         }
 
         $post_status = $this->query->query_vars['post_status'];
 
         if ( $post_status === 'any' ) {
-            $post_statuses = get_post_stati( [ 'exclude_from_search' => false ] );
+            $post_statuses = \get_post_stati( [ 'exclude_from_search' => false ] );
         }
         elseif ( empty( $post_status ) ) {
             $post_statuses = [ 'publish' ];
@@ -433,8 +393,7 @@ class PostQueryBuilder extends QueryBuilder {
      *
      * @return ?string
      */
-    protected function has_password() : ?string {
-
+    protected function has_password(): ?string {
         if ( empty( $this->query->query_vars['has_password'] ) ) {
             return null;
         }
@@ -447,6 +406,8 @@ class PostQueryBuilder extends QueryBuilder {
         elseif ( $has_password === false ) {
             return '@post_password:(redipress___no_password_set)';
         }
+
+        return '';
     }
 
     /**
@@ -454,8 +415,7 @@ class PostQueryBuilder extends QueryBuilder {
      *
      * @return ?string
      */
-    protected function post_password() : ?string {
-
+    protected function post_password(): ?string {
         if ( empty( $this->query->query_vars['post_password'] ) ) {
             return null;
         }
@@ -465,6 +425,8 @@ class PostQueryBuilder extends QueryBuilder {
         if ( $post_password ) {
             return '@post_password:(' . $post_password . ')';
         }
+
+        return '';
     }
 
     /**
@@ -472,13 +434,13 @@ class PostQueryBuilder extends QueryBuilder {
      *
      * @return ?string
      */
-    protected function post_parent() : ?string {
+    protected function post_parent(): ?string {
 
         $post_parent = $this->query->query_vars['post_parent'] ?? false;
 
         // If post_parent is null or empty string ignore post_parent.
         if ( $post_parent === false || $post_parent === '' ) {
-            return false;
+            return null;
         }
 
         return '@post_parent:' . $post_parent;
@@ -487,12 +449,12 @@ class PostQueryBuilder extends QueryBuilder {
     /**
      * WP_Query post_parent__in parameter.
      *
-     * @return string Redisearch query condition.
+     * @return ?string Redisearch query condition.
      */
-    protected function post_parent__in() : string {
+    protected function post_parent__in(): ?string {
 
         if ( empty( $this->query->query_vars['post_parent__in'] ) ) {
-            return false;
+            return null;
         }
 
         $post_parent__in = $this->query->query_vars['post_parent__in'];
@@ -508,12 +470,12 @@ class PostQueryBuilder extends QueryBuilder {
     /**
      * WP_Query post_parent__not_in parameter.
      *
-     * @return string Redisearch query condition.
+     * @return ?string Redisearch query condition.
      */
-    protected function post_parent__not_in() : string {
+    protected function post_parent__not_in(): ?string {
 
         if ( empty( $this->query->query_vars['post_parent__not_in'] ) ) {
-            return false;
+            return null;
         }
 
         $post_parent__not_in = $this->query->query_vars['post_parent__not_in'];
@@ -531,10 +493,10 @@ class PostQueryBuilder extends QueryBuilder {
      *
      * @return ?string
      */
-    protected function post_mime_type() : ?string {
+    protected function post_mime_type(): ?string {
 
         if ( empty( $this->query->query_vars['post_mime_type'] ) ) {
-            return '';
+            return null;
         }
 
         $mime_type = $this->query->query_vars['post_mime_type'];
@@ -549,12 +511,11 @@ class PostQueryBuilder extends QueryBuilder {
     /**
      * WP_Query category__in parameter.
      *
-     * @return string
+     * @return ?string
      */
-    protected function category__in() : string {
-
+    protected function category__in(): ?string {
         if ( empty( $this->query->query_vars['category__in'] ) ) {
-            return false;
+            return null;
         }
 
         $cats = $this->query->query_vars['category__in'];
@@ -567,12 +528,12 @@ class PostQueryBuilder extends QueryBuilder {
     /**
      * WP_Query category__not_in parameter.
      *
-     * @return string
+     * @return ?string
      */
-    protected function category__not_in() : string {
+    protected function category__not_in(): ?string {
 
         if ( empty( $this->query->query_vars['category__not_in'] ) ) {
-            return false;
+            return null;
         }
 
         $cats = $this->query->query_vars['category__not_in'];
@@ -585,12 +546,12 @@ class PostQueryBuilder extends QueryBuilder {
     /**
      * WP_Query category__and parameter.
      *
-     * @return string
+     * @return ?string
      */
-    protected function category__and() : string {
+    protected function category__and(): ?string {
 
         if ( empty( $this->query->query_vars['category__and'] ) ) {
-            return false;
+            return null;
         }
 
         $cats = $this->query->query_vars['category__and'];
@@ -598,10 +559,12 @@ class PostQueryBuilder extends QueryBuilder {
         $cat = is_array( $cats ) ? $cats : [ $cats ];
 
         return implode(
-            ' ', array_map(
-				function( $cat ) {
+            ' ',
+            array_map(
+				function ( $cat ) {
 					return '@taxonomy_id_category:{' . $cat . '}';
-				}, $cat
+				},
+                $cat
             )
         );
     }
@@ -609,12 +572,12 @@ class PostQueryBuilder extends QueryBuilder {
     /**
      * WP_Query category_name parameter.
      *
-     * @return string
+     * @return ?string
      */
-    protected function category_name() : string {
+    protected function category_name(): ?string {
 
         if ( empty( $this->query->query_vars['category_name'] ) ) {
-            return false;
+            return null;
         }
 
         $cat = $this->query->query_vars['category_name'];
@@ -639,11 +602,11 @@ class PostQueryBuilder extends QueryBuilder {
     /**
      * WP_Query tax_query parameter.
      *
-     * @return string
+     * @return ?string
      */
-    protected function tax_query() : string {
+    protected function tax_query(): ?string {
         if ( empty( $this->query->tax_query ) ) {
-            return false;
+            return null;
         }
 
         return $this->create_taxonomy_query( $this->query->tax_query->queries );
@@ -652,16 +615,16 @@ class PostQueryBuilder extends QueryBuilder {
     /**
      * WP_Query date_query parameter.
      *
-     * @return string
+     * @return ?string
      */
-    protected function date_query() : string {
+    protected function date_query(): ?string {
         if ( empty( $this->query->date_query ) ) {
-            return false;
+            return null;
         }
 
         $queries = $this->create_date_query( $this->query->date_query->queries );
 
-        $this->applies = array_merge( $this->applies, array_map( function( $apply ) {
+        $this->applies = array_merge( $this->applies, array_map( function ( $apply ) {
             return [
                 'APPLY',
                 $apply['function'] . '(@' . $apply['field'] . ')',
@@ -683,13 +646,9 @@ class PostQueryBuilder extends QueryBuilder {
      * @param array $query The block to create the block from.
      * @return array
      */
-    public function create_date_query( array $query ) : array {
-
-        // Determine the relation type
-        $queries = [];
-
+    public function create_date_query( array $query ): array {
         if ( empty( $query ) ) {
-            return '';
+            return [];
         }
 
         $unsupported_time_keys = [
@@ -760,12 +719,12 @@ class PostQueryBuilder extends QueryBuilder {
         foreach ( $query as $clause ) {
             foreach ( $clause as $key => $value ) {
                 if ( in_array( $key, $unsupported_time_keys, true ) ) {
-                    return false;
+                    return [];
                 }
             }
 
             if ( $column === 'post_date_gmt' ) {
-                return false;
+                return [];
             }
 
             if ( empty( $clause['compare'] ) ) {
@@ -773,7 +732,7 @@ class PostQueryBuilder extends QueryBuilder {
             }
 
             if ( in_array( $compare, $unsupported_compares, true ) ) {
-                return false;
+                return [];
             }
 
             // Compare
@@ -806,7 +765,7 @@ class PostQueryBuilder extends QueryBuilder {
             // Count the number of non-arrays in the clause. If it's greater than zero
             // we are dealing with an actual clause.
             $single = array_reduce(
-                $clause, function( int $carry, $item ) {
+                $clause, function ( int $carry, $item ) {
 					if ( ! is_array( $item ) ) {
 						return ++$carry;
 					}
@@ -840,7 +799,7 @@ class PostQueryBuilder extends QueryBuilder {
 
                 $filters[] = '(' . implode(
                     ' ' . $inner_relation . ' ', array_map(
-						function( $clause ) use ( $compare ) {
+						function ( $clause ) use ( $compare ) {
 							return implode( ' ' . $compare . ' ', $clause );
 						}, $res
                     )
@@ -866,8 +825,7 @@ class PostQueryBuilder extends QueryBuilder {
      *
      * @return boolean Whether we have a qualified orderby or not.
      */
-    protected function get_orderby() : bool {
-
+    protected function get_orderby(): bool {
         if ( ! empty( $this->sortby ) ) {
             return true;
         }
@@ -921,8 +879,7 @@ class PostQueryBuilder extends QueryBuilder {
             return false;
         }
 
-        $sortby = array_map( function( array $clause ) use ( $query ) {
-
+        $sortby = array_map( function ( array $clause ) use ( $query ) {
             // Create the mappings for orderby parameter
             switch ( $clause['orderby'] ) {
                 case 'meta_value':
@@ -974,17 +931,16 @@ class PostQueryBuilder extends QueryBuilder {
             }
 
             return $clause;
-
         }, $sortby );
 
         // If we have a false value in the sortby array, just bail away.
         foreach ( $sortby as $clause ) {
-
             if ( ! $clause ) {
                 return false;
             }
             elseif ( $clause === true ) {
                 $this->sortby = [];
+
                 return true;
             }
         }
@@ -992,40 +948,39 @@ class PostQueryBuilder extends QueryBuilder {
         $this->sortby = array_merge(
             [ 'SORTBY', ( count( $sortby ) * 2 ) ],
             array_reduce(
-                $sortby, function( $carry, $item ) {
+                $sortby, function ( $carry, $item ) {
+                    // Distance clauses need a special treatment
+                    if (
+                        ! empty( $item['order']['compare'] ) &&
+                        is_array( $item['order']['compare'] ) &&
+                        ! empty( $item['order']['compare']['lat'] ) &&
+                        ! empty( $item['order']['compare']['lng'] )
+                    ) {
+                        $field = $item['orderby'];
+                        $lat   = $item['order']['compare']['lat'];
+                        $lng   = $item['order']['compare']['lng'];
 
-                // Distance clauses need a special treatment
-                if (
-                    ! empty( $item['order']['compare'] ) &&
-                    is_array( $item['order']['compare'] ) &&
-                    ! empty( $item['order']['compare']['lat'] ) &&
-                    ! empty( $item['order']['compare']['lng'] )
-                ) {
-                    $field = $item['orderby'];
-                    $lat   = $item['order']['compare']['lat'];
-                    $lng   = $item['order']['compare']['lng'];
+                        $this->applies[] = [
+                            'APPLY',
+                            "geodistance(@$field, \"$lat,$lng\")",
+                            'AS',
+                            'redipress__distance_order',
+                        ];
 
-                    $this->applies[] = [
-                        'APPLY',
-                        "geodistance(@$field, \"$lat,$lng\")",
-                        'AS',
-                        'redipress__distance_order',
-                    ];
+                        $item['orderby'] = 'redipress__distance_order';
+                        $item['order']   = $item['order']['order'];
 
-                    $item['orderby'] = 'redipress__distance_order';
-                    $item['order']   = $item['order']['order'];
-
-                    // Store to return fields array, these need to be in sync with sortby params.
-                    $this->return_fields[] = $field;
-                }
-                else {
-
-                    // Store to return fields array, these need to be in sync with sortby params.
-                    $this->return_fields[] = $item['orderby'];
-                }
+                        // Store to return fields array, these need to be in sync with sortby params.
+                        $this->return_fields[] = $field;
+                    }
+                    else {
+                        // Store to return fields array, these need to be in sync with sortby params.
+                        $this->return_fields[] = $item['orderby'];
+                    }
 
 					return array_merge( $carry, [ '@' . $item['orderby'], $item['order'] ] );
-				}, []
+				},
+                []
             )
         );
 

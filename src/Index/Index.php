@@ -5,10 +5,10 @@
 
 namespace Geniem\RediPress\Index;
 
-use Geniem\RediPress\Settings,
-    Geniem\RediPress\Entity\SchemaField,
-    Geniem\RediPress\Redis\Client,
-    Geniem\RediPress\Utility;
+use Geniem\RediPress\Settings;
+use Geniem\RediPress\Entity\SchemaField;
+use Geniem\RediPress\Redis\Client;
+use Geniem\RediPress\Utility;
 
 /**
  * RediPress index class
@@ -74,7 +74,7 @@ abstract class Index {
      *
      * @return array
      */
-    abstract protected function define_core_fields() : array;
+    abstract protected function define_core_fields(): array;
 
     /**
      * The constructor
@@ -91,7 +91,7 @@ abstract class Index {
         $this->index = $settings->get( "{$index_type}_index" );
 
         // Reverse filter for getting the Index instance.
-        add_filter( "redipress/{$index_type}_index_instance", function() {
+        \add_filter( "redipress/{$index_type}_index_instance", function () {
             return $this;
         }, 1, 0 );
 
@@ -110,8 +110,8 @@ abstract class Index {
 
         $return = $this->client->raw_command( 'FT.CREATE', array_merge( [ $this->index ], $options, $raw_schema ) );
 
-        do_action( 'redipress/schema_created', $return, $options, $schema_fields, $raw_schema );
-        do_action( "redipress/{$index_type}_schema_created", $return, $options, $schema_fields, $raw_schema );
+        \do_action( 'redipress/schema_created', $return, $options, $schema_fields, $raw_schema );
+        \do_action( "redipress/{$index_type}_schema_created", $return, $options, $schema_fields, $raw_schema );
 
         $this->maybe_write_to_disk( 'schema_created' );
 
@@ -139,7 +139,7 @@ abstract class Index {
      * @param string $key The run-time key to identify the gathering.
      * @return void
      */
-    public function gather_schema_fields( string $key, bool $throw_error = true ) : void {
+    public function gather_schema_fields( string $key, bool $throw_error = true ): void {
         [ $options, $schema_fields ] = $this->get_schema_fields();
 
         $fields = \get_option( "redipress_gather_fields_$key", [] );
@@ -180,11 +180,11 @@ abstract class Index {
      *
      * @return array
      */
-    public function get_schema_fields() : array {
+    public function get_schema_fields(): array {
         $index_type = static::INDEX_TYPE;
 
         // Filter to add possible more fields.
-        $schema_fields = apply_filters( "redipress/index/{$index_type}/schema_fields", $this->core_schema_fields );
+        $schema_fields = \apply_filters( "redipress/index/{$index_type}/schema_fields", $this->core_schema_fields );
 
         // Remove possible duplicate fields
         $schema_fields = array_unique( $schema_fields );
@@ -192,11 +192,11 @@ abstract class Index {
         $raw_schema = array_reduce(
             $schema_fields,
             // Convert SchemaField objects into raw arrays
-            fn( ?array $c, SchemaField $field ) : array => array_merge( $c, $field->get() ),
+            fn( ?array $c, SchemaField $field ): array => array_merge( $c, $field->get() ),
             []
         );
 
-        $raw_schema = apply_filters( "redipress/index/{$index_type}/raw_schema", array_merge( [ 'SCHEMA' ], $raw_schema ) );
+        $raw_schema = \apply_filters( "redipress/index/{$index_type}/raw_schema", array_merge( [ 'SCHEMA' ], $raw_schema ) );
 
         $options = [
             'ON',
@@ -209,7 +209,7 @@ abstract class Index {
             '0',
         ];
 
-        $options = apply_filters( "redipress/index/{$index_type}/options", $options );
+        $options = \apply_filters( "redipress/index/{$index_type}/options", $options );
 
         return [
             $options,
@@ -244,7 +244,7 @@ abstract class Index {
     protected function delete_document( string $document_id ) {
         $return = $this->client->raw_command( 'DEL', [ $document_id ] );
 
-        do_action( 'redipress/post_deleted', $document_id, $return );
+        \do_action( 'redipress/post_deleted', $document_id, $return );
 
         return $return;
     }
@@ -267,7 +267,7 @@ abstract class Index {
         // Write immediately, if we want to do it every time.
         if ( $settings->get( 'write_every' ) ) {
             // Allow overriding the settings via a filter
-            $filter_writing = apply_filters( 'redipress/write_to_disk', null, $args );
+            $filter_writing = \apply_filters( 'redipress/write_to_disk', null, $args );
 
             if ( $filter_writing ) {
                 return $this->write_to_disk();
@@ -278,7 +278,7 @@ abstract class Index {
                 return true;
             }
             else {
-                register_shutdown_function( [ $this, 'write_to_disk' ] );
+                register_shutdown_function ( [ $this, 'write_to_disk' ] );
                 self::$written = true;
                 return true;
             }
@@ -300,7 +300,7 @@ abstract class Index {
      * @param SchemaField $field The field object to handle.
      * @return string
      */
-    protected function return_field_name( SchemaField $field ) : string {
+    protected function return_field_name( SchemaField $field ): string {
         return $field->name;
     }
 
@@ -309,8 +309,8 @@ abstract class Index {
      *
      * @return string
      */
-    public static function get_tag_separator() : string {
-        return apply_filters( 'redipress/tag_separator', self::TAG_SEPARATOR );
+    public static function get_tag_separator(): string {
+        return \apply_filters( 'redipress/tag_separator', self::TAG_SEPARATOR );
     }
 
     /**
@@ -319,11 +319,11 @@ abstract class Index {
      * @param string $key The key for which to fetch the field type.
      * @return string|null
      */
-    protected function get_field_type( string $key ) : ?string {
+    protected function get_field_type( string $key ): ?string {
         $fields = Utility::format( $this->index_info['attributes'] );
 
 
-        $field_type = array_reduce( $fields, function( $carry = null, $item = null ) use ( $key ) {
+        $field_type = array_reduce( $fields, function ( $carry = null, $item = null ) use ( $key ) {
             if ( ! empty( $carry ) ) {
                 return $carry;
             }
@@ -344,7 +344,7 @@ abstract class Index {
      * @param array $info The data to set.
      * @return void
      */
-    public function set_info( array $info ) : void {
+    public function set_info( array $info ): void {
         $this->index_info = $info;
     }
 
@@ -353,7 +353,7 @@ abstract class Index {
      *
      * @return array
      */
-    public function get_info() : array {
+    public function get_info(): array {
         return $this->index_info;
     }
 
@@ -366,7 +366,7 @@ abstract class Index {
      * @param string $method  The method to use with multiple values. Defaults to "use_last". Possibilites: use_last, concat, concat_with_spaces, array_merge, sum, custom (needs filter).
      * @return void
      */
-    public static function store( $post_id, string $field, $data, string $method = 'use_last' ) : void {
+    public static function store( $post_id, string $field, $data, string $method = 'use_last' ): void {
         if ( ! isset( self::$additional[ $post_id ] ) ) {
             self::$additional[ $post_id ] = [];
         }
@@ -419,7 +419,7 @@ abstract class Index {
                 self::$additional[ $post_id ][ $field ] = $original + $data;
                 break;
             default:
-                self::$additional[ $post_id ][ $field ] = apply_filters( "redipress/additional_field/method/$method", $data, $original );
+                self::$additional[ $post_id ][ $field ] = \apply_filters( "redipress/additional_field/method/$method", $data, $original );
                 break;
         }
     }

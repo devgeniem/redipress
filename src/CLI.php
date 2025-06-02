@@ -5,8 +5,6 @@
 
 namespace Geniem\RediPress;
 
-use WP_CLI;
-
 /**
  * CLI class
  */
@@ -35,10 +33,10 @@ class CLI {
 
                     switch ( true ) {
                         case count( $parameters ) < $min_parameters:
-                            WP_CLI::error( 'RediPress: command "' . $args[0] . '" needs at least ' . $min_parameters . ' parameters.' );
+                            \WP_CLI::error( 'RediPress: command "' . $args[0] . '" needs at least ' . $min_parameters . ' parameters.' );
                             exit;
                         case count( $parameters ) > $max_parameters:
-                            WP_CLI::error( 'RediPress: command "' . $args[0] . '" accepts a maximum of ' . $max_parameters . ' parameters.' );
+                            \WP_CLI::error( 'RediPress: command "' . $args[0] . '" accepts a maximum of ' . $max_parameters . ' parameters.' );
                             exit;
                         default:
                             $command = new $class();
@@ -48,11 +46,11 @@ class CLI {
                     }
                 }
                 else {
-                    WP_CLI::error( 'RediPress: class "' . $args[0] . '" found but it is not of correct type.' );
+                    \WP_CLI::error( 'RediPress: class "' . $args[0] . '" found but it is not of correct type.' );
                 }
             }
             else {
-                WP_CLI::error( 'RediPress: command "' . $args[0] . '" can not be found.' );
+                \WP_CLI::error( 'RediPress: command "' . $args[0] . '" can not be found.' );
             }
         }
         // If not, ask for more.

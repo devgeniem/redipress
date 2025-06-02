@@ -6,7 +6,6 @@
 namespace Geniem\RediPress\CLI;
 
 use Geniem\RediPress\Redis\Client;
-use WP_CLI;
 
 /**
  * RediPress CLI delete command class.
@@ -53,7 +52,7 @@ class Delete implements Command {
             return $this->delete_posts( $assoc_args, $limit );
         }
         elseif ( count( $args ) > 1 ) {
-            WP_CLI::error( 'RediPress: "delete" command does not accept more than one parameter.' );
+            \WP_CLI::error( 'RediPress: "delete" command does not accept more than one parameter.' );
             return false;
         }
 
@@ -82,7 +81,7 @@ class Delete implements Command {
         }
         // Fail.
         else {
-            WP_CLI::error( 'No posts found on the given criteria.' );
+            \WP_CLI::error( 'No posts found on the given criteria.' );
         }
 
         // Success message.
@@ -90,7 +89,7 @@ class Delete implements Command {
             $doc_ids_as_string = implode( ', ', $removed_doc_ids );
         }
 
-        WP_CLI::success( 'Posts deleted successfully! Deleted doc_ids: ' . $doc_ids_as_string );
+        \WP_CLI::success( 'Posts deleted successfully! Deleted doc_ids: ' . $doc_ids_as_string );
 
         return true;
     }

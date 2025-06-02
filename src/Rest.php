@@ -36,7 +36,7 @@ class Rest {
      * @param  callable|null $permission_callback Permission callback or null if default.
      * @return array                              Current registered rest routes.
      */
-    public static function register_api_call( string $path, callable $callback, string $methods = '', array $args = [], callable $permission_callback = null ) : array {
+    public static function register_api_call( string $path, callable $callback, string $methods = '', array $args = [], ?callable $permission_callback = null ): array {
         static::$rest_routes[] = (object) [
             'namespace' => static::NAMESPACE,
             'path'      => $path,
@@ -52,8 +52,10 @@ class Rest {
     }
 
     /**
-     * Register the rest api routes
-     * Should only be called via the rest_api_init hook
+     * Register the rest api routes.
+     * Should only be called via the rest_api_init hook.
+     *
+     * @return void
      */
     public static function rest_api_init() {
         foreach ( static::$rest_routes as $route ) {
@@ -67,9 +69,10 @@ class Rest {
      *
      * @return boolean
      */
-    public static function has_redipress_cap() : bool {
+    public static function has_redipress_cap(): bool {
         $settings   = new Settings();
         $capability = $settings->get_capability();
+
         return \current_user_can( $capability );
     }
 }

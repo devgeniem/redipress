@@ -15,7 +15,7 @@ class DustPressDebugger {
      */
     public function __construct() {
         // Add the debug data action
-        add_action( 'redipress/debug_query', [ $this, 'debug_query' ], 10, 3 );
+        \add_action( 'redipress/debug_query', [ $this, 'debug_query' ], 10, 3 );
     }
 
     /**

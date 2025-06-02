@@ -5,10 +5,9 @@
 
 namespace Geniem\RediPress;
 
-use Geniem\RediPress\Settings,
-    Geniem\RediPress\Redis\Client,
-    Geniem\RediPress\Utility;
-use function GuzzleHttp\Promise\each;
+use Geniem\RediPress\Settings;
+use Geniem\RediPress\Redis\Client;
+use Geniem\RediPress\Utility;
 
 /**
  * RediPress UserQuery class
@@ -70,7 +69,6 @@ class UserQuery {
      * @param array  $index_info Index information.
      */
     public function __construct( Client $client, array $index_info ) {
-        $settings         = new Settings();
         $this->client     = $client;
         $this->index_info = $index_info;
 
@@ -78,7 +76,7 @@ class UserQuery {
         $this->index = Settings::get( 'users_index' );
 
         // Add search filters
-        add_filter( 'users_pre_query', [ $this, 'users_pre_query' ], 10, 2 );
+        \add_filter( 'users_pre_query', [ $this, 'users_pre_query' ], 10, 2 );
     }
 
     /**
@@ -86,7 +84,7 @@ class UserQuery {
      *
      * @return Client
      */
-    public function get_client() : Client {
+    public function get_client(): Client {
         return $this->client;
     }
 
@@ -101,10 +99,10 @@ class UserQuery {
         $search_query = $this->query_builder->get_query();
 
         // Filter the search query as an array
-        $search_query = apply_filters( 'redipress/search_query', $search_query, $query );
+        $search_query = \apply_filters( 'redipress/search_query', $search_query, $query );
 
         // Filter the search query as a string
-        $search_query_string = apply_filters( 'redipress/search_query_string', implode( ' ', $search_query ), $query );
+        $search_query_string = \apply_filters( 'redipress/search_query_string', implode( ' ', $search_query ), $query );
 
         if ( ! $this->query_builder->use_only_defined_search_fields() ) {
             $search_fields = array_unique( array_merge( $this->query_builder->get_search_fields(), $this->default_search_fields ) );
@@ -114,10 +112,10 @@ class UserQuery {
         }
 
         // Filter the list of fields from which the search is conducted.
-        $infields = array_unique( apply_filters( 'redipress/search_fields', $search_fields, $query ) );
+        $infields = array_unique( \apply_filters( 'redipress/search_fields', $search_fields, $query ) );
 
         // Filter the list of fields that will be returned with the query.
-        $return = array_unique( apply_filters( 'redipress/return_fields', $this->query_builder->get_return_fields(), $query ) );
+        $return = array_unique( \apply_filters( 'redipress/return_fields', $this->query_builder->get_return_fields(), $query ) );
 
         // Determine the limit and offset parameters.
         $limit = $query->query_vars['number'] ?: \get_option( 'posts_per_page' );
@@ -140,11 +138,11 @@ class UserQuery {
         $reduce_functions = $this->query_builder->get_reduce_functions() ?: [];
 
         // Filters for query parts
-        $sortby           = apply_filters( 'redipress/sortby', $sortby );
-        $applies          = apply_filters( 'redipress/applies', $applies );
-        $filters          = apply_filters( 'redipress/filters', $filters );
-        $geofilter        = apply_filters( 'redipress/geofilter', $geofilter );
-        $reduce_functions = apply_filters( 'redipress/reduce_functions', $reduce_functions );
+        $sortby           = \apply_filters( 'redipress/sortby', $sortby );
+        $applies          = \apply_filters( 'redipress/applies', $applies );
+        $filters          = \apply_filters( 'redipress/filters', $filters );
+        $geofilter        = \apply_filters( 'redipress/geofilter', $geofilter );
+        $reduce_functions = \apply_filters( 'redipress/reduce_functions', $reduce_functions );
 
         if ( empty( $sortby ) && empty( $applies ) && empty( $filters ) && ! empty( $query->query_vars['search'] ) ) {
             // Form the search query
@@ -171,7 +169,7 @@ class UserQuery {
             $index = 0;
 
             // Remove the intermediary docIds to make the format match the one from FT.AGGREGATE
-            $results = array_filter( $results, function( $item ) use ( &$index ) {
+            $results = array_filter( $results, function ( $item ) use ( &$index ) {
                 if ( $index++ > 0 && ! is_array( $item ) ) {
                     return false;
                 }
@@ -185,9 +183,9 @@ class UserQuery {
         else {
             $groupby = $this->query_builder->get_groupby();
 
-            $groupby = apply_filters( 'redipress/user_groupby', $groupby );
+            $groupby = \apply_filters( 'redipress/user_groupby', $groupby );
 
-            $return_fields = array_map( function( string $field ) use ( $reduce_functions ) : array {
+            $return_fields = array_map( function ( string $field ) use ( $reduce_functions ): array {
                 $return = [
                     'REDUCE',
                     $reduce_functions[ $field ] ?? 'FIRST_VALUE',
@@ -206,7 +204,7 @@ class UserQuery {
                 $geofilter,
                 $infields,
                 [ 'LOAD', 1, '@user_object' ],
-                array_merge( [ 'GROUPBY', count( $groupby ) ], array_map( function( $g ) {
+                array_merge( [ 'GROUPBY', count( $groupby ) ], array_map( function ( $g ) {
                     return '@' . $g;
                 }, $groupby ) ),
                 array_reduce( $return_fields, 'array_merge', [] ),
@@ -227,38 +225,35 @@ class UserQuery {
             }
 
             // Clean the aggregate output to match usual key-value pairs
-            $results = array_map( function( $result ) {
+            $results = array_map( function ( $result ) {
                 if ( is_array( $result ) ) {
-                    return array_map( function( $item ) {
+                    return array_map( function ( $item ) {
                         // If we are dealing with an array, just turn it into a string
                         if ( is_array( $item ) ) {
                             return implode( ' ', $item );
                         }
-                        else {
-                            return $item;
-                        }
+
+                        return $item;
                     }, $result );
                 }
-                else {
-                    return $result;
-                }
+
+                return $result;
             }, $results );
 
             // Store the search query string so that in can be debugged easily via WP_Query.
-            $query->request = 'FT.AGGREGATE ' . implode( ' ', array_map( function( $comm ) {
+            $query->request = 'FT.AGGREGATE ' . implode( ' ', array_map( function ( $comm ) {
                 if ( \strpos( $comm, ' ' ) !== false ) {
                     return '"' . $comm . '"';
                 }
-                else {
-                    return $comm;
-                }
+
+                return $comm;
             }, $command ) );
         }
 
         \do_action( 'redipress/debug_query', $query, $results, 'users' );
 
         // Return the results through a filter
-        return apply_filters( 'redipress/search_results/users', (object) [
+        return \apply_filters( 'redipress/search_results/users', (object) [
             'results' => $results,
         ], $query );
     }
@@ -270,9 +265,7 @@ class UserQuery {
      * @param \WP_User_Query $query The WP_User_Query object.
      * @return array Results or null if no results.
      */
-    public function users_pre_query( ?array $users, \WP_User_Query $query ) : ?array {
-        global $wpdb;
-
+    public function users_pre_query( ?array $users, \WP_User_Query $query ): ?array {
         // If we are on a multisite and have not explicitly defined that
         // we want to do stuff with other sites, use the current site
         if ( empty( $query->query['blog_id'] ) ) {
@@ -284,15 +277,16 @@ class UserQuery {
 
         // Only filter front-end search queries
         if ( $this->query_builder->enable() ) {
-            do_action( 'redipress/before_search', $this, $query );
-            do_action( 'redipress/before_user_search', $this, $query );
+            \do_action( 'redipress/before_search', $this, $query );
+            \do_action( 'redipress/before_user_search', $this, $query );
 
             $raw_results = $this->search( $query );
 
             if ( empty( $raw_results->results ) || $raw_results->results[0] === 0 ) {
                 $query->redipress_no_results = true;
-                $no_results                  = apply_filters( 'redipress/no_results', null, $query );
-                return apply_filters( 'redipress/no_results/users', $no_results, $query );
+                $no_results                  = \apply_filters( 'redipress/no_results', null, $query );
+
+                return \apply_filters( 'redipress/no_results/users', $no_results, $query );
             }
 
             $count = $raw_results->results[0];
@@ -300,13 +294,13 @@ class UserQuery {
             $results = $this->format_results( $raw_results->results );
 
             // Filter the search results after the search has been conducted.
-            $results = apply_filters(
+            $results = \apply_filters(
                 'redipress/formatted_search_results',
                 $results,
                 Utility::format( $raw_results->results )
             );
 
-            $results = apply_filters(
+            $results = \apply_filters(
                 'redipress/formatted_search_results/users',
                 $results,
                 Utility::format( $raw_results->results )
@@ -325,9 +319,8 @@ class UserQuery {
 
             return array_values( $results );
         }
-        else {
-            return null;
-        }
+
+        return null;
     }
 
     /**
@@ -336,13 +329,13 @@ class UserQuery {
      * @param array $results Original array to format.
      * @return array
      */
-    public function format_results( array $results ) : array {
+    public function format_results( array $results ): array {
         $results = Utility::format( $results );
 
-        return array_map( function( array $result ) : ?\WP_User {
+        return array_map( function ( array $result ): ?\WP_User {
             $formatted = Utility::format( $result );
 
-            return maybe_unserialize( $formatted['user_object'] );
+            return \maybe_unserialize( $formatted['user_object'] );
         }, $results );
     }
 }

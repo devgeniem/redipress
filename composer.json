@@ -25,7 +25,7 @@
     ],
     "require": {
         "predis/predis": "^1.1",
-        "php": ">=7.3",
+        "php": ">=8.1",
         "smalot/pdfparser": "^0.19.0",
         "phpoffice/phpword": "^0.18"
     },

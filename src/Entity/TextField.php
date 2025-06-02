@@ -71,7 +71,7 @@ class TextField extends SchemaField {
      *
      * @return array
      */
-    public function export() : array {
+    public function export(): array {
         $export = [];
 
         if ( $this->nostem ) {

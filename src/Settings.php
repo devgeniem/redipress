@@ -5,8 +5,6 @@
 
 namespace Geniem\RediPress;
 
-use Geniem\RediPress\Index\Index;
-
 /**
  * RediPress settings class
  */
@@ -38,7 +36,6 @@ class Settings {
      * Configure the admin page using the Settings API.
      */
     public function configure() {
-
         // Register settings
         \register_setting( $this->get_slug(), self::PREFIX . 'persist_index' );
         \register_setting( $this->get_slug(), self::PREFIX . 'write_every' );
@@ -58,7 +55,7 @@ class Settings {
         // General settings section
         \add_settings_section(
             $this->get_slug() . '-general-settings-section',
-            __( 'General settings', 'redipress' ),
+            \__( 'General settings', 'redipress' ),
             [ $this, 'render_general_settings_section' ],
             $this->get_slug()
         );
@@ -66,7 +63,7 @@ class Settings {
         // Persistent index field
         \add_settings_field(
             $this->get_slug() . '-persist-index',
-            __( 'Persistent index', 'redipress' ),
+            \__( 'Persistent index', 'redipress' ),
             [ $this, 'render_persist_index_field' ],
             $this->get_slug(),
             $this->get_slug() . '-general-settings-section',
@@ -78,7 +75,7 @@ class Settings {
         // Write the index only once per execution
         \add_settings_field(
             $this->get_slug() . '-write-every',
-            __( 'Write the index only once per execution', 'redipress' ),
+            \__( 'Write the index only once per execution', 'redipress' ),
             [ $this, 'render_write_every' ],
             $this->get_slug(),
             $this->get_slug() . '-general-settings-section',
@@ -90,7 +87,7 @@ class Settings {
         // Fallback to MySQL if no results have been found from RediSearch
         \add_settings_field(
             $this->get_slug() . '-fallback',
-            __( 'Fallback to MySQL if no results have been found from RediSearch', 'redipress' ),
+            \__( 'Fallback to MySQL if no results have been found from RediSearch', 'redipress' ),
             [ $this, 'render_fallback' ],
             $this->get_slug(),
             $this->get_slug() . '-general-settings-section',
@@ -102,7 +99,7 @@ class Settings {
         // Escape the parentheses in search query
         \add_settings_field(
             $this->get_slug() . '-escape-parentheses',
-            __( 'Escape the parentheses in search query', 'redipress' ),
+            \__( 'Escape the parentheses in search query', 'redipress' ),
             [ $this, 'render_escape_parentheses' ],
             $this->get_slug(),
             $this->get_slug() . '-general-settings-section',
@@ -114,7 +111,7 @@ class Settings {
         // Include author name in search field
         \add_settings_field(
             $this->get_slug() . '-disable-post-author-search',
-            __( 'Disable including author name in search', 'redipress' ),
+            \__( 'Disable including author name in search', 'redipress' ),
             [ $this, 'render_disable_post_author_search_field' ],
             $this->get_slug(),
             $this->get_slug() . '-general-settings-section'
@@ -123,7 +120,7 @@ class Settings {
         // Disable PDF indexing
         \add_settings_field(
             $this->get_slug() . '-disable-pdf-indexing',
-            __( 'Disable PDF indexing', 'redipress' ),
+            \__( 'Disable PDF indexing', 'redipress' ),
             [ $this, 'render_disable_pdf_indexing' ],
             $this->get_slug(),
             $this->get_slug() . '-general-settings-section'
@@ -132,7 +129,7 @@ class Settings {
         // Index management buttons
         \add_settings_field(
             $this->get_slug() . '-index-buttons',
-            __( 'Index', 'redipress' ),
+            \__( 'Index', 'redipress' ),
             [ $this, 'render_index_management' ],
             $this->get_slug(),
             $this->get_slug() . '-general-settings-section'
@@ -141,7 +138,7 @@ class Settings {
         // Redis settings section
         \add_settings_section(
             $this->get_slug() . '-redis-settings-section',
-            __( 'Redis settings', 'redipress' ),
+            \__( 'Redis settings', 'redipress' ),
             [ $this, 'render_redis_settings_section' ],
             $this->get_slug()
         );
@@ -149,7 +146,7 @@ class Settings {
         // Hostname field
         \add_settings_field(
             $this->get_slug() . '-hostname',
-            __( 'Hostname', 'redipress' ),
+            \__( 'Hostname', 'redipress' ),
             [ $this, 'render_hostname_field' ],
             $this->get_slug(),
             $this->get_slug() . '-redis-settings-section',
@@ -161,7 +158,7 @@ class Settings {
         // Port field
         \add_settings_field(
             $this->get_slug() . '-port',
-            __( 'Port', 'redipress' ),
+            \__( 'Port', 'redipress' ),
             [ $this, 'render_port_field' ],
             $this->get_slug(),
             $this->get_slug() . '-redis-settings-section',
@@ -173,7 +170,7 @@ class Settings {
         // Password field
         \add_settings_field(
             $this->get_slug() . '-password',
-            __( 'Password', 'redipress' ),
+            \__( 'Password', 'redipress' ),
             [ $this, 'render_password_field' ],
             $this->get_slug(),
             $this->get_slug() . '-redis-settings-section',
@@ -185,7 +182,7 @@ class Settings {
         // Index name field
         \add_settings_field(
             $this->get_slug() . '-posts-index-name',
-            __( 'Posts index name', 'redipress' ),
+            \__( 'Posts index name', 'redipress' ),
             [ $this, 'render_posts_index_name_field' ],
             $this->get_slug(),
             $this->get_slug() . '-redis-settings-section',
@@ -197,7 +194,7 @@ class Settings {
         // Use user query field
         \add_settings_field(
             $this->get_slug() . '-use-user-query',
-            __( 'Use user query', 'redipress' ),
+            \__( 'Use user query', 'redipress' ),
             [ $this, 'render_use_user_query_field' ],
             $this->get_slug(),
             $this->get_slug() . '-redis-settings-section',
@@ -209,7 +206,7 @@ class Settings {
         // User index name field
         \add_settings_field(
             $this->get_slug() . '-users-index-name',
-            __( 'Users index name', 'redipress' ),
+            \__( 'Users index name', 'redipress' ),
             [ $this, 'render_users_index_name_field' ],
             $this->get_slug(),
             $this->get_slug() . '-redis-settings-section',
@@ -221,7 +218,7 @@ class Settings {
         // Post types section
         \add_settings_section(
             $this->get_slug() . '-post-types-section',
-            __( 'Post types', 'redipress' ),
+            \__( 'Post types', 'redipress' ),
             [ $this, 'render_post_types_section' ],
             $this->get_slug()
         );
@@ -238,7 +235,7 @@ class Settings {
         // Post types field
         \add_settings_field(
             $this->get_slug() . '-post-types',
-            __( 'Post types', 'redipress' ),
+            \__( 'Post types', 'redipress' ),
             [ $this, 'render_post_types_field' ],
             $this->get_slug(),
             $this->get_slug() . '-post-types-section',
@@ -253,7 +250,7 @@ class Settings {
         // Taxonomies section
         \add_settings_section(
             $this->get_slug() . '-taxonomies-section',
-            __( 'Taxonomies', 'redipress' ),
+            \__( 'Taxonomies', 'redipress' ),
             [ $this, 'render_taxonomies_section' ],
             $this->get_slug()
         );
@@ -270,7 +267,7 @@ class Settings {
         // Taxonomies field
         \add_settings_field(
             $this->get_slug() . '-taxonomies',
-            __( 'Taxonomies', 'redipress' ),
+            \__( 'Taxonomies', 'redipress' ),
             [ $this, 'render_taxonomies_field' ],
             $this->get_slug(),
             $this->get_slug() . '-taxonomies-section',
@@ -288,15 +285,16 @@ class Settings {
      *
      * @return array
      */
-    public function get_post_types() : array {
+    public function get_post_types(): array {
         $post_types = \get_post_types([
             'public'              => true,
             'exclude_from_search' => false,
             'show_ui'             => true,
         ], 'names' );
 
-        $post_types = array_map( function( $post_type ) {
+        $post_types = array_map( function ( $post_type ) {
             $post_type_obj = \get_post_type_object( $post_type );
+
             return $post_type_obj->labels->singular_name;
         }, $post_types );
 
@@ -308,12 +306,12 @@ class Settings {
      *
      * @return array
      */
-    public function get_taxonomies() : array {
+    public function get_taxonomies(): array {
         $taxonomies = \get_taxonomies([
             'public' => true,
         ], 'object' );
 
-        $taxonomies = array_map( function( $taxonomy ) {
+        $taxonomies = array_map( function ( $taxonomy ) {
             return $taxonomy->labels->name;
         }, $taxonomies );
 
@@ -325,7 +323,7 @@ class Settings {
      *
      * @return string
      */
-    public function get_capability() : string {
+    public function get_capability(): string {
         return 'manage_options';
     }
 
@@ -334,7 +332,7 @@ class Settings {
      *
      * @return string
      */
-    public function get_menu_title() : string {
+    public function get_menu_title(): string {
         return 'RediPress';
     }
 
@@ -343,7 +341,7 @@ class Settings {
      *
      * @return string
      */
-    public function get_page_title() : string {
+    public function get_page_title(): string {
         return 'RediPress';
     }
 
@@ -352,7 +350,7 @@ class Settings {
      *
      * @return string
      */
-    public function get_parent_slug() : string {
+    public function get_parent_slug(): string {
         return 'options-general.php';
     }
 
@@ -361,7 +359,7 @@ class Settings {
      *
      * @return string
      */
-    public function get_slug() : string {
+    public function get_slug(): string {
         return 'redipress';
     }
 
@@ -372,7 +370,7 @@ class Settings {
         ?>
             <div class="wrap" id="redipress-settings">
                 <h1><?php echo $this->get_page_title(); ?></h1>
-                <?php if ( ! empty( filter_input( INPUT_GET, 'updated', FILTER_SANITIZE_STRING ) ) ) : ?>
+                <?php if ( ! empty( filter_input( INPUT_GET, 'updated', FILTER_SANITIZE_STRING ) ) ): ?>
                     <div id="setting-error-settings_updated" class="updated settings-error notice is-dismissible">
                         <p><strong><?php \esc_html_e( 'Settings saved.' ); ?></strong></p>
                         <button type="button" class="notice-dismiss">
@@ -384,7 +382,7 @@ class Settings {
                     <?php
                         \settings_fields( $this->get_slug() );
                         \do_settings_sections( $this->get_slug() );
-                        \submit_button( __( 'Save' ) );
+                        \submit_button( \__( 'Save' ) );
                     ?>
                 </form>
             </div>
@@ -475,7 +473,6 @@ class Settings {
 
         // If index is empty show error message.
         if ( empty( $this->index_info['num_docs'] ) ) {
-
             ?>
                 <div>
                     <p id="redipress_index_info"></p>
@@ -483,7 +480,7 @@ class Settings {
                 <div>
                     <p>
                         <span id="redipress_current_index" style="color: red;">
-                            <?php echo __( 'No valid index found.', 'redipress' ) ?>
+                            <?php echo \__( 'No valid index found.', 'redipress' ) ?>
                         </span>
                     </p>
                 </div>
@@ -498,20 +495,20 @@ class Settings {
         ?>
             <div>
                 <p id="redipress_index_info"></p>
-                <progress value="<?php echo \intval( $current_index ); ?>" max="<?php echo \intval( $max_index ); ?>" id="redipress_index_progress"></progress>
+                <progress value="<?php echo intval( $current_index ); ?>" max="<?php echo intval( $max_index ); ?>" id="redipress_index_progress"></progress>
             </div>
             <div>
                 <p>
                     <?php \esc_html_e( 'Items in index:', 'redipress' ); ?>
-                    <span id="redipress_current_index"><?php echo \intval( $current_index ); ?></span>
+                    <span id="redipress_current_index"><?php echo intval( $current_index ); ?></span>
                     <span id="redipress_index_count_delimeter">/</span>
-                    <span id="redipress_max_index"><?php echo \intval( $max_index ); ?></span>
+                    <span id="redipress_max_index"><?php echo intval( $max_index ); ?></span>
                 </p>
             </div>
         <?php
-        \submit_button( \__( 'Index all', 'redipress' ),    'primary',   'redipress_index_all',  false );
-        \submit_button( \__( 'Create index', 'redipress' ), 'secondary', 'redipress_index',      false );
-        \submit_button( \__( 'Delete index', 'redipress' ), 'delete',    'redipress_drop_index', false );
+        \submit_button( \__( 'Index all', 'redipress' ), 'primary', 'redipress_index_all', false );
+        \submit_button( \__( 'Create index', 'redipress' ), 'secondary', 'redipress_index', false );
+        \submit_button( \__( 'Delete index', 'redipress' ), 'delete', 'redipress_drop_index', false );
     }
 
     /**
@@ -734,7 +731,7 @@ class Settings {
      */
     public static function get( string $option ) {
         $key = self::PREFIX . $option;
-        return defined( strtoupper( $key ) ) ? constant( strtoupper( $key ) ) : \get_option( $key );
+        return defined( strtoupper( $key ) ) ? constant( strtoupper( $key ) ): \get_option( $key );
     }
 
 }

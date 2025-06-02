@@ -5,20 +5,30 @@
 
 namespace Geniem\RediPress\Search;
 
-use WP_Query;
 use Geniem\RediPress\Utility;
 
 /**
  * RediPress search query builder class
  */
 abstract class QueryBuilder {
+    /**
+     * Query builder type.
+     */
+    const TYPE = '';
 
     /**
      * WP Query or WP User Query object.
      *
-     * @var WP_Query|WP_User_query
+     * @var \WP_Query|\WP_User_query|null
      */
     protected $query = null;
+
+    /**
+     * Possible meta query.
+     *
+     * @var ?string
+     */
+    protected $meta_query = null;
 
     /**
      * Possible preferred modifiers
@@ -28,11 +38,41 @@ abstract class QueryBuilder {
     protected $modifiers = [];
 
     /**
+     * Possible applies
+     *
+     * @var array
+     */
+    protected $applies = [];
+
+    /**
+     * Possible filters
+     *
+     * @var array
+     */
+    protected $filters = [];
+
+    /**
+     * Possible geofilter
+     *
+     * @var string
+     */
+    protected $geofilter = '';
+
+    /**
      * Possible sortby command
      *
      * @var array
      */
     protected $sortby = [];
+
+    /**
+     * Group by
+     * If $sortby is defined we need to groupby sortby tags.
+     * We need to add @post_id by minimum to make sure that we have unique results.
+     *
+     * @var array
+     */
+    protected $groupby = [];
 
     /**
      * Return fields
@@ -71,6 +111,20 @@ abstract class QueryBuilder {
     protected $query_vars = [];
 
     /**
+     * Query vars to ignore.
+     *
+     * @var array
+     */
+    protected $ignore_query_vars = [];
+
+    /**
+     * Query params.
+     *
+     * @var array
+     */
+    protected $query_params = [];
+
+    /**
      * From which fields the search is conducted.
      *
      * @var array
@@ -80,7 +134,7 @@ abstract class QueryBuilder {
     /**
      * Get query instance.
      *
-     * @return WP_Query|WP_User_Query
+     * @return \WP_Query|\WP_User_Query
      */
     public function get_query_instance() {
         return $this->query;
@@ -91,7 +145,7 @@ abstract class QueryBuilder {
      *
      * @return array
      */
-    public function get_sortby() : array {
+    public function get_sortby(): array {
         return $this->sortby;
     }
 
@@ -100,14 +154,14 @@ abstract class QueryBuilder {
      *
      * @return boolean
      */
-    abstract protected function get_orderby() : bool;
+    abstract protected function get_orderby(): bool;
 
     /**
      * Return the possible apply clauses.
      *
      * @return array
      */
-    public function get_applies() : array {
+    public function get_applies(): array {
         if ( ! empty( $this->applies ) ) {
             return array_merge( ...$this->applies );
         }
@@ -121,7 +175,7 @@ abstract class QueryBuilder {
      *
      * @return array
      */
-    public function get_filters() : array {
+    public function get_filters(): array {
         if ( ! empty( $this->filters ) ) {
             return [
                 'FILTER',
@@ -134,11 +188,11 @@ abstract class QueryBuilder {
     }
 
     /**
-     * Return the possible filters
+     * Return the possible geofilter.
      *
      * @return array
      */
-    public function get_geofilter() : array {
+    public function get_geofilter(): array {
         if ( empty( $this->geofilter ) ) {
             return [];
         }
@@ -155,7 +209,7 @@ abstract class QueryBuilder {
      *
      * @return array
      */
-    public function get_return_fields() : array {
+    public function get_return_fields(): array {
         return $this->return_fields;
     }
 
@@ -164,7 +218,7 @@ abstract class QueryBuilder {
      *
      * @return array
      */
-    public function get_reduce_functions() : array {
+    public function get_reduce_functions(): array {
         return $this->reduce_functions;
     }
 
@@ -173,14 +227,13 @@ abstract class QueryBuilder {
      *
      * @return array
      */
-    public function get_query() : array {
+    public function get_query(): array {
         // Ensure that the tax query gets parsed even if it wasn't implicitly defined.
         if ( empty( $this->query->query_vars['tax_query'] ) ) {
             $this->query->query_vars['tax_query'] = true;
         }
 
-        $return = array_filter( array_map( function( string $query_var ) : string {
-
+        $return = array_filter( array_map( function ( string $query_var ): string {
             // Skip ignored query vars.
             if (
                 in_array( $query_var, $this->ignore_query_vars, true ) ||
@@ -196,7 +249,7 @@ abstract class QueryBuilder {
             $fields = Utility::format( $this->index_info['attributes'] );
 
             // Find out the type of the field we are dealing with.
-            $field_type = array_reduce( $fields, function( $carry = null, $item = null ) use ( $query_var ) {
+            $field_type = array_reduce( $fields, function ( $carry = null, $item = null ) use ( $query_var ) {
                 if ( ! empty( $carry ) ) {
                     return $carry;
                 }
@@ -208,7 +261,7 @@ abstract class QueryBuilder {
                 }
 
                 return null;
-            });
+            } );
 
             // If we have a callable for the query var, possibly passed via a filter
             if ( isset( $this->query_vars[ $query_var ] ) && is_callable( $this->query_vars[ $query_var ] ) ) {
@@ -241,7 +294,7 @@ abstract class QueryBuilder {
         }, array_keys( $this->query->query_vars ) ) );
 
         // All minuses to the end of the line.
-        usort( $return, function( $a, $b ) {
+        usort( $return, function ( $a, $b ) {
             return ( substr( $a, 0, 1 ) === '-' ) ? 1 : 0;
         });
 
@@ -260,7 +313,7 @@ abstract class QueryBuilder {
     protected function add_search_field( string $field ) {
         $this->search_fields[] = $this->query_vars[ $field ] ?? $field;
 
-        $this->search_fields = \array_unique( $this->search_fields );
+        $this->search_fields = array_unique( $this->search_fields );
     }
 
     /**
@@ -268,7 +321,7 @@ abstract class QueryBuilder {
      *
      * @return array
      */
-    public function get_search_fields() : array {
+    public function get_search_fields(): array {
         return $this->search_fields;
     }
 
@@ -277,9 +330,9 @@ abstract class QueryBuilder {
      *
      * @return boolean
      */
-    public function enable() : bool {
+    public function enable(): bool {
         // Don't use RediPress in admin
-        if ( is_admin() ) {
+        if ( \is_admin() ) {
             return false;
         }
 
@@ -302,25 +355,24 @@ abstract class QueryBuilder {
 
         $allowed = array_merge( array_keys( $this->query_vars ), $this->ignore_query_vars );
 
-        return array_reduce( array_keys( $query_vars ), function( bool $carry, string $item ) use ( $allowed ) {
+        return array_reduce( array_keys( $query_vars ), function ( bool $carry, string $item ) use ( $allowed ) {
             if ( ! $carry ) {
                 return false;
             }
             elseif ( array_search( $item, $allowed, true ) !== false ) {
                 return true;
             }
-            else {
-                return false;
-            }
+
+            return false;
         }, true );
     }
 
     /**
      * WP_Query paged parameter.
      *
-     * @return string|null
+     * @return string
      */
-    protected function paged() : string {
+    protected function paged(): string {
         return '';
     }
 
@@ -329,7 +381,7 @@ abstract class QueryBuilder {
      *
      * @return string
      */
-    protected function reduce_functions() : string {
+    protected function reduce_functions(): string {
         $this->reduce_functions = array_merge( $this->reduce_functions, $this->query->query['reduce_functions'] );
 
         return '';
@@ -342,12 +394,12 @@ abstract class QueryBuilder {
      *
      * @return string
      */
-    protected function conduct_search( string $parameter ) : string {
+    protected function conduct_search( string $parameter ): string {
         $terms = $this->query->query_vars[ $parameter ];
 
         // Add a filter for the raw search terms
-        $terms = apply_filters( 'redipress/search_terms/raw', $terms );
-        $terms = apply_filters( 'redipress/search_terms/raw/' . static::TYPE, $terms );
+        $terms = \apply_filters( 'redipress/search_terms/raw', $terms );
+        $terms = \apply_filters( 'redipress/search_terms/raw/' . static::TYPE, $terms );
 
         // Remove a list of forbidden characters if they appear as the very last character ignoring trailing whitespace.
         $terms                     = rtrim( $terms );
@@ -366,17 +418,17 @@ abstract class QueryBuilder {
         $terms = str_replace( ' -', ' ', $terms );
 
         // Add a filter for the search terms
-        $terms = apply_filters( 'redipress/search_terms', $terms );
-        $terms = apply_filters( 'redipress/search_terms/' . static::TYPE, $terms );
+        $terms = \apply_filters( 'redipress/search_terms', $terms );
+        $terms = \apply_filters( 'redipress/search_terms/' . static::TYPE, $terms );
 
         // Escape dashes
         $terms = $this->escape_string( $terms );
 
         // Filter for escaped search terms
-        $terms = apply_filters( 'redipress/search_terms/escaped', $terms );
-        $terms = apply_filters( 'redipress/search_terms/escaped/' . static::TYPE, $terms );
+        $terms = \apply_filters( 'redipress/search_terms/escaped', $terms );
+        $terms = \apply_filters( 'redipress/search_terms/escaped/' . static::TYPE, $terms );
 
-        $terms = \preg_replace_callback( '/[^\(\)\| ]+/', function( $word ) {
+        $terms = \preg_replace_callback( '/[^\(\)\| ]+/', function ( $word ) {
             switch( \mb_strlen( $word[0] ) ) {
                 case 0:
                     return '';
@@ -390,7 +442,7 @@ abstract class QueryBuilder {
         $sort = explode( ' ', $terms ) ?: [];
 
         // Handle tildes
-        $tilde = array_filter( $sort, function( $word ) {
+        $tilde = array_filter( $sort, function ( $word ) {
             return strpos( $word, '~' ) === 0;
         });
 
@@ -406,8 +458,7 @@ abstract class QueryBuilder {
      *
      * @return string
      */
-    protected function weight() : string {
-
+    protected function weight(): string {
         if ( empty( $this->query->query_vars['weight'] ) ) {
             return '';
         }
@@ -419,7 +470,7 @@ abstract class QueryBuilder {
         // Create weight clauses for post types
         if ( ! empty( $weight['post_type'] ) ) {
             $return = array_map(
-                function( $weight, $post_type ) : string {
+                function ( $weight, $post_type ): string {
                     return sprintf(
                         '(~@post_type:%s => {$weight: %s})',
                         $post_type,
@@ -436,7 +487,7 @@ abstract class QueryBuilder {
             $return = array_merge(
                 $return,
                 array_map(
-                    function( $weight, $author ) : string {
+                    function ( $weight, $author ): string {
                         return sprintf(
                             '(~@post_author:%s => {$weight: %s})',
                             $author,
@@ -463,7 +514,7 @@ abstract class QueryBuilder {
                 $return = array_merge(
                     $return,
                     array_map(
-                        function( $weight, $term ) use ( $taxonomy ) : string {
+                        function ( $weight, $term ) use ( $taxonomy ): string {
                             return sprintf(
                                 '(~@taxonomy_id_%s:%s => {$weight: %s})',
                                 $taxonomy,
@@ -484,7 +535,7 @@ abstract class QueryBuilder {
                 $return = array_merge(
                     $return,
                     array_filter( array_map(
-                        function( $weight, $meta_value ) use ( $meta_key ) : ?string {
+                        function ( $weight, $meta_value ) use ( $meta_key ): ?string {
                             $field_type = $this->get_field_type( $meta_key );
 
                             if ( ! $field_type ) {
@@ -515,7 +566,7 @@ abstract class QueryBuilder {
      *
      * @return string
      */
-    protected function orderby() : string {
+    protected function orderby(): string {
         $this->get_orderby();
 
         return '';
@@ -527,7 +578,7 @@ abstract class QueryBuilder {
      *
      * @return string
      */
-    public function get_groupby() : array {
+    public function get_groupby(): array {
         if ( ! empty( $this->query->query_vars['groupby'] ) ) {
             return $this->query->query_vars['groupby'];
         }
@@ -541,7 +592,7 @@ abstract class QueryBuilder {
      *
      * @return string
      */
-    protected function meta_query() : string {
+    protected function meta_query(): string {
         if ( ! empty( $this->meta_query ) ) {
             return $this->meta_query;
         }
@@ -556,11 +607,11 @@ abstract class QueryBuilder {
 
         if ( $query ) {
             $this->meta_query = $query;
+
             return $query;
         }
-        else {
-            return '';
-        }
+
+        return '';
     }
 
     /**
@@ -576,8 +627,7 @@ abstract class QueryBuilder {
      * @param boolean $prefix   Whether to prefix the field with taxonomy_ or not.
      * @return string
      */
-    public function create_taxonomy_query( array $query, string $operator = 'AND', bool $prefix = true ) : string {
-
+    public function create_taxonomy_query( array $query, string $operator = 'AND', bool $prefix = true ): string {
         $relation = $query['relation'] ?? $operator;
         unset( $query['relation'] );
 
@@ -595,7 +645,6 @@ abstract class QueryBuilder {
         }
 
         foreach ( $query as $clause ) {
-
             if ( empty( $clause['operator'] ) ) {
                 $queries[] = $this->create_taxonomy_query( $clause, $relation );
                 continue;
@@ -633,7 +682,7 @@ abstract class QueryBuilder {
                             // we need to form the query like so (@taxonomy: {term1}) (@taxonomy: {term2})
                             $and_queries = [];
 
-                            array_map( function( $term ) use ( $clause, $prefix, &$and_queries ) {
+                            array_map( function ( $term ) use ( $clause, $prefix, &$and_queries ) {
                                 $and_queries[] = sprintf(
                                     '(@%s:{%s})',
                                     $prefix ? 'taxonomy_' . $clause['taxonomy'] : $clause['taxonomy'],
@@ -667,7 +716,7 @@ abstract class QueryBuilder {
 
                             $and_queries = [];
 
-                            array_map( function( $term ) use ( $clause, $prefix, &$and_queries ) {
+                            array_map( function ( $term ) use ( $clause, $prefix, &$and_queries ) {
                                 $and_queries[] = sprintf(
                                     '@%s:{%s}',
                                     $prefix ? 'taxonomy_slug_' . $clause['taxonomy'] : $clause['taxonomy'],
@@ -700,10 +749,10 @@ abstract class QueryBuilder {
                     default:
                         // Include hierarchical taxonomy child terms, if wanted
                         if ( $clause['include_children'] ?? false ) {
-                            $clause['terms'] = array_reduce( $clause['terms'], function( $terms, $id ) use ( $clause ) {
+                            $clause['terms'] = array_reduce( $clause['terms'], function ( $terms, $id ) use ( $clause ) {
                                 $terms[] = $id;
 
-                                $children = get_term_children( $id, $clause['taxonomy'] );
+                                $children = \get_term_children( $id, $clause['taxonomy'] );
 
                                 if ( ! is_array( $children ) ) {
                                         $children = [];
@@ -727,7 +776,7 @@ abstract class QueryBuilder {
                         elseif ( $clause['operator'] === 'AND' ) {
 
                             $and_queries = [];
-                            array_map( function( $term ) use ( $clause, &$and_queries ) {
+                            array_map( function ( $term ) use ( $clause, &$and_queries ) {
                                 $and_queries[] = sprintf(
                                     '@taxonomy_id_%s:{%s}',
                                     $clause['taxonomy'],
@@ -757,7 +806,7 @@ abstract class QueryBuilder {
         }
 
         // All minuses to the end of the line.
-        usort( $queries, function( $a, $b ) {
+        usort( $queries, function ( $a, $b ) {
             return ( substr( $a, 0, 1 ) === '-' ) ? 1 : 0;
         });
 
@@ -782,6 +831,8 @@ abstract class QueryBuilder {
                     return '(' . implode( '|', $queries ) . ')';
             }
         }
+
+        return '';
     }
 
     /**
@@ -790,13 +841,13 @@ abstract class QueryBuilder {
      * @param mixed $terms Terms to be escaped.
      * @return array Escaped strings.
      */
-    protected function escape_clause_terms( $terms ) : array {
+    protected function escape_clause_terms( $terms ): array {
         if ( ! is_array( $terms ) ) {
             $terms = [ $terms ];
         }
 
-        $terms = array_map( function( $term ) {
-            return \str_replace( '-', '\\-', $term );
+        $terms = array_map( function ( $term ) {
+            return str_replace( '-', '\\-', $term );
         }, $terms );
 
         return $terms;
@@ -807,9 +858,9 @@ abstract class QueryBuilder {
      *
      * @param array  $query    The block to create the block from.
      * @param string $operator Possible operator of the parent array.
-     * @return string
+     * @return ?string
      */
-    protected function create_meta_query( array $query, string $operator = 'AND' ) : ?string {
+    protected function create_meta_query( array $query, string $operator = 'AND' ): ?string {
         global $wpdb;
 
         $relation = $query['relation'] ?? $operator;
@@ -861,11 +912,11 @@ abstract class QueryBuilder {
             }
 
             // All minuses to the end of the line.
-            usort( $queries, function( $a, $b ) {
+            usort( $queries, function ( $a, $b ) {
                 return ( substr( $a, 0, 1 ) === '-' ) ? 1 : 0;
             });
 
-            $queries = array_filter( $queries, function( $query ) {
+            $queries = array_filter( $queries, function ( $query ) {
                 return ! empty( $query );
             });
 
@@ -922,11 +973,11 @@ abstract class QueryBuilder {
             }
 
             // All minuses to the end of the line.
-            usort( $queries, function( $a, $b ) {
+            usort( $queries, function ( $a, $b ) {
                 return ( substr( $a, 0, 1 ) === '-' ) ? 1 : 0;
             });
 
-            $queries = array_filter( $queries, function( $query ) {
+            $queries = array_filter( $queries, function ( $query ) {
                 return ! empty( $query );
             });
 
@@ -939,6 +990,8 @@ abstract class QueryBuilder {
                     return '(' . implode( '|', $queries ) . ')';
             }
         }
+
+        return null;
     }
 
     /**
@@ -947,7 +1000,7 @@ abstract class QueryBuilder {
      * @param array $clause The array to work with.
      * @return string|null
      */
-    protected function create_meta_clause( array $clause ) : ?string {
+    protected function create_meta_clause( array $clause ): ?string {
         global $wpdb;
 
         $prefix = $wpdb->base_prefix;
@@ -1057,9 +1110,8 @@ abstract class QueryBuilder {
 
                 return $return;
             }
-            else {
-                return null;
-            }
+
+            return null;
         }
     }
 
@@ -1069,10 +1121,10 @@ abstract class QueryBuilder {
      * @param string $key The key for which to fetch the field type.
      * @return string|null
      */
-    protected function get_field_type( string $key ) : ?string {
+    protected function get_field_type( string $key ): ?string {
         $fields = Utility::format( $this->index_info['attributes'] );
 
-        $field_type = array_reduce( $fields, function( $carry = null, $item = null ) use ( $key ) {
+        $field_type = array_reduce( $fields, function ( $carry = null, $item = null ) use ( $key ) {
             if ( ! empty( $carry ) ) {
                 return $carry;
             }
@@ -1096,7 +1148,7 @@ abstract class QueryBuilder {
      * @param string $field_type The field type we are working with.
      * @return string|null
      */
-    protected function meta_equal( array $clause, string $field_type ) : ?string {
+    protected function meta_equal( array $clause, string $field_type ): ?string {
         switch ( $field_type ) {
             case 'TEXT':
                 return sprintf(
@@ -1123,15 +1175,14 @@ abstract class QueryBuilder {
      * @param string $field_type The field type we are working with.
      * @return string|null
      */
-    protected function meta_not_equal( array $clause, string $field_type ) : ?string {
+    protected function meta_not_equal( array $clause, string $field_type ): ?string {
         $return = $this->meta_equal( $clause, $field_type );
 
         if ( $return ) {
             return '-' . $return;
         }
-        else {
-            return $return;
-        }
+
+        return $return;
     }
 
     /**
@@ -1141,7 +1192,7 @@ abstract class QueryBuilder {
      * @param string $field_type The field type we are working with.
      * @return string|null
      */
-    protected function meta_greater_than( array $clause, string $field_type ) : ?string {
+    protected function meta_greater_than( array $clause, string $field_type ): ?string {
         switch ( $field_type ) {
             case 'NUMERIC':
                 return sprintf(
@@ -1161,7 +1212,7 @@ abstract class QueryBuilder {
      * @param string $field_type The field type we are working with.
      * @return string|null
      */
-    protected function meta_greater_or_equal_than( array $clause, string $field_type ) : ?string {
+    protected function meta_greater_or_equal_than( array $clause, string $field_type ): ?string {
         switch ( $field_type ) {
             case 'NUMERIC':
                 return sprintf(
@@ -1181,7 +1232,7 @@ abstract class QueryBuilder {
      * @param string $field_type The field type we are working with.
      * @return string|null
      */
-    protected function meta_less_than( array $clause, string $field_type ) : ?string {
+    protected function meta_less_than( array $clause, string $field_type ): ?string {
         switch ( $field_type ) {
             case 'NUMERIC':
                 return sprintf(
@@ -1201,7 +1252,7 @@ abstract class QueryBuilder {
      * @param string $field_type The field type we are working with.
      * @return string|null
      */
-    protected function meta_less_or_equal_than( array $clause, string $field_type ) : ?string {
+    protected function meta_less_or_equal_than( array $clause, string $field_type ): ?string {
         switch ( $field_type ) {
             case 'NUMERIC':
                 return sprintf(
@@ -1221,7 +1272,7 @@ abstract class QueryBuilder {
      * @param string $field_type The field type we are working with.
      * @return string|null
      */
-    protected function meta_between( array $clause, string $field_type ) : ?string {
+    protected function meta_between( array $clause, string $field_type ): ?string {
         $value = $clause['value'];
 
         if ( ! is_array( $value ) || count( $value ) !== 2 ) {
@@ -1248,15 +1299,14 @@ abstract class QueryBuilder {
      * @param string $field_type The field type we are working with.
      * @return string|null
      */
-    protected function meta_not_between( array $clause, string $field_type ) : ?string {
+    protected function meta_not_between( array $clause, string $field_type ): ?string {
         $return = $this->meta_between( $clause, $field_type );
 
         if ( $return ) {
             return '-' . $return;
         }
-        else {
-            return $return;
-        }
+
+        return $return;
     }
 
     /**
@@ -1266,7 +1316,7 @@ abstract class QueryBuilder {
      * @param string $field_type The field type we are working with.
      * @return string|null
      */
-    protected function meta_like( array $clause, string $field_type ) : ?string {
+    protected function meta_like( array $clause, string $field_type ): ?string {
         $value = $clause['value'];
 
         if ( strpos( $value, '%' ) === strlen( $value ) - 1 ) {
@@ -1295,15 +1345,14 @@ abstract class QueryBuilder {
      * @param string $field_type The field type we are working with.
      * @return string|null
      */
-    protected function meta_not_like( array $clause, string $field_type ) : ?string {
+    protected function meta_not_like( array $clause, string $field_type ): ?string {
         $return = $this->meta_like( $clause, $field_type );
 
         if ( $return ) {
             return '-' . $return;
         }
-        else {
-            return $return;
-        }
+
+        return $return;
     }
 
     /**
@@ -1313,7 +1362,7 @@ abstract class QueryBuilder {
      * @param string $field_type The field type we are working with.
      * @return string|null
      */
-    protected function meta_in( array $clause, string $field_type ) : ?string {
+    protected function meta_in( array $clause, string $field_type ): ?string {
         switch ( $field_type ) {
             case 'TEXT':
                 return sprintf(
@@ -1322,7 +1371,7 @@ abstract class QueryBuilder {
                     implode( '|', (array) $clause['value'] )
                 );
             case 'NUMERIC':
-                return implode( '|', array_map( function( $value ) use ( $clause ) {
+                return implode( '|', array_map( function ( $value ) use ( $clause ) {
                     return sprintf(
                         '(@%s:[%s %s])',
                         $clause['key'],
@@ -1342,15 +1391,14 @@ abstract class QueryBuilder {
      * @param string $field_type The field type we are working with.
      * @return string|null
      */
-    protected function meta_not_in( array $clause, string $field_type ) : ?string {
+    protected function meta_not_in( array $clause, string $field_type ): ?string {
         $return = $this->meta_in( $clause, $field_type );
 
         if ( $return ) {
             return '-' . $return;
         }
-        else {
-            return $return;
-        }
+
+        return $return;
     }
 
     /**
@@ -1358,7 +1406,7 @@ abstract class QueryBuilder {
      *
      * @return string
      */
-    protected function geolocation() : string {
+    protected function geolocation(): string {
         if ( empty( $this->query->query['geolocation'] ?? $this->query->query_vars['geolocation'] ) ) {
             return '';
         }
@@ -1410,8 +1458,8 @@ abstract class QueryBuilder {
      * @param string $field     The field to fetch the term by.
      * @return array List of IDs.
      */
-    protected function terms_to_ids( array $terms, string $taxonomy, string $field = 'slug' ) : array {
-        return array_map( function( $term ) use ( $taxonomy, $field ) {
+    protected function terms_to_ids( array $terms, string $taxonomy, string $field = 'slug' ): array {
+        return array_map( function ( $term ) use ( $taxonomy, $field ) {
             $term_obj = \get_term_by( $field, $term, $taxonomy );
 
             return $term_obj->term_id;
@@ -1424,7 +1472,7 @@ abstract class QueryBuilder {
      * @param  string $string Unescaped string.
      * @return string         Escaped $string.
      */
-    public function escape_string( ?string $string = '' ) : string {
+    public function escape_string( ?string $string = '' ): string {
         return Utility::escape_string( $string );
     }
 
@@ -1434,7 +1482,7 @@ abstract class QueryBuilder {
      * @param string|null $string The string to enclose.
      * @return string
      */
-    public function enclose_in_quotes( ?string $string = '' ) : string {
+    public function enclose_in_quotes( ?string $string = '' ): string {
         return strlen( $string ) > 0 ? "'$string'" : '';
     }
 }

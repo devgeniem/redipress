@@ -313,7 +313,7 @@ class UserIndex extends Index {
             }
 
             // Escape dashes in all but numeric fields
-            if ( ! in_array( $type, [ 'NUMERIC', 'GEO', 'TAG' ] ) ) {
+            if ( ! in_array( $type, [ 'NUMERIC', 'GEO', 'TAG' ], true ) ) {
                 $value = $this->escape_string( $value );
             }
 
@@ -327,14 +327,19 @@ class UserIndex extends Index {
         $additions = array_map( 'maybe_serialize', $additions );
 
         // Gather the additional search index
-        $search_index = \apply_filters( 'redipress/user_search_index', implode( ' ', $search_index ), $user->ID, $user );
+        $search_index = \apply_filters(
+            'redipress/user_search_index',
+            implode( ' ', $search_index ),
+            $user->ID,
+            $user
+        );
         $search_index = \apply_filters( 'redipress/user_search_index/' . $user->ID, $search_index, $user );
         $search_index = \apply_filters( 'redipress/user_index_strings', $search_index, $user );
         $search_index = $this->escape_string( $search_index );
 
         // Filter the post object that will be added to the database serialized.
         $user_object = \apply_filters( 'redipress/user_object', $user );
-        $user_object = serialize( $user_object );
+        $user_object = serialize( $user_object ); // phpcs:ignore
 
         $user_login = \apply_filters( 'redipress/user_login', $user->user_login );
         $user_login = \apply_filters( 'redipress/user_index_strings', $user_login, $user );
@@ -431,11 +436,11 @@ class UserIndex extends Index {
     /**
      * Escape dashes from string
      *
-     * @param  string $string Unescaped string.
-     * @return string         Escaped $string.
+     * @param  string $str Unescaped string.
+     * @return string      Escaped $string.
      */
-    public function escape_string( ?string $string = '' ): string {
-        return Utility::escape_string( $string );
+    public function escape_string( ?string $str = '' ): string {
+        return Utility::escape_string( $str );
     }
 
     /**

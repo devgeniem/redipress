@@ -21,13 +21,13 @@ class GeoField extends SchemaField {
      * Field constructor
      *
      * @param array $args Associative array of following arguments to create a numeric field:
-     *                    - name (string) required   Field name
+     *      - name (string) required   Field name.
      *
      * @throws \Exception If required parameter is not present.
      */
     public function __construct( array $args ) {
         if ( empty( $args['name'] ) ) {
-            throw new \Exception( __( 'Field name is required in defining new schema fields for RediSearch.' ) );
+            throw new \Exception( \esc_html( 'Field name is required in defining new schema fields for RediSearch.' ) );
         }
         else {
             $this->name = $args['name'];

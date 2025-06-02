@@ -40,7 +40,7 @@ class Client {
         $this->predis->connect();
 
         // You can use this in your theme to get a Client instance.
-        \add_filter( 'redipress/client', function ( $client = null ) {
+        \add_filter( 'redipress/client', function ( $client = null ) { // phpcs:ignore
             return $this;
         });
 
@@ -62,7 +62,7 @@ class Client {
      * @param boolean $use_pipeline Placeholder parameter.
      * @return mixed
      */
-    public function multi( bool $use_pipeline = false ) {
+    public function multi( bool $use_pipeline = false ) { // phpcs:ignore
         return $this->predis->pipeline();
     }
 
@@ -101,13 +101,13 @@ class Client {
     /**
      * Convert an associative array to one with alternating keys and values.
      *
-     * @param array $array The array to convert.
+     * @param array $arr The array to convert.
      * @return array
      */
-    public function convert_associative( array $array ): array {
+    public function convert_associative( array $arr ): array {
         $return = [];
 
-        foreach ( $array as $key => $value ) {
+        foreach ( $arr as $key => $value ) {
             $return[] = $key;
             $return[] = $value;
         }

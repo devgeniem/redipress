@@ -57,7 +57,7 @@ class Utility {
 
         // Turn the chunks into key-value pairs
         foreach ( $chunks as $chunk ) {
-            if ( ! isset ( $chunk[1] ) ) {
+            if ( ! isset( $chunk[1] ) ) {
                 return $chunk;
             }
 
@@ -79,15 +79,15 @@ class Utility {
     /**
      * Cast all values into strings
      *
-     * @param mixed $var The variable to handle.
+     * @param mixed $variable The variable to handle.
      * @return mixed
      */
-    public static function recursive_to_string( $var ) {
-        if ( is_array( $var ) ) {
-            return array_map( [ __CLASS__, __FUNCTION__ ], $var );
+    public static function recursive_to_string( $variable ) {
+        if ( is_array( $variable ) ) {
+            return array_map( [ __CLASS__, __FUNCTION__ ], $variable );
         }
         else {
-            return (string) $var;
+            return (string) $variable;
         }
     }
 
@@ -106,49 +106,55 @@ class Utility {
     /**
      * Get a value from an alternating array
      *
-     * @param array  $array The array from which to search.
-     * @param string $key   The key with which the value can be fetched.
+     * @param array  $arr The array from which to search.
+     * @param string $key The key with which the value can be fetched.
      * @return mixed
      */
-    public static function get_value( array $array, string $key ) {
-        $index = array_search( $key, $array, true );
+    public static function get_value( array $arr, string $key ) {
+        $index = array_search( $key, $arr, true );
 
-        if ( $index !== false && ! empty( $array[ ++$index ] ) ) {
-            return $array[ $index ];
+        if ( $index !== false && ! empty( $arr[ ++$index ] ) ) {
+            return $arr[ $index ];
         }
 
         return null;
     }
 
     /**
-     * Escapes a string value but prevents numeric values from being slashed. 
+     * Escapes a string value but prevents numeric values from being slashed.
      * Numeric values will be casted to the correct type.
      *
-     * @param mixed $string The string to escape.
+     * @param mixed  $str       The string to escape.
      * @param string $meta_type MySQL data type.
-     * @return mixed depending on the meta_type parameter and input string 
+     * @return mixed depending on the meta_type parameter and input string
      * the return value will be either string (or array of strings), int or float.
      */
-    public static function escape_value_by_meta_type( $string, $meta_type = 'CHAR' ):mixed{
+    public static function escape_value_by_meta_type( $str, $meta_type = 'CHAR' ): mixed {
         // Possible numeric MySQL data type values for WP meta query are SIGNED, UNSIGNED, NUMERIC and DECIMAL.
         // For NUMERIC and DECIMAL declaration also data precicion and scale can be specified.
         // https://dev.mysql.com/doc/refman/8.0/en/numeric-type-syntax.html
-        
-        if ( is_numeric( $string ) && preg_match( '/^(?:SIGNED|UNSIGNED|NUMERIC(?:\(\d+(?:,\s?\d+)?\))?|DECIMAL(?:\(\d+(?:,\s?\d+)?\))?)$/', $meta_type ) ) {
-            return floatval( $string ) ? (float) $string : (int) $string;
+
+        if (
+            is_numeric( $str ) &&
+            preg_match(
+                '/^(?:SIGNED|UNSIGNED|NUMERIC(?:\(\d+(?:,\s?\d+)?\))?|DECIMAL(?:\(\d+(?:,\s?\d+)?\))?)$/',
+                $meta_type
+            )
+        ) {
+            return floatval( $str ) ? (float) $str : (int) $str;
         }
 
-        return self::escape_string( $string );
+        return self::escape_string( $str );
     }
 
     /**
      * Escape a string
      *
-     * @param string|array|null $string The string or array of strings to escape.
+     * @param string|array|null $str The string or array of strings to escape.
      * @return string|array
      */
-    public static function escape_string( $string = '' ) {
-        if ( is_null( $string ) ) {
+    public static function escape_string( $str = '' ) {
+        if ( is_null( $str ) ) {
             return '';
         }
 
@@ -169,6 +175,6 @@ class Utility {
             $replace[] = '\\)';
         }
 
-        return str_replace( $search, $replace, $string );
+        return str_replace( $search, $replace, $str );
     }
 }

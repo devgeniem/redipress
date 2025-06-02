@@ -24,11 +24,9 @@ class Settings {
 
     /**
      * Run appropriate functionalities.
-     *
-     * @param array|null $index_info Index information.
      */
     public function __construct() {
-        $this->index_info = Settings::get( 'posts_index' );
+        $this->index_info = self::get( 'posts_index' );
         \add_action( 'admin_init', [ $this, 'configure' ] );
     }
 
@@ -369,8 +367,8 @@ class Settings {
     public function render_page() {
         ?>
             <div class="wrap" id="redipress-settings">
-                <h1><?php echo $this->get_page_title(); ?></h1>
-                <?php if ( ! empty( filter_input( INPUT_GET, 'updated', FILTER_SANITIZE_STRING ) ) ): ?>
+                <h1><?php echo \esc_html( $this->get_page_title() ); ?></h1>
+                <?php if ( ! empty( filter_input( INPUT_GET, 'updated', FILTER_SANITIZE_STRING ) ) ) : ?>
                     <div id="setting-error-settings_updated" class="updated settings-error notice is-dismissible">
                         <p><strong><?php \esc_html_e( 'Settings saved.' ); ?></strong></p>
                         <button type="button" class="notice-dismiss">
@@ -406,7 +404,9 @@ class Settings {
         $option = self::get( $name );
         ?>
             <input type="hidden" name="redipress_persist_index" value="0" />
-            <input type="checkbox" name="redipress_persist_index" id="redipress_persist_index" value="1" <?php \checked( 1, $option ) . $this->disabled( $name ); ?>>
+            <input type="checkbox" name="redipress_persist_index" id="redipress_persist_index" value="1"
+                <?php \checked( 1, $option ) . $this->disabled( $name ); ?>
+            >
             <p class="description" id="persistent-index-description">
                 <?php
                 \esc_html_e( 'Whether to store the index persistently or only in memory.', 'redipress' );
@@ -423,10 +423,15 @@ class Settings {
         $option = self::get( $name );
         ?>
             <input type="hidden" name="redipress_write_every" value="0" />
-            <input type="checkbox" name="redipress_write_every" id="redipress_write_every" value="1" <?php \checked( 1, $option ) . $this->disabled( $name ); ?>>
+            <input type="checkbox" name="redipress_write_every" id="redipress_write_every" value="1"
+                <?php \checked( 1, $option ) . $this->disabled( $name ); ?>
+            >
             <p class="description" id="write-every-description">
                 <?php
-                \esc_html_e( 'Whether the index should be written to disk after every write action or only once per execution.', 'redipress' );
+                \esc_html_e(
+                    'Whether the index should be written to disk after every write action or only once per execution.',
+                    'redipress'
+                );
                 ?>
             </p>
         <?php
@@ -440,10 +445,15 @@ class Settings {
         $option = self::get( $name );
         ?>
             <input type="hidden" name="redipress_fallback" value="0" />
-            <input type="checkbox" name="redipress_fallback" id="redipress_fallback" value="1" <?php \checked( 1, $option ) . $this->disabled( $name ); ?>>
+            <input type="checkbox" name="redipress_fallback" id="redipress_fallback" value="1"
+                <?php \checked( 1, $option ) . $this->disabled( $name ); ?>
+            >
             <p class="description" id="fallback-description">
                 <?php
-                \esc_html_e( 'Whether to fallback to MySQL when no results are found from RediSearch or not.', 'redipress' );
+                \esc_html_e(
+                    'Whether to fallback to MySQL when no results are found from RediSearch or not.',
+                    'redipress'
+                );
                 ?>
             </p>
         <?php
@@ -457,7 +467,9 @@ class Settings {
         $option = self::get( $name );
         ?>
             <input type="hidden" name="redipress_escape_parentheses" value="0" />
-            <input type="checkbox" name="redipress_escape_parentheses" id="redipress_escape_parentheses" value="1" <?php \checked( 1, $option ) . $this->disabled( $name ); ?>>
+            <input type="checkbox" name="redipress_escape_parentheses" id="redipress_escape_parentheses" value="1"
+                <?php \checked( 1, $option ) . $this->disabled( $name ); ?>
+            >
             <p class="description" id="escape-parentheses-description">
                 <?php
                 \esc_html_e( 'Whether to escape parentheses in search queries or not.', 'redipress' );
@@ -480,7 +492,7 @@ class Settings {
                 <div>
                     <p>
                         <span id="redipress_current_index" style="color: red;">
-                            <?php echo \__( 'No valid index found.', 'redipress' ) ?>
+                            <?php echo \esc_html__( 'No valid index found.', 'redipress' ); ?>
                         </span>
                     </p>
                 </div>
@@ -491,11 +503,13 @@ class Settings {
 
         // If index_info not empty.
         $current_index = $this->index_info['num_docs'] ?? 0 + $this->index_info['num_terms'] ?? 0;
-        $max_index     = 0; // Todo
+        $max_index     = 0;
         ?>
             <div>
                 <p id="redipress_index_info"></p>
-                <progress value="<?php echo intval( $current_index ); ?>" max="<?php echo intval( $max_index ); ?>" id="redipress_index_progress"></progress>
+                <progress value="<?php echo intval( $current_index ); ?>" max="<?php echo intval( $max_index ); ?>"
+                    id="redipress_index_progress">
+                </progress>
             </div>
             <div>
                 <p>
@@ -527,7 +541,9 @@ class Settings {
         $name   = 'hostname';
         $option = self::get( $name );
         ?>
-            <input type="text" name="redipress_hostname" id="redipress_hostname" value="<?php echo \esc_attr( $option ); ?>" <?php $this->disabled( $name ); ?>>
+            <input type="text" name="redipress_hostname" id="redipress_hostname"
+                value="<?php echo \esc_attr( $option ); ?>" <?php $this->disabled( $name ); ?>
+            >
             <p class="description" id="hostname-description">
                 <?php \esc_html_e( 'Redis server hostname.', 'redipress' ); ?>
             </p>
@@ -541,7 +557,9 @@ class Settings {
         $name   = 'port';
         $option = self::get( $name );
         ?>
-            <input type="number" name="redipress_port" id="redipress_port" value="<?php echo \esc_attr( $option ); ?>" <?php $this->disabled( $name ); ?>>
+            <input type="number" name="redipress_port" id="redipress_port"
+                value="<?php echo \esc_attr( $option ); ?>" <?php $this->disabled( $name ); ?>
+            >
             <p class="description" id="port-description">
                 <?php \esc_html_e( 'Redis server port.', 'redipress' ); ?>
             </p>
@@ -555,9 +573,16 @@ class Settings {
         $name   = 'password';
         $option = self::get( $name );
         ?>
-            <input type="password" name="redipress_password" id="redipress_password" value="<?php echo \esc_attr( $option ); ?>" <?php $this->disabled( $name ); ?>>
+            <input type="password" name="redipress_password" id="redipress_password"
+                value="<?php echo \esc_attr( $option ); ?>" <?php $this->disabled( $name ); ?>
+            >
             <p class="description" id="password-description">
-                <?php \esc_html_e( 'If your Redis server is not password protected, leave this field empty.', 'redipress' ); ?>
+                <?php
+                \esc_html_e(
+                    'If your Redis server is not password protected, leave this field empty.',
+                    'redipress'
+                );
+                ?>
             </p>
         <?php
     }
@@ -569,7 +594,9 @@ class Settings {
         $name   = 'posts_index';
         $option = self::get( $name );
         ?>
-            <input type="text" name="redipress_posts_index" id="redipress_posts_index" value="<?php echo \esc_attr( $option ) ?: 'posts'; ?>" <?php $this->disabled( $name ); ?>>
+            <input type="text" name="redipress_posts_index" id="redipress_posts_index"
+                value="<?php echo \esc_attr( $option ) ?: 'posts'; ?>" <?php $this->disabled( $name ); ?>
+            >
             <p class="description" id="posts-index-name-description">
                 <?php \esc_html_e( 'RediSearch posts index name, must be unique within the database.', 'redipress' ); ?>
             </p>
@@ -584,7 +611,9 @@ class Settings {
         $option = self::get( $name );
         ?>
             <input type="hidden" name="redipress_use_user_query" value="0" />
-            <input type="checkbox" name="redipress_use_user_query" id="redipress_use_user_query" value="1" <?php \checked( 1, $option ) . $this->disabled( $name ); ?>>
+            <input type="checkbox" name="redipress_use_user_query" id="redipress_use_user_query"
+                value="1" <?php \checked( 1, $option ) . $this->disabled( $name ); ?>
+            >
             <p class="description" id="use-user-query-description">
                 <?php
                 \esc_html_e( 'Whether the user database is in use or not.', 'redipress' );
@@ -600,7 +629,9 @@ class Settings {
         $name   = 'users_index';
         $option = self::get( $name );
         ?>
-            <input type="text" name="redipress_users_index" id="redipress_users_index" value="<?php echo \esc_attr( $option ) ?: 'users'; ?>" <?php $this->disabled( $name ); ?>>
+            <input type="text" name="redipress_users_index" id="redipress_users_index"
+                value="<?php echo \esc_attr( $option ) ?: 'users'; ?>" <?php $this->disabled( $name ); ?>
+            >
             <p class="description" id="users-index-name-description">
                 <?php \esc_html_e( 'RediSearch users index name, must be unique within the database.', 'redipress' ); ?>
             </p>
@@ -615,10 +646,15 @@ class Settings {
         $option = self::get( $name );
         ?>
             <input type="hidden" name="redipress_disable_post_author_search" value="1" />
-            <input type="checkbox" name="redipress_disable_post_author_search" id="redipress_disable_post_author_search" value="1" <?php \checked( 1, $option ) . $this->disabled( $name ); ?>>
+            <input type="checkbox" name="redipress_disable_post_author_search" id="redipress_disable_post_author_search"
+                value="1" <?php \checked( 1, $option ) . $this->disabled( $name ); ?>
+            >
             <p class="description" id="disable-post-author-search-description">
                 <?php
-                \esc_html_e( 'Whether to disable including post author display name in the search index or not.', 'redipress' );
+                \esc_html_e(
+                    'Whether to disable including post author display name in the search index or not.',
+                    'redipress'
+                );
                 ?>
             </p>
         <?php
@@ -632,7 +668,9 @@ class Settings {
         $option = self::get( $name );
         ?>
         <input type="hidden" name="redipress_disable_pdf_indexing" value="1" />
-        <input type="checkbox" name="redipress_disable_pdf_indexing" id="redipress_disable_pdf_indexing" value="1" <?php \checked( 1, $option ) . $this->disabled( $name ); ?>>
+        <input type="checkbox" name="redipress_disable_pdf_indexing" id="redipress_disable_pdf_indexing"
+            value="1" <?php \checked( 1, $option ) . $this->disabled( $name ); ?>
+        >
         <p class="description" id="disable-pdf-indexing-description">
             <?php
             \esc_html_e( 'Whether to disable PDF indexing for attachments or not.', 'redipress' );
@@ -646,28 +684,39 @@ class Settings {
      */
     public function render_post_types_section() {
         ?>
-            <p><?php \esc_html_e( 'Select the post types that will be included in the search results.', 'redipress' ); ?></p>
+            <p>
+                <?php
+                \esc_html_e(
+                    'Select the post types that will be included in the search results.',
+                    'redipress'
+                );
+                ?>
+            </p>
         <?php
     }
 
     /**
      * Renders the post types field.
+     *
+     * @param array $args The arguments for the field.
      */
     public function render_post_types_field( $args ) {
         ?>
             <fieldset>
-                <legend class="screen-reader-text"><span><?php \esc_html_e( 'Post types', 'redipress' ); ?></span></legend>
+                <legend class="screen-reader-text">
+                    <span><?php \esc_html_e( 'Post types', 'redipress' ); ?></span>
+                </legend>
                 <input type="hidden" name="redipress_post_types" value="" />
         <?php
         foreach ( $args['options'] as $val => $title ) {
             printf(
-                '<label for="%1$s_%3$s"><input type="checkbox" name="%2$s" id="%1$s_%3$s" value="%3$s" %4$s %5$s>%6$s</label>',
-                $args['label_for'],
-                $args['name'],
-                $val,
+                '<label for="%1$s_%3$s"><input type="checkbox" name="%2$s" id="%1$s_%3$s" value="%3$s" %4$s %5$s>%6$s</label>', // phpcs:ignore
+                \esc_attr( $args['label_for'] ),
+                \esc_attr( $args['name'] ),
+                \esc_attr( $val ),
                 in_array( $val, $args['value'], true ) ? 'checked' : '',
                 defined( strtoupper( self::PREFIX . 'post_types' ) ) ? 'disabled' : '',
-                $title
+                \esc_html( $title )
             );
             echo '<br>';
         }
@@ -681,28 +730,39 @@ class Settings {
      */
     public function render_taxonomies_section() {
         ?>
-            <p><?php \esc_html_e( 'Select the taxonomies that will be included in the search results.', 'redipress' ); ?></p>
+            <p>
+                <?php
+                    \esc_html_e(
+                        'Select the taxonomies that will be included in the search results.',
+                        'redipress'
+                    );
+                ?>
+            </p>
         <?php
     }
 
     /**
      * Renders the taxonomies field.
+     *
+     * @param array $args The arguments for the field.
      */
     public function render_taxonomies_field( array $args ) {
         ?>
             <fieldset>
-                <legend class="screen-reader-text"><span><?php \esc_html_e( 'Taxonomies', 'redipress' ); ?></span></legend>
+                <legend class="screen-reader-text">
+                    <span><?php \esc_html_e( 'Taxonomies', 'redipress' ); ?></span>
+                </legend>
                 <input type="hidden" name="redipress_taxonomies" value="" />
         <?php
         foreach ( $args['options'] as $val => $title ) {
             printf(
-                '<label for="%1$s_%3$s"><input type="checkbox" name="%2$s" id="%1$s_%3$s" value="%3$s" %4$s %5$s>%6$s</label>',
-                $args['label_for'],
-                $args['name'],
-                $val,
+                '<label for="%1$s_%3$s"><input type="checkbox" name="%2$s" id="%1$s_%3$s" value="%3$s" %4$s %5$s>%6$s</label>', // phpcs:ignore
+                \esc_attr( $args['label_for'] ),
+                \esc_attr( $args['name'] ),
+                \esc_attr( $val ),
                 in_array( $val, $args['value'], true ) ? 'checked' : '',
                 defined( strtoupper( self::PREFIX . 'taxonomies' ) ) ? 'disabled' : '',
-                $title
+                \esc_html( $title )
             );
             echo '<br>';
         }
@@ -731,7 +791,6 @@ class Settings {
      */
     public static function get( string $option ) {
         $key = self::PREFIX . $option;
-        return defined( strtoupper( $key ) ) ? constant( strtoupper( $key ) ): \get_option( $key );
+        return defined( strtoupper( $key ) ) ? constant( strtoupper( $key ) ) : \get_option( $key );
     }
-
 }

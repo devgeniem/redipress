@@ -36,7 +36,13 @@ class Rest {
      * @param  callable|null $permission_callback Permission callback or null if default.
      * @return array                              Current registered rest routes.
      */
-    public static function register_api_call( string $path, callable $callback, string $methods = '', array $args = [], ?callable $permission_callback = null ): array {
+    public static function register_api_call(
+        string $path,
+        callable $callback,
+        string $methods = '',
+        array $args = [],
+        ?callable $permission_callback = null
+    ): array {
         static::$rest_routes[] = (object) [
             'namespace' => static::NAMESPACE,
             'path'      => $path,

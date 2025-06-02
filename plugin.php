@@ -78,28 +78,34 @@ class RediPressPlugin {
         $plugin_data       = \get_plugin_data( __FILE__, false, false );
         $this->plugin_data = \wp_parse_args( $plugin_data, $this->plugin_data );
         $this->path        = __DIR__;
-        $this->url         = plugin_dir_url( __FILE__ );
+        $this->url         = \plugin_dir_url( __FILE__ );
 
-        add_action( 'admin_enqueue_scripts', function () {
+        \add_action( 'admin_enqueue_scripts', function () use ( $plugin_data ) {
             // Register admin JavaScripts
-            wp_register_script( 'RediPress', $this->url . 'assets/dist/admin.js', [ 'wp-i18n' ] );
+            \wp_register_script(
+                'RediPress',
+                $this->url . 'assets/dist/admin.js',
+                [ 'wp-i18n' ],
+                $plugin_data['Version'],
+                true
+            );
 
-            wp_localize_script( 'RediPress', 'RediPress', [
+            \wp_localize_script( 'RediPress', 'RediPress', [
                 'homeUrl'      => \home_url(),
                 'restUrl'      => \rest_url( RediPress\Rest::NAMESPACE ),
                 'restApiNonce' => \wp_create_nonce( 'wp_rest' ),
             ]);
 
-            wp_set_script_translations( 'RediPress', 'redipress' );
+            \wp_set_script_translations( 'RediPress', 'redipress' );
 
-            wp_enqueue_script( 'RediPress' );
+            \wp_enqueue_script( 'RediPress' );
         });
 
         // Whether we are on debug mode or not
         $this->debug = true;
 
         // Load the plugin textdomain.
-        load_plugin_textdomain( 'redipress', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+        \load_plugin_textdomain( 'redipress', false, dirname( \plugin_basename( __FILE__ ) ) . '/languages' );
 
         // Initialize the plugin itself
         new RediPress\RediPress( $this );
@@ -114,12 +120,12 @@ class RediPressPlugin {
      * @return void
      */
     public function show_admin_error( string $message, string $details = '', bool $dismissible = true ) {
-        add_action( 'admin_notices', function () use ( $message, $details, $dismissible ) {
+        \add_action( 'admin_notices', function () use ( $message, $details, $dismissible ) {
             printf(
                 '<div class="notice notice-error%s"><p><b>RediPress:</b> %s</p>%s</div>',
-                esc_html( $dismissible ? ' is-dismissible' : '' ),
-                esc_html( $message ),
-                $this->debug && ! empty( $details ) ? '<p>' . esc_html( $details ) . '</p>' : ''
+                $dismissible ? ' is-dismissible' : '',
+                \esc_html( $message ),
+                $this->debug && ! empty( $details ) ? '<p>' . \esc_html( $details ) . '</p>' : ''
             );
         });
     }

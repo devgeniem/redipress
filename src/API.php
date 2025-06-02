@@ -116,11 +116,11 @@ function update_value( $doc_id, $field, $value, $score = 1, $users = false ) {
 /**
  * Escape dashes from string
  *
- * @param  ?string $string Unescaped string.
- * @return string          Escaped $string.
+ * @param  ?string $str Unescaped string.
+ * @return string       Escaped $string.
  */
-function escape_string( ?string $string = '' ): string {
-    return Utility::escape_string( $string );
+function escape_string( ?string $str = '' ): string {
+    return Utility::escape_string( $str );
 }
 
 /**

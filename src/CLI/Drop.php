@@ -31,7 +31,7 @@ class Drop implements Command {
      * Drop the index
      *
      * @param string $index The index to delete.
-     * @param array $assoc_args The associative args.
+     * @param array  $assoc_args The associative args.
      * @throws \Exception If index type is not supported.
      * @return bool
      */
@@ -44,8 +44,7 @@ class Drop implements Command {
                 $return = \apply_filters( 'redipress/index/users/drop', 'method not found', $assoc_args );
                 break;
             default:
-                throw new \Exception( 'Index type ' . $index . ' is not supported.' );
-                break;
+                throw new \Exception( 'Index type ' . \esc_html( $index ) . ' is not supported.' );
         }
 
         if ( $return === true ) {

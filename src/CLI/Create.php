@@ -30,6 +30,8 @@ class Create implements Command {
             \WP_CLI::error( 'RediPress: "create" command doesn\'t accept more than one parameter.' );
             return false;
         }
+
+        return false;
     }
 
     /**
@@ -51,8 +53,7 @@ class Create implements Command {
                 $return = \apply_filters( 'redipress/index/analytics/create', null );
                 break;
             default:
-                throw new \Exception( 'Index type ' . $index . ' is not supported.' );
-                break;
+                throw new \Exception( 'Index type ' . \esc_html( $index ) . ' is not supported.' );
         }
 
         switch ( $return ) {

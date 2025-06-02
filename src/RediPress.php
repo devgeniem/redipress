@@ -14,7 +14,7 @@ use Geniem\RediPress\Utility;
 use Geniem\RediPress\Rest;
 
 // Require the external API functions
-require_once( __DIR__ . '/API.php' );
+require_once __DIR__ . '/API.php';
 
 /**
  * RediPress main class
@@ -110,7 +110,9 @@ class RediPress {
             return true;
         }
         catch ( \Exception $e ) {
-            $this->plugin->show_admin_error( __( 'Connection to Redis server did not succeed.', 'redipress' ), $e->getMessage() );
+            $this->plugin->show_admin_error(
+                __( 'Connection to Redis server did not succeed.', 'redipress' ), $e->getMessage()
+            );
 
             return false;
         }
@@ -140,7 +142,7 @@ class RediPress {
 
         // Initialize indexes.
         // Run initialization inside 'init' hook only if in WP CLI to avoid code execution order errors.
-        defined( 'WP_CLI' ) ? \add_action( 'init', fn() => $this->init_indexes(), 1000 ): $this->init_indexes();
+        defined( 'WP_CLI' ) ? \add_action( 'init', fn() => $this->init_indexes(), 1000 ) : $this->init_indexes();
 
         return true;
     }
@@ -150,7 +152,7 @@ class RediPress {
      *
      * @return void
      */
-    protected function init_indexes () {
+    protected function init_indexes() {
         $this->indexes['posts'] = new PostIndex( $this->connection );
 
         if ( Settings::get( 'use_user_query' ) ) {
@@ -173,7 +175,9 @@ class RediPress {
 
             // Create the index if it doesn't already exist
             if ( $raw_info === 'Unknown Index name' ) {
-                $this->plugin->show_admin_error( sprintf( __( 'RediPress: Index "%s" does not exist.', 'redipress' ), $type ) );
+                $this->plugin->show_admin_error(
+                    sprintf( __( 'RediPress: Index "%s" does not exist.', 'redipress' ), $type )
+                );
 
                 return false;
             }
@@ -181,7 +185,12 @@ class RediPress {
             $info = Utility::format( $raw_info );
 
             if ( (int) $info['num_docs'] === 0 ) {
-                $this->plugin->show_admin_error( sprintf( __( 'RediPress: Index "%s" is empty, consider running the indexing function.', 'redipress' ), $type ) );
+                $this->plugin->show_admin_error(
+                    sprintf(
+                        __( 'RediPress: Index "%s" is empty, consider running the indexing function.', 'redipress' ),
+                        $type
+                    )
+                );
 
                 return false;
             }
@@ -251,7 +260,7 @@ class RediPress {
                             sprintf(
                                 // translators: %s is the field name.
                                 \__(
-                                    'RediSearch %1$s schema does not contain field %2$s which has been defined in the theme, or its definition has changed. Consider recreating the schema.',
+                                    'RediSearch %1$s schema does not contain field %2$s which has been defined in the theme, or its definition has changed. Consider recreating the schema.', // phpcs:ignore
                                     'redipress'
                                 ),
                                 $index_type,

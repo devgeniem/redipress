@@ -13,10 +13,11 @@ class CLI {
     /**
      * Invoke the CLI functionalities
      *
-     * @param array $args Command arguments.
+     * @param array $args       Command arguments.
+     * @param array $assoc_args Associative command arguments.
      * @return void
      */
-    public function __invoke( array $args = [], array $assoc_args = [] ) {
+	public function __invoke( array $args = [], array $assoc_args = [] ) {
         // Check if we have at least one parameter for the command
         if ( isset( $args[0] ) ) {
             // Check if we have a class that corresponds to the asked command
@@ -32,11 +33,15 @@ class CLI {
                     $max_parameters = $class::get_max_parameters();
 
                     switch ( true ) {
-                        case count( $parameters ) < $min_parameters:
-                            \WP_CLI::error( 'RediPress: command "' . $args[0] . '" needs at least ' . $min_parameters . ' parameters.' );
+						case count( $parameters ) < $min_parameters:
+							\WP_CLI::error(
+								"RediPress: command \"$args[0]\" needs at least $min_parameters parameters."
+							);
                             exit;
                         case count( $parameters ) > $max_parameters:
-                            \WP_CLI::error( 'RediPress: command "' . $args[0] . '" accepts a maximum of ' . $max_parameters . ' parameters.' );
+                            \WP_CLI::error(
+                                "RediPress: command \"$args[0]\" accepts a maximum of $max_parameters parameters."
+                            );
                             exit;
                         default:
                             $command = new $class();
@@ -52,11 +57,11 @@ class CLI {
             else {
                 \WP_CLI::error( 'RediPress: command "' . $args[0] . '" can not be found.' );
             }
-        }
+		}
         // If not, ask for more.
         else {
-            echo "Usage: wp redipress [command]\n";
+            echo "Usage: wp redipress [ command ]\n";
             exit;
-        }
+		}
     }
 }

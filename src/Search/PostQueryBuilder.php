@@ -103,7 +103,10 @@ class PostQueryBuilder extends QueryBuilder {
             )
         );
 
-        $this->ignore_query_vars = \apply_filters( 'redipress/ignore_query_vars/' . static::TYPE, $this->ignore_query_vars );
+        $this->ignore_query_vars = \apply_filters(
+            'redipress/ignore_query_vars/' . static::TYPE,
+            $this->ignore_query_vars
+        );
 
         // Allow adding support for query vars via a filter
         $this->query_vars = \apply_filters( 'redipress/query_vars', $this->query_vars );
@@ -435,7 +438,6 @@ class PostQueryBuilder extends QueryBuilder {
      * @return ?string
      */
     protected function post_parent(): ?string {
-
         $post_parent = $this->query->query_vars['post_parent'] ?? false;
 
         // If post_parent is null or empty string ignore post_parent.
@@ -452,7 +454,6 @@ class PostQueryBuilder extends QueryBuilder {
      * @return ?string Redisearch query condition.
      */
     protected function post_parent__in(): ?string {
-
         if ( empty( $this->query->query_vars['post_parent__in'] ) ) {
             return null;
         }
@@ -473,7 +474,6 @@ class PostQueryBuilder extends QueryBuilder {
      * @return ?string Redisearch query condition.
      */
     protected function post_parent__not_in(): ?string {
-
         if ( empty( $this->query->query_vars['post_parent__not_in'] ) ) {
             return null;
         }
@@ -494,7 +494,6 @@ class PostQueryBuilder extends QueryBuilder {
      * @return ?string
      */
     protected function post_mime_type(): ?string {
-
         if ( empty( $this->query->query_vars['post_mime_type'] ) ) {
             return null;
         }
@@ -531,7 +530,6 @@ class PostQueryBuilder extends QueryBuilder {
      * @return ?string
      */
     protected function category__not_in(): ?string {
-
         if ( empty( $this->query->query_vars['category__not_in'] ) ) {
             return null;
         }
@@ -549,7 +547,6 @@ class PostQueryBuilder extends QueryBuilder {
      * @return ?string
      */
     protected function category__and(): ?string {
-
         if ( empty( $this->query->query_vars['category__and'] ) ) {
             return null;
         }
@@ -575,7 +572,6 @@ class PostQueryBuilder extends QueryBuilder {
      * @return ?string
      */
     protected function category_name(): ?string {
-
         if ( empty( $this->query->query_vars['category_name'] ) ) {
             return null;
         }
@@ -646,7 +642,7 @@ class PostQueryBuilder extends QueryBuilder {
      * @param array $query The block to create the block from.
      * @return array
      */
-    public function create_date_query( array $query ): array {
+    public function create_date_query( array $query ): array { // phpcs:ignore
         if ( empty( $query ) ) {
             return [];
         }
@@ -707,7 +703,7 @@ class PostQueryBuilder extends QueryBuilder {
             case 'AND':
             default:
                 $relation = '&&';
-        };
+        }
         unset( $query['relation'] );
 
         $column = $query['column'] ?? 'post_date';
@@ -759,7 +755,7 @@ class PostQueryBuilder extends QueryBuilder {
                 case 'AND':
                 default:
                     $inner_relation = '&&';
-            };
+            }
             unset( $clause['relation'] );
 
             // Count the number of non-arrays in the clause. If it's greater than zero
@@ -825,7 +821,7 @@ class PostQueryBuilder extends QueryBuilder {
      *
      * @return boolean Whether we have a qualified orderby or not.
      */
-    protected function get_orderby(): bool {
+    protected function get_orderby(): bool { // phpcs:ignore
         if ( ! empty( $this->sortby ) ) {
             return true;
         }
@@ -903,7 +899,6 @@ class PostQueryBuilder extends QueryBuilder {
                     $clause['orderby'] = 'post_' . strtolower( $clause['orderby'] );
                     break;
                 default:
-
                     // If we have a distance clause, just pass it on
                     if (
                         ! empty( $clause['order'] ) &&

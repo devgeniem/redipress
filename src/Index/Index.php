@@ -136,7 +136,8 @@ abstract class Index {
     /**
      * Gather the schema fields for multisite index-creation
      *
-     * @param string $key The run-time key to identify the gathering.
+     * @param string $key         The run-time key to identify the gathering.
+     * @param bool   $throw_error Whether to throw an error on conflicting fields or not.
      * @return void
      */
     public function gather_schema_fields( string $key, bool $throw_error = true ): void {
@@ -150,12 +151,12 @@ abstract class Index {
             // If there is a field with the same name within the initial fields, find it
             foreach ( $fields as &$original_field ) {
                 if ( $field->name === $original_field->name ) {
-                    $original = serialize( $original_field );
-                    $new      = serialize( $field );
+                    $original = serialize( $original_field ); // phpcs:ignore
+                    $new      = serialize( $field ); // phpcs:ignore
 
                     if ( $original !== $new ) {
                         if ( $throw_error ) {
-                            die( 'RediPress index creation error: conflicting fields with name ' . $field->name );
+                            die( 'RediPress index creation error: conflicting fields with name ' . \esc_html( $field->name ) ); // phpcs:ignore
                         }
 
                         $original_field->conflict = true;
@@ -196,7 +197,10 @@ abstract class Index {
             []
         );
 
-        $raw_schema = \apply_filters( "redipress/index/{$index_type}/raw_schema", array_merge( [ 'SCHEMA' ], $raw_schema ) );
+        $raw_schema = \apply_filters(
+            "redipress/index/{$index_type}/raw_schema",
+            array_merge( [ 'SCHEMA' ], $raw_schema )
+        );
 
         $options = [
             'ON',
@@ -221,7 +225,7 @@ abstract class Index {
     /**
      * Add a document to Redis
      *
-     * @param array $converted_document The document to add in an alternating array format.
+     * @param array  $converted_document The document to add in an alternating array format.
      * @param string $document_id The document ID.
      * @return mixed
      */
@@ -273,15 +277,13 @@ abstract class Index {
                 return $this->write_to_disk();
             }
         }
-        else {
-            if ( self::$written ) {
+        elseif ( self::$written ) {
                 return true;
-            }
-            else {
-                register_shutdown_function ( [ $this, 'write_to_disk' ] );
-                self::$written = true;
-                return true;
-            }
+		}
+		else {
+			register_shutdown_function( [ $this, 'write_to_disk' ] );
+			self::$written = true;
+			return true;
         }
     }
 
@@ -321,7 +323,6 @@ abstract class Index {
      */
     protected function get_field_type( string $key ): ?string {
         $fields = Utility::format( $this->index_info['attributes'] );
-
 
         $field_type = array_reduce( $fields, function ( $carry = null, $item = null ) use ( $key ) {
             if ( ! empty( $carry ) ) {
@@ -363,10 +364,11 @@ abstract class Index {
      * @param mixed  $post_id The post ID.
      * @param string $field   The field name.
      * @param mixed  $data    The data.
-     * @param string $method  The method to use with multiple values. Defaults to "use_last". Possibilites: use_last, concat, concat_with_spaces, array_merge, sum, custom (needs filter).
+     * @param string $method  The method to use with multiple values. Defaults to "use_last".
+     *      Possibilites: use_last, concat, concat_with_spaces, array_merge, sum, custom (needs filter).
      * @return void
      */
-    public static function store( $post_id, string $field, $data, string $method = 'use_last' ): void {
+    public static function store( $post_id, string $field, $data, string $method = 'use_last' ): void { // phpcs:ignore
         if ( ! isset( self::$additional[ $post_id ] ) ) {
             self::$additional[ $post_id ] = [];
         }
@@ -419,7 +421,11 @@ abstract class Index {
                 self::$additional[ $post_id ][ $field ] = $original + $data;
                 break;
             default:
-                self::$additional[ $post_id ][ $field ] = \apply_filters( "redipress/additional_field/method/$method", $data, $original );
+                self::$additional[ $post_id ][ $field ] = \apply_filters(
+                    "redipress/additional_field/method/$method",
+                    $data,
+                    $original
+                );
                 break;
         }
     }

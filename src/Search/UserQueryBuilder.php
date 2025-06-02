@@ -48,7 +48,7 @@ class UserQueryBuilder extends QueryBuilder {
         'number'              => null,
         'offset'              => null,
         'meta_key'            => null,
-        'meta_value'          => null,
+        'meta_value'          => null, // phpcs:ignore
         'meta_compare'        => null,
         'weight'              => null,
         'role'                => 'roles',
@@ -106,7 +106,10 @@ class UserQueryBuilder extends QueryBuilder {
             'capability__not_in',
         ]);
 
-        $this->ignore_query_vars = \apply_filters( 'redipress/ignore_query_vars/' . static::TYPE, $this->ignore_query_vars );
+        $this->ignore_query_vars = \apply_filters(
+            'redipress/ignore_query_vars/' . static::TYPE,
+            $this->ignore_query_vars
+        );
 
         // Allow adding support for query vars via a filter
         $this->query_vars = \apply_filters( 'redipress/query_vars', $this->query_vars );
@@ -431,7 +434,7 @@ class UserQueryBuilder extends QueryBuilder {
      *
      * @return boolean Whether we have a qualified orderby or not.
      */
-    protected function get_orderby(): bool {
+    protected function get_orderby(): bool { // phpcs:ignore
         if ( ! empty( $this->sortby ) ) {
             return true;
         }

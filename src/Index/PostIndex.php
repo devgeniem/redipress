@@ -218,8 +218,8 @@ class PostIndex extends Index {
     /**
      * Create a wp cron event chain to index all posts.
      *
-     * @param  int|WP_Rest_Request $offset Int for offset or WP_Rest_Request on first run.
-     * @return true|false|WP_Error         Result of next wp_schedule_single_event call or true on final run.
+     * @param  \WP_REST_Request|null $args The request object.
+     * @return bool|WP_Error         Result of next wp_schedule_single_event call or true on final run.
      */
     public function schedule_partial_index( $args = null ) {
 
@@ -250,7 +250,12 @@ class PostIndex extends Index {
 
         // Schedule next run with new offset or if no posts left return true
         if ( $count ) {
-            return \wp_schedule_single_event( time(), static::HOOKS['schedule_partial_index'], [ $offset + $count ], true );
+            return \wp_schedule_single_event(
+                time(),
+                static::HOOKS['schedule_partial_index'],
+                [ $offset + $count ],
+                true
+            );
         }
 
         return true;
@@ -388,6 +393,7 @@ class PostIndex extends Index {
      * Index all missing posts to the RediSearch database
      *
      * @param  \WP_REST_Request|null $request Rest request details or null if not rest api request.
+     * @param  array                 $query_args Additional query arguments.
      * @return int                            Amount of items indexed.
      */
     public function index_missing( ?\WP_REST_Request $request = null, array $query_args = [] ): int {
@@ -456,7 +462,7 @@ class PostIndex extends Index {
         $new_count = count( $posts );
 
         if ( defined( 'WP_CLI' ) ) {
-            \WP_CLI::success( 'Starting to index a total of ' . $new_count . ' posts. Skipped already existing ' . ( $count - $new_count ) . ' posts.' );
+            \WP_CLI::success( 'Starting to index a total of ' . $new_count . ' posts. Skipped already existing ' . ( $count - $new_count ) . ' posts.' ); // phpcs:ignore
 
             $progress = \WP_CLI\Utils\make_progress_bar( __( 'Indexing posts', 'redipress' ), $new_count );
         }
@@ -591,7 +597,7 @@ class PostIndex extends Index {
      * @param \WP_Post $post The post object to convert.
      * @return array
      */
-    public function convert_post( \WP_Post $post ): array {
+    public function convert_post( \WP_Post $post ): array { // phpcs:ignore
         $settings = new Settings();
 
         \do_action( 'redipress/before_index_post', $post );
@@ -651,7 +657,7 @@ class PostIndex extends Index {
             }
 
             // Escape the string in all but numeric, geo and tag fields
-            if ( ! in_array( $type, [ 'NUMERIC', 'GEO', 'TAG' ] ) ) {
+            if ( ! in_array( $type, [ 'NUMERIC', 'GEO', 'TAG' ], true ) ) {
                 $value = $this->escape_string( $value );
             }
 
@@ -766,7 +772,7 @@ class PostIndex extends Index {
             'post_mime_type' => $post->post_mime_type,
             'post_status'    => $post_status,
             'post_password'  => $post_password ?: 'redipress___no_password_set',
-            'post_object'    => serialize( $post_object ),
+            'post_object'    => serialize( $post_object ), // phpcs:ignore
             'permalink'      => \get_permalink( $post->ID ),
             'menu_order'     => intval( $post->menu_order ),
             'search_index'   => $search_index,
@@ -784,11 +790,11 @@ class PostIndex extends Index {
     /**
      * Escape dashes from string
      *
-     * @param  string $string Unescaped string.
-     * @return string         Escaped $string.
+     * @param  string $str Unescaped string.
+     * @return string      Escaped $string.
      */
-    public function escape_string( ?string $string = '' ): string {
-        return Utility::escape_string( $string );
+    public function escape_string( ?string $str = '' ): string {
+        return Utility::escape_string( $str );
     }
 
     /**
@@ -797,75 +803,83 @@ class PostIndex extends Index {
      * @param  \WP_Post $post Post object.
      * @return string         Post content.
      */
-    public function get_post_content( \WP_Post $post ): string {
+    public function get_post_content( \WP_Post $post ): string { // phpcs:ignore
         $post_content = $post->post_content;
 
         switch ( $post->post_type ) { // Handle post content by post type
             case 'attachment':
                 // Check if mime type is supported
-                if ( in_array( $post->post_mime_type, static::SUPPORTED_MIME_TYPES, true ) ) {
-                    $settings = new Settings();
+                if ( ! in_array( $post->post_mime_type, static::SUPPORTED_MIME_TYPES, true ) ) {
+                    break;
+                }
 
-                    // Check if mime type is enabled @TODO: throws a warning
-                    $enabled_mime_types = $settings->get( 'mime_types' ) ?: array_values( static::SUPPORTED_MIME_TYPES );
-                    if ( in_array( $post->post_mime_type, $enabled_mime_types, true ) ) {
+                $settings = new Settings();
 
-                        // Get file content
-                        $file_content = $this->get_uploaded_media_content( $post );
+                // Check if mime type is enabled.
+                $enabled_mime_types = $settings->get( 'mime_types' )
+                    ?: array_values( static::SUPPORTED_MIME_TYPES );
 
-                        // Different content parsing depending on mime type
-                        if ( ! empty( $file_content ) ) {
-                            switch ( $post->post_mime_type ) {
-                                case static::SUPPORTED_MIME_TYPES['pdf']:
-                                    if ( ! $settings->get( 'disable_pdf_indexing' ) ) {
-                                        try {
-                                            $parser       = new PdfParser();
-                                            $pdf          = $parser->parseContent( $file_content );
-                                            $post_content = $pdf->getText();
-                                        }
-                                        catch ( \Exception $e ) {
-                                            error_log( 'RediPress PDF indexing error: ' . $e->getMessage() );
-                                        }
-                                    }
-                                    break;
-                                case static::SUPPORTED_MIME_TYPES['docx']:
-                                case static::SUPPORTED_MIME_TYPES['doc']:
-                                case static::SUPPORTED_MIME_TYPES['rtf']:
-                                case static::SUPPORTED_MIME_TYPES['odt']:
-                                    $mime_type_reader = [
-                                        static::SUPPORTED_MIME_TYPES['docx'] => 'Word2007',
-                                        static::SUPPORTED_MIME_TYPES['doc']  => 'MsDoc',
-                                        static::SUPPORTED_MIME_TYPES['rtf']  => 'RTF',
-                                        static::SUPPORTED_MIME_TYPES['odt']  => 'ODText',
-                                    ];
+                if ( ! in_array( $post->post_mime_type, $enabled_mime_types, true ) ) {
+                    break;
+                }
 
-                                    try {
-                                        // We need to create a temporary file to read from as PhpOffice\PhpWord can't read from string
-                                        $tmpfile = \wp_tempnam();
-                                        file_put_contents( $tmpfile, $file_content ); // phpcs:ignore -- We need to write to disk temporarily
-                                        $phpword = IOFactory::load( $tmpfile, $mime_type_reader[ $post->post_mime_type ] );
-                                        unlink( $tmpfile ); // phpcs:ignore -- We should remove the temporary file after it has been parsed
+                // Get file content
+                $file_content = $this->get_uploaded_media_content( $post );
 
-                                        $post_content = $this->io_factory_get_text( $phpword );
-                                    }
-                                    catch ( \Exception $e ) {
-                                        error_log( 'RediPress Office indexing error: ' . $e->getMessage() );
-                                    }
-                                    catch ( \ValueError $e ) {
-                                        error_log( 'RediPress Office file not found: ' . $post->post_title );
-                                    }
-                                    break;
-                                default:
-                                    // There already is default post content
-                                    break;
-                            }
+                if ( empty( $file_content ) ) {
+                    break;
+                }
+
+                // Different content parsing depending on mime type
+                switch ( $post->post_mime_type ) {
+                    case static::SUPPORTED_MIME_TYPES['pdf']:
+                        if ( $settings->get( 'disable_pdf_indexing' ) ) {
+                            break;
                         }
-                    }
+
+                        try {
+                            $parser       = new PdfParser();
+                            $pdf          = $parser->parseContent( $file_content );
+                            $post_content = $pdf->getText();
+                        }
+                        catch ( \Exception $e ) {
+                            error_log( 'RediPress PDF indexing error: ' . $e->getMessage() ); // phpcs:ignore
+                        }
+                        break;
+                    case static::SUPPORTED_MIME_TYPES['docx']:
+                    case static::SUPPORTED_MIME_TYPES['doc']:
+                    case static::SUPPORTED_MIME_TYPES['rtf']:
+                    case static::SUPPORTED_MIME_TYPES['odt']:
+                        $mime_type_reader = [
+                            static::SUPPORTED_MIME_TYPES['docx'] => 'Word2007',
+                            static::SUPPORTED_MIME_TYPES['doc']  => 'MsDoc',
+                            static::SUPPORTED_MIME_TYPES['rtf']  => 'RTF',
+                            static::SUPPORTED_MIME_TYPES['odt']  => 'ODText',
+                        ];
+
+                        try {
+                            // We need to create a temporary file to read from as PhpOffice\PhpWord
+                            // can't read from string.
+                            $tmpfile = \wp_tempnam();
+                            file_put_contents( $tmpfile, $file_content ); // phpcs:ignore -- We need to write to disk temporarily
+                            $phpword = IOFactory::load( $tmpfile, $mime_type_reader[ $post->post_mime_type ] );
+                            unlink( $tmpfile ); // phpcs:ignore -- We should remove the temporary file after it has been parsed
+
+                            $post_content = $this->io_factory_get_text( $phpword );
+                        }
+                        catch ( \Exception $e ) {
+                            error_log( 'RediPress Office indexing error: ' . $e->getMessage() ); // phpcs:ignore
+                        }
+                        catch ( \ValueError $e ) {
+                            error_log( 'RediPress Office file not found: ' . $post->post_title ); // phpcs:ignore
+                        }
+                        break;
+                    default:
+                        // There already is default post content
                 }
                 break;
             default:
                 // There already is default post content
-                break;
         }
 
         // Handle the post content
@@ -880,9 +894,7 @@ class PostIndex extends Index {
         $post_content = str_replace( '\r', ' ', $post_content );
 
         // Replace multiple whitespaces with a single space
-        $post_content = preg_replace( '/\s+/S', ' ', $post_content );
-
-        return $post_content;
+        return preg_replace( '/\s+/S', ' ', $post_content );
     }
 
     /**
@@ -951,7 +963,7 @@ class PostIndex extends Index {
             }
         }
         else {
-            $content = file_get_contents( $file_path );
+            $content = file_get_contents( $file_path ); // phpcs:ignore
         }
 
         return $content;
@@ -987,7 +999,6 @@ class PostIndex extends Index {
      * @return int The number of items deleted.
      */
     public function delete_by_field( string $field_name, $value ): int {
-        // TODO: handle numeric fields.
         $return = $this->client->raw_command( 'FT.SEARCH', [ $this->index, '@' . $field_name . ':(' . $value . ')' ] );
 
         // Nothing found.

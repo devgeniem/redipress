@@ -94,7 +94,7 @@ class UserQuery {
      * @param \WP_Query|\WP_User_Query $query The WP_Query or WP_User_query object for the search.
      * @return mixed Search results.
      */
-    public function search( $query ) {
+    public function search( $query ) { // phpcs:ignore
         // Create the search query
         $search_query = $this->query_builder->get_query();
 
@@ -105,7 +105,9 @@ class UserQuery {
         $search_query_string = \apply_filters( 'redipress/search_query_string', implode( ' ', $search_query ), $query );
 
         if ( ! $this->query_builder->use_only_defined_search_fields() ) {
-            $search_fields = array_unique( array_merge( $this->query_builder->get_search_fields(), $this->default_search_fields ) );
+            $search_fields = array_unique(
+                array_merge( $this->query_builder->get_search_fields(), $this->default_search_fields )
+            );
         }
         else {
             $search_fields = $this->query_builder->get_must_use_search_fields();
@@ -115,7 +117,9 @@ class UserQuery {
         $infields = array_unique( \apply_filters( 'redipress/search_fields', $search_fields, $query ) );
 
         // Filter the list of fields that will be returned with the query.
-        $return = array_unique( \apply_filters( 'redipress/return_fields', $this->query_builder->get_return_fields(), $query ) );
+        $return = array_unique(
+            \apply_filters( 'redipress/return_fields', $this->query_builder->get_return_fields(), $query )
+        );
 
         // Determine the limit and offset parameters.
         $limit = $query->query_vars['number'] ?: \get_option( 'posts_per_page' );

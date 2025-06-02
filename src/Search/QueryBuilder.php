@@ -280,7 +280,7 @@ abstract class QueryBuilder {
                     return false;
                 }
 
-                return '@' . $this->query_vars[ $query_var ] . ':[' . $this->query->query_vars[ $query_var ] . ' ' . $this->query->query_vars[ $query_var ] . ']';
+                return '@' . $this->query_vars[ $query_var ] . ':[' . $this->query->query_vars[ $query_var ] . ' ' . $this->query->query_vars[ $query_var ] . ']'; // phpcs:ignore
             }
             // Otherwise we are dealing with an ordinary text field.
             else {
@@ -294,7 +294,7 @@ abstract class QueryBuilder {
         }, array_keys( $this->query->query_vars ) ) );
 
         // All minuses to the end of the line.
-        usort( $return, function ( $a, $b ) {
+        usort( $return, function ( $a, $b ) { // phpcs:ignore
             return ( substr( $a, 0, 1 ) === '-' ) ? 1 : 0;
         });
 
@@ -428,8 +428,8 @@ abstract class QueryBuilder {
         $terms = \apply_filters( 'redipress/search_terms/escaped', $terms );
         $terms = \apply_filters( 'redipress/search_terms/escaped/' . static::TYPE, $terms );
 
-        $terms = \preg_replace_callback( '/[^\(\)\| ]+/', function ( $word ) {
-            switch( \mb_strlen( $word[0] ) ) {
+        $terms = preg_replace_callback( '/[^\(\)\| ]+/', function ( $word ) {
+            switch ( mb_strlen( $word[0] ) ) {
                 case 0:
                     return '';
                 case 1:
@@ -627,7 +627,7 @@ abstract class QueryBuilder {
      * @param boolean $prefix   Whether to prefix the field with taxonomy_ or not.
      * @return string
      */
-    public function create_taxonomy_query( array $query, string $operator = 'AND', bool $prefix = true ): string {
+    public function create_taxonomy_query( array $query, string $operator = 'AND', bool $prefix = true ): string { // phpcs:ignore
         $relation = $query['relation'] ?? $operator;
         unset( $query['relation'] );
 
@@ -749,19 +749,23 @@ abstract class QueryBuilder {
                     default:
                         // Include hierarchical taxonomy child terms, if wanted
                         if ( $clause['include_children'] ?? false ) {
-                            $clause['terms'] = array_reduce( $clause['terms'], function ( $terms, $id ) use ( $clause ) {
-                                $terms[] = $id;
+                            $clause['terms'] = array_reduce(
+                                $clause['terms'],
+                                function ( $terms, $id ) use ( $clause ) {
+                                    $terms[] = $id;
 
-                                $children = \get_term_children( $id, $clause['taxonomy'] );
+                                    $children = \get_term_children( $id, $clause['taxonomy'] );
 
-                                if ( ! is_array( $children ) ) {
+                                    if ( ! is_array( $children ) ) {
                                         $children = [];
-                                }
+                                    }
 
-                                $terms = array_merge( $terms, $children );
+                                    $terms = array_merge( $terms, $children );
 
-                                return $terms;
-                            }, [] );
+                                    return $terms;
+                                },
+                                []
+                            );
                         }
 
                         // Form clause by operator.
@@ -806,7 +810,7 @@ abstract class QueryBuilder {
         }
 
         // All minuses to the end of the line.
-        usort( $queries, function ( $a, $b ) {
+        usort( $queries, function ( $a, $b ) { // phpcs:ignore
             return ( substr( $a, 0, 1 ) === '-' ) ? 1 : 0;
         });
 
@@ -860,7 +864,7 @@ abstract class QueryBuilder {
      * @param string $operator Possible operator of the parent array.
      * @return ?string
      */
-    protected function create_meta_query( array $query, string $operator = 'AND' ): ?string {
+    protected function create_meta_query( array $query, string $operator = 'AND' ): ?string { // phpcs:ignore
         global $wpdb;
 
         $relation = $query['relation'] ?? $operator;
@@ -875,8 +879,12 @@ abstract class QueryBuilder {
                     if ( ! isset( $clause['value'] ) ) {
                         $prefix = $wpdb->base_prefix;
 
-                        // This is the place to convert the checks of whether the user belongs to a blog or not into RediPress style.
-                        if ( preg_match( "/^{$prefix}(\d+?)_?capabilities$/", $clause['key'], $matches ) && $clause['compare'] === 'EXISTS' ) {
+                        // This is the place to convert the checks of whether the user
+                        // belongs to a blog or not into RediPress style.
+                        if (
+                            preg_match( "/^{$prefix}(\d+?)_?capabilities$/", $clause['key'], $matches )
+                                && $clause['compare'] === 'EXISTS'
+                        ) {
                             $query = $this->create_meta_query([
                                 [
                                     'key'     => 'blogs',
@@ -912,7 +920,7 @@ abstract class QueryBuilder {
             }
 
             // All minuses to the end of the line.
-            usort( $queries, function ( $a, $b ) {
+            usort( $queries, function ( $a, $b ) { // phpcs:ignore
                 return ( substr( $a, 0, 1 ) === '-' ) ? 1 : 0;
             });
 
@@ -937,8 +945,12 @@ abstract class QueryBuilder {
                     if ( ! isset( $clause['value'] ) ) {
                         $prefix = $wpdb->base_prefix;
 
-                        // This is the place to convert the checks of whether the user belongs to a blog or not into RediPress style.
-                        if ( preg_match( "/^{$prefix}(\d+?)_?capabilities$/", $clause['key'], $matches ) && $clause['compare'] === 'EXISTS' ) {
+                        // This is the place to convert the checks of whether the user
+                        // belongs to a blog or not into RediPress style.
+                        if (
+                            preg_match( "/^{$prefix}(\d+?)_?capabilities$/", $clause['key'], $matches )
+                                && $clause['compare'] === 'EXISTS'
+                        ) {
                             $query = $this->create_meta_query([
                                 [
                                     'key'     => 'blogs',
@@ -973,7 +985,7 @@ abstract class QueryBuilder {
             }
 
             // All minuses to the end of the line.
-            usort( $queries, function ( $a, $b ) {
+            usort( $queries, function ( $a, $b ) { // phpcs:ignore
                 return ( substr( $a, 0, 1 ) === '-' ) ? 1 : 0;
             });
 
@@ -1000,7 +1012,7 @@ abstract class QueryBuilder {
      * @param array $clause The array to work with.
      * @return string|null
      */
-    protected function create_meta_clause( array $clause ): ?string {
+    protected function create_meta_clause( array $clause ): ?string { // phpcs:ignore
         global $wpdb;
 
         $prefix = $wpdb->base_prefix;
@@ -1106,9 +1118,11 @@ abstract class QueryBuilder {
             // Run the appropriate function if it exists
             if ( method_exists( $this, 'meta_' . $compare_map[ strtoupper( $compare ) ] ) ) {
 
-                $return = call_user_func( [ $this, 'meta_' . $compare_map[ strtoupper( $compare ) ] ], $clause, $field_type );
-
-                return $return;
+                return call_user_func(
+                    [ $this, 'meta_' . $compare_map[ strtoupper( $compare ) ] ],
+                    $clause,
+                    $field_type
+                );
             }
 
             return null;
@@ -1469,20 +1483,20 @@ abstract class QueryBuilder {
     /**
      * Escape the string
      *
-     * @param  string $string Unescaped string.
-     * @return string         Escaped $string.
+     * @param  string $str Unescaped string.
+     * @return string      Escaped $string.
      */
-    public function escape_string( ?string $string = '' ): string {
-        return Utility::escape_string( $string );
+    public function escape_string( ?string $str = '' ): string {
+        return Utility::escape_string( $str );
     }
 
     /**
      * Enclose a string in single quotes
      *
-     * @param string|null $string The string to enclose.
+     * @param string|null $str The string to enclose.
      * @return string
      */
-    public function enclose_in_quotes( ?string $string = '' ): string {
-        return strlen( $string ) > 0 ? "'$string'" : '';
+    public function enclose_in_quotes( ?string $str = '' ): string {
+        return strlen( $str ) > 0 ? "'$str'" : '';
     }
 }

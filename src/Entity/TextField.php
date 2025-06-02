@@ -55,7 +55,7 @@ class TextField extends SchemaField {
      */
     public function __construct( array $args ) {
         if ( empty( $args['name'] ) ) {
-            throw new \Exception( __( 'Field name is required in defining new schema fields for RediSearch.' ) );
+            throw new \Exception( \esc_html( 'Field name is required in defining new schema fields for RediSearch.' ) );
         }
         else {
             $this->name = $args['name'];

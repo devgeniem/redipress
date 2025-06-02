@@ -77,7 +77,7 @@ class PostQuery {
         \add_filter( 'posts_pre_query', [ $this, 'posts_pre_query' ], 10, 2 );
 
         // Reverse filter for getting the Search instance.
-        \add_filter( 'redipress/search_instance', function ( $value ) {
+        \add_filter( 'redipress/search_instance', function ( $value ) { // phpcs:ignore
             return $this;
         }, 1, 1 );
     }
@@ -97,7 +97,7 @@ class PostQuery {
      * @param \WP_Query $query The WP_Query object for the search.
      * @return mixed Search results.
      */
-    public function search( \WP_Query $query ) {
+    public function search( \WP_Query $query ) { // phpcs:ignore
         // Create the search query
         $search_query = $this->query_builder->get_query();
 
@@ -116,7 +116,9 @@ class PostQuery {
         $infields = array_unique( \apply_filters( 'redipress/search_fields', $infields, $query ) );
 
         // Filter the list of fields that will be returned with the query.
-        $return = array_unique( \apply_filters( 'redipress/return_fields', $this->query_builder->get_return_fields(), $query ) );
+        $return = array_unique(
+            \apply_filters( 'redipress/return_fields', $this->query_builder->get_return_fields(), $query )
+        );
 
         // If we are dealing with a singular view the limit and offset are clear.
         if ( $query->is_singular() ) {
@@ -458,7 +460,7 @@ class PostQuery {
      * @param \WP_Query $query The WP_Query instance.
      * @return array
      */
-    public function posts_results_single( array $posts, \WP_Query $query ): array {
+    public function posts_results_single( array $posts, \WP_Query $query ): array { // phpcs:ignore
         \remove_filter( 'posts_results', [ $this, 'posts_results_single' ], 10 );
 
         return array_map( '\\Geniem\\RediPress\\get_post', array_column( $posts, 'ID' ) );

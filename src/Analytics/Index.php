@@ -5,12 +5,12 @@
 
 namespace Geniem\RediPress\Analytics;
 
-use Geniem\RediPress\Redis\Client,
-    Geniem\RediPress\Entity\SchemaField,
-    Geniem\RediPress\Entity\NumericField,
-    Geniem\RediPress\Entity\TagField,
-    Geniem\RediPress\Entity\TextField,
-    Geniem\RediPress\Settings;
+use Geniem\RediPress\Redis\Client;
+use Geniem\RediPress\Entity\SchemaField;
+use Geniem\RediPress\Entity\NumericField;
+use Geniem\RediPress\Entity\TagField;
+use Geniem\RediPress\Entity\TextField;
+use Geniem\RediPress\Settings;
 
 /**
  * RediPress analytics index class
@@ -59,8 +59,8 @@ class Index {
 
         $this->define_fields();
 
-        add_filter( 'redipress/analytics/create_index', [ $this, 'create' ], 50, 1 );
-        add_filter( 'redipress/analytics/drop_index', [ $this, 'drop' ], 50, 2 );
+        \add_filter( 'redipress/analytics/create_index', [ $this, 'create' ], 50, 1 );
+        \add_filter( 'redipress/analytics/drop_index', [ $this, 'drop' ], 50, 2 );
     }
 
     /**
@@ -108,7 +108,7 @@ class Index {
         ];
 
         if ( \is_multisite() ) {
-            \array_unshift(
+            array_unshift(
                 $this->core_schema_fields,
                 new TextField([
                     'name'     => 'blog_id',
@@ -125,7 +125,7 @@ class Index {
      */
     public function get_schema_fields(): array {
         // Filter to add possible more fields.
-        $schema_fields = apply_filters( 'redipress/schema_fields', $this->core_schema_fields );
+        $schema_fields = \apply_filters( 'redipress/schema_fields', $this->core_schema_fields );
 
         // Remove possible duplicate fields
         $schema_fields = array_unique( $schema_fields );
@@ -137,7 +137,7 @@ class Index {
             []
         );
 
-        $raw_schema = apply_filters( 'redipress/raw_schema', array_merge( [ 'SCHEMA' ], $raw_schema ) );
+        $raw_schema = \apply_filters( 'redipress/raw_schema', array_merge( [ 'SCHEMA' ], $raw_schema ) );
 
         $options = [
             'ON',
@@ -150,7 +150,7 @@ class Index {
             '0',
         ];
 
-        $options = apply_filters( 'redipress/index_options', $options );
+        $options = \apply_filters( 'redipress/index_options', $options );
 
         return [
             $options,
@@ -169,7 +169,7 @@ class Index {
 
         $return = $this->client->raw_command( 'FT.CREATE', array_merge( [ $this->index ], $options, $raw_schema ) );
 
-        do_action( 'redipress/schema_created', $return, $options, $schema_fields, $raw_schema );
+        \do_action( 'redipress/schema_created', $return, $options, $schema_fields, $raw_schema );
 
         $this->write_to_disk();
 
@@ -203,6 +203,6 @@ class Index {
      * @return string
      */
     public static function get_tag_separator(): string {
-        return apply_filters( 'redipress/tag_separator', self::TAG_SEPARATOR );
+        return \apply_filters( 'redipress/tag_separator', self::TAG_SEPARATOR );
     }
 }

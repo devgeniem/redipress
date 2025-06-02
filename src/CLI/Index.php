@@ -15,7 +15,7 @@ class Index implements Command {
      *
      * @param array $args The command parameters.
      * @param array $assoc_args The optional command parameters.
-     * @return boolean
+     * @return bool
      */
     public function run( array $args = [], array $assoc_args = [] ): bool {
         switch ( $args[0] ) {
@@ -60,9 +60,10 @@ class Index implements Command {
     /**
      * Index all posts
      *
+     * @param array $assoc_args The associative args.
      * @return bool
      */
-    public function index_posts( array $assoc_args = [] ) {
+    public function index_posts( array $assoc_args = [] ): bool {
         $result = \apply_filters( 'redipress/cli/index_all', null, $assoc_args );
 
         \WP_CLI::success( 'All ' . $result . ' posts indexed successfully!' );
@@ -76,7 +77,7 @@ class Index implements Command {
      * @param integer $id The ID to index.
      * @return bool
      */
-    public function index_single( int $id ) {
+    public function index_single( int $id ): bool {
         \do_action( 'redipress/cli/index_single', $id );
 
         \WP_CLI::success( 'Post by ID ' . $id . ' indexed successfully!' );
@@ -87,9 +88,10 @@ class Index implements Command {
     /**
      * Index posts that are missing from the index
      *
+     * @param array $assoc_args The associative args.
      * @return bool
      */
-    public function index_missing( $assoc_args ) {
+    public function index_missing( $assoc_args ): bool {
         $result = \apply_filters( 'redipress/cli/index_missing', null, $assoc_args );
 
         \WP_CLI::success( $result . ' posts indexed successfully!' );
@@ -102,7 +104,7 @@ class Index implements Command {
      *
      * @return bool
      */
-    public function index_users() {
+    public function index_users(): bool {
         $result = \apply_filters( 'redipress/cli/index_all_users', 0 );
 
         \WP_CLI::success( 'All ' . $result . ' users indexed successfully!' );
@@ -116,7 +118,7 @@ class Index implements Command {
      * @param integer $id The ID to index.
      * @return bool
      */
-    public function index_single_user( int $id ) {
+    public function index_single_user( int $id ): bool {
         \do_action( 'redipress/cli/index_single_user', $id );
 
         \WP_CLI::success( 'User by ID ' . $id . ' indexed successfully!' );

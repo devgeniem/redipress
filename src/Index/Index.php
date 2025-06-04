@@ -272,12 +272,12 @@ abstract class Index {
             }
         }
         elseif ( self::$written ) {
-                return true;
-		}
-		else {
-			register_shutdown_function( [ $this, 'write_to_disk' ] );
-			self::$written = true;
-			return true;
+            return true;
+        }
+        else {
+            register_shutdown_function( [ $this, 'write_to_disk' ] );
+            self::$written = true;
+            return true;
         }
     }
 

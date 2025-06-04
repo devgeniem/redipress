@@ -39,6 +39,23 @@
         }
     },
     "require-dev": {
-        "php-stubs/wp-cli-stubs": "dev-master"
+        "php-stubs/wp-cli-stubs": "dev-master",
+        "devgeniem/geniem-rules-codesniffer": "dev-master",
+        "phpstan/phpstan": "1.12.x-dev",
+        "phpstan/extension-installer": "1.4.x-dev",
+        "szepeviktor/phpstan-wordpress": "dev-master"
+    },
+    "config": {
+        "allow-plugins": {
+            "composer/installers": true,
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "phpstan/extension-installer": true
+        }
+    },
+    "scripts": {
+        "lint": "vendor/bin/phpcs --standard=phpcs.xml -s --warning-severity=0",
+        "lint-all": "vendor/bin/phpcs --standard=phpcs.xml",
+        "lint-fix": "vendor/bin/phpcbf --standard=phpcs.xml --basepath=.",
+        "analyse": "vendor/bin/phpstan analyse --memory-limit 1024M"
     }
 }

@@ -6,7 +6,6 @@
 namespace Geniem\RediPress\Index;
 
 use Geniem\RediPress\Settings,
-    Geniem\RediPress\Entity\SchemaField,
     Geniem\RediPress\Entity\NumericField,
     Geniem\RediPress\Entity\TagField,
     Geniem\RediPress\Entity\TextField,
@@ -55,19 +54,19 @@ class UserIndex extends Index {
         ]);
 
         // Register CLI bindings
-        add_action( 'redipress/cli/index_all_users', [ $this, 'index_all' ], 50, 0 );
+        add_action( 'redipress/cli/index_all_users', [ $this, 'index_all' ], 50, 0 ); // @phpstan-ignore return.void
         add_action( 'redipress/cli/index_missing_users', [ $this, 'index_missing' ], 50, 0 );
-        add_action( 'redipress/cli/index_single_user', [ $this, 'index_single' ], 50, 1 );
+        add_action( 'redipress/cli/index_single_user', [ $this, 'index_single' ], 50, 1 ); // @phpstan-ignore return.void
         add_filter( 'redipress/index/users/create', [ $this, 'create' ], 50, 1 );
         add_filter( 'redipress/index/users/drop', [ $this, 'drop' ], 50, 1 );
 
         // Register external actions
-        add_action( 'redipress/delete_user', [ $this, 'delete_user' ], 50, 1 );
-        add_action( 'redipress/index_user', [ $this, 'upsert' ], 50, 3 );
+        add_action( 'redipress/delete_user', [ $this, 'delete_user' ], 50, 1 ); // @phpstan-ignore return.void
+        add_action( 'redipress/index_user', [ $this, 'upsert' ], 50, 3 ); // @phpstan-ignore return.void
 
         // Register indexing hooks
-        add_action( 'profile_update', [ $this, 'upsert' ], 10, 1 );
-        add_action( 'user_register', [ $this, 'upsert' ], 10, 1 );
+        add_action( 'profile_update', [ $this, 'upsert' ], 10, 1 ); // @phpstan-ignore return.void
+        add_action( 'user_register', [ $this, 'upsert' ], 10, 1 ); // @phpstan-ignore return.void
         add_action( 'deleted_user', [ $this, 'delete' ], 10, 1 );
     }
 
@@ -76,7 +75,7 @@ class UserIndex extends Index {
      *
      * @return int
      */
-    public static function index_total() : int {
+    public static function index_total(): int {
         global $wpdb;
         $ids = intval( $wpdb->get_row( "SELECT count(*) as count FROM $wpdb->users" )->count ); // phpcs:ignore
         return $ids;
@@ -87,7 +86,7 @@ class UserIndex extends Index {
      *
      * @return array
      */
-    public function define_core_fields() : array {
+    public function define_core_fields(): array {
         // Define the WordPress core fields
         $core_schema_fields = [
             new TextField([
@@ -159,7 +158,7 @@ class UserIndex extends Index {
      * @param  \WP_REST_Request|null $request Rest request details or null if not rest api request.
      * @return int                            Amount of items indexed.
      */
-    public function index_all( \WP_REST_Request $request = null ) : int {
+    public function index_all( ?\WP_REST_Request $request = null ): int {
         global $wpdb;
 
         \do_action( 'redipress/before_index_all_users', $request );
@@ -187,13 +186,13 @@ class UserIndex extends Index {
             $progress = null;
         }
 
-        $users = array_map( function( $row ) {
+        $users = array_map( function ( $row ) {
             return get_user_by( 'id', $row->ID );
         }, $ids );
 
         $users = apply_filters( 'redipress/custom_users', $users );
 
-        $result = array_map( function( $user ) use ( $progress ) {
+        $result = array_map( function ( $user ) use ( $progress ) {
             $converted = $this->convert_user( $user );
 
             $this->add_user( $converted, self::get_document_id( $user ) );
@@ -220,7 +219,7 @@ class UserIndex extends Index {
      * @param \WP_User $user The user to deal with.
      * @return string
      */
-    public static function get_document_id( \WP_User $user ) : string {
+    public static function get_document_id( \WP_User $user ): string {
         return (string) $user->ID;
     }
 
@@ -276,7 +275,7 @@ class UserIndex extends Index {
      * @param \WP_User $user The user object to convert.
      * @return array
      */
-    public function convert_user( \WP_User $user ) : array {
+    public function convert_user( \WP_User $user ): array {
         $settings = new Settings();
 
         \do_action( 'redipress/before_index_user', $user );
@@ -292,7 +291,7 @@ class UserIndex extends Index {
         // Gather field names from hardcoded field for later.
         $core_field_names  = array_map( [ $this, 'return_field_name' ], $this->core_schema_fields );
         $additional_fields = array_diff( $fields, $core_field_names );
-        $additional_values = array_map( function( $field ) use ( $user ) {
+        $additional_values = array_map( function ( $field ) use ( $user ) {
             $value = self::get( 'user_' . $user->ID, $field );
 
             $value = apply_filters( 'redipress/additional_user_field/' . $user->ID . '/' . $field, $value, $user );
@@ -325,7 +324,7 @@ class UserIndex extends Index {
         }, $additional_fields );
 
         $additions = array_combine( $additional_fields, $additional_values );
-        $additions = array_filter( $additions, function( $item ) {
+        $additions = array_filter( $additions, function ( $item ) {
             return ! is_null( $item );
         });
         $additions = array_map( 'maybe_serialize', $additions );
@@ -381,11 +380,11 @@ class UserIndex extends Index {
         if ( \is_multisite() ) {
             $blogs = \get_blogs_of_user( $user->ID, true );
 
-            $args['blogs'] = implode( self::get_tag_separator(), array_map( function( $blog ) {
+            $args['blogs'] = implode( self::get_tag_separator(), array_map( function ( $blog ) {
                 return $blog->userblog_id;
             }, $blogs ) );
 
-            $args['roles'] = implode( self::get_tag_separator(), array_map( function( $blog ) use ( $user ) {
+            $args['roles'] = implode( self::get_tag_separator(), array_map( function ( $blog ) use ( $user ) {
                 return $this->get_user_roles_for_site( $user->ID, $blog->userblog_id );
             }, $blogs ) );
         }
@@ -422,10 +421,10 @@ class UserIndex extends Index {
      * @param int $userblog_id Blog ID.
      * @return string
      */
-    public function get_user_roles_for_site( int $user_id, int $userblog_id ) : string {
+    public function get_user_roles_for_site( int $user_id, int $userblog_id ): string {
         $obj = new \WP_User( $user_id, '', $userblog_id );
 
-        $roles = array_map( function( $role ) use ( $userblog_id ) {
+        $roles = array_map( function ( $role ) use ( $userblog_id ) {
             return $userblog_id . '_' . $role;
         }, $obj->roles );
 
@@ -438,7 +437,7 @@ class UserIndex extends Index {
      * @param  string $string Unescaped string.
      * @return string         Escaped $string.
      */
-    public function escape_string( ?string $string = '' ) : string {
+    public function escape_string( ?string $string = '' ): string {
         return Utility::escape_string( $string );
     }
 

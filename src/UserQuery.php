@@ -8,7 +8,6 @@ namespace Geniem\RediPress;
 use Geniem\RediPress\Settings,
     Geniem\RediPress\Redis\Client,
     Geniem\RediPress\Utility;
-use function GuzzleHttp\Promise\each;
 
 /**
  * RediPress UserQuery class
@@ -86,7 +85,7 @@ class UserQuery {
      *
      * @return Client
      */
-    public function get_client() : Client {
+    public function get_client(): Client {
         return $this->client;
     }
 
@@ -171,7 +170,7 @@ class UserQuery {
             $index = 0;
 
             // Remove the intermediary docIds to make the format match the one from FT.AGGREGATE
-            $results = array_filter( $results, function( $item ) use ( &$index ) {
+            $results = array_filter( $results, function ( $item ) use ( &$index ) {
                 if ( $index++ > 0 && ! is_array( $item ) ) {
                     return false;
                 }
@@ -187,7 +186,7 @@ class UserQuery {
 
             $groupby = apply_filters( 'redipress/user_groupby', $groupby );
 
-            $return_fields = array_map( function( string $field ) use ( $reduce_functions ) : array {
+            $return_fields = array_map( function ( string $field ) use ( $reduce_functions ): array {
                 $return = [
                     'REDUCE',
                     $reduce_functions[ $field ] ?? 'FIRST_VALUE',
@@ -206,7 +205,7 @@ class UserQuery {
                 $geofilter,
                 $infields,
                 [ 'LOAD', 1, '@user_object' ],
-                array_merge( [ 'GROUPBY', count( $groupby ) ], array_map( function( $g ) {
+                array_merge( [ 'GROUPBY', count( $groupby ) ], array_map( function ( $g ) {
                     return '@' . $g;
                 }, $groupby ) ),
                 array_reduce( $return_fields, 'array_merge', [] ),
@@ -227,9 +226,9 @@ class UserQuery {
             }
 
             // Clean the aggregate output to match usual key-value pairs
-            $results = array_map( function( $result ) {
+            $results = array_map( function ( $result ) {
                 if ( is_array( $result ) ) {
-                    return array_map( function( $item ) {
+                    return array_map( function ( $item ) {
                         // If we are dealing with an array, just turn it into a string
                         if ( is_array( $item ) ) {
                             return implode( ' ', $item );
@@ -245,7 +244,7 @@ class UserQuery {
             }, $results );
 
             // Store the search query string so that in can be debugged easily via WP_Query.
-            $query->request = 'FT.AGGREGATE ' . implode( ' ', array_map( function( $comm ) {
+            $query->request = 'FT.AGGREGATE ' . implode( ' ', array_map( function ( $comm ) {
                 if ( \strpos( $comm, ' ' ) !== false ) {
                     return '"' . $comm . '"';
                 }
@@ -270,7 +269,7 @@ class UserQuery {
      * @param \WP_User_Query $query The WP_User_Query object.
      * @return array Results or null if no results.
      */
-    public function users_pre_query( ?array $users, \WP_User_Query $query ) : ?array {
+    public function users_pre_query( ?array $users, \WP_User_Query $query ): ?array {
         global $wpdb;
 
         // If we are on a multisite and have not explicitly defined that
@@ -336,10 +335,10 @@ class UserQuery {
      * @param array $results Original array to format.
      * @return array
      */
-    public function format_results( array $results ) : array {
+    public function format_results( array $results ): array {
         $results = Utility::format( $results );
 
-        return array_map( function( array $result ) : ?\WP_User {
+        return array_map( function ( array $result ): ?\WP_User {
             $formatted = Utility::format( $result );
 
             return maybe_unserialize( $formatted['user_object'] );

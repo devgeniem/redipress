@@ -80,7 +80,7 @@ class RediPressPlugin {
         $this->path        = __DIR__;
         $this->url         = plugin_dir_url( __FILE__ );
 
-        add_action( 'admin_enqueue_scripts', function() {
+        add_action( 'admin_enqueue_scripts', function () {
             // Register admin JavaScripts
             wp_register_script( 'RediPress', $this->url . 'assets/dist/admin.js', [ 'wp-i18n' ] );
 
@@ -114,7 +114,7 @@ class RediPressPlugin {
      * @return void
      */
     public function show_admin_error( string $message, string $details = '', bool $dismissible = true ) {
-        add_action( 'admin_notices', function() use ( $message, $details, $dismissible ) {
+        add_action( 'admin_notices', function () use ( $message, $details, $dismissible ) {
             printf(
                 '<div class="notice notice-error%s"><p><b>RediPress:</b> %s</p>%s</div>',
                 esc_html( $dismissible ? ' is-dismissible' : '' ),

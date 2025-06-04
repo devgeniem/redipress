@@ -9,3 +9,5 @@ composer.lock
 
 # Wordpress
 wordpress
+
+.DS_Store

@@ -18,7 +18,7 @@ class Utility {
      * @param array $source The original array to format.
      * @return array
      */
-    public static function format( array $source ) : array {
+    public static function format( array $source ): array {
         // Don't bother with an empty array
         if ( empty( $source ) ) {
             return $source;
@@ -33,7 +33,7 @@ class Utility {
         }
 
         // If the data to handle is a list rather than a key-value object, bail early.
-        $list = array_reduce( $source, function( $carry = true, $item = null ) {
+        $list = array_reduce( $source, function ( $carry = true, $item = null ) {
             if ( $carry === false ) {
                 return false;
             }
@@ -57,7 +57,7 @@ class Utility {
 
         // Turn the chunks into key-value pairs
         foreach ( $chunks as $chunk ) {
-            if ( ! isset ( $chunk[1] ) ) {
+            if ( ! isset( $chunk[1] ) ) {
                 return $chunk;
             }
 
@@ -70,7 +70,7 @@ class Utility {
                 $value = $chunk[1];
             }
 
-            $return[ $key ] = $value ?? null;
+            $return[ $key ] = $value;
         }
 
         return $return;
@@ -97,8 +97,8 @@ class Utility {
      * @param array $schema The array to get the names from.
      * @return array
      */
-    public static function get_schema_fields( array $schema = [] ) : array {
-        return array_map( function( $field ) : ?string {
+    public static function get_schema_fields( array $schema = [] ): array {
+        return array_map( function ( $field ): ?string {
             return $field[1] ?? null;
         }, $schema );
     }
@@ -121,20 +121,20 @@ class Utility {
     }
 
     /**
-     * Escapes a string value but prevents numeric values from being slashed. 
+     * Escapes a string value but prevents numeric values from being slashed.
      * Numeric values will be casted to the correct type.
      *
-     * @param mixed $string The string to escape.
+     * @param mixed  $string The string to escape.
      * @param string $meta_type MySQL data type.
-     * @return mixed depending on the meta_type parameter and input string 
+     * @return mixed depending on the meta_type parameter and input string
      * the return value will be either string (or array of strings), int or float.
      */
-    public static function escape_value_by_meta_type( $string, $meta_type = 'CHAR' ):mixed{
+    public static function escape_value_by_meta_type( $string, $meta_type = 'CHAR' ): mixed {
 
         // Possible numeric MySQL data type values for WP meta query are SIGNED, UNSIGNED, NUMERIC and DECIMAL.
         // For NUMERIC and DECIMAL declaration also data precicion and scale can be specified.
         // https://dev.mysql.com/doc/refman/8.0/en/numeric-type-syntax.html
-        
+
         if ( is_numeric( $string ) && preg_match( '/^(?:SIGNED|UNSIGNED|NUMERIC(?:\(\d+(?:,\s?\d+)?\))?|DECIMAL(?:\(\d+(?:,\s?\d+)?\))?)$/', $meta_type ) ) {
             return floatval( $string ) ? (float) $string : (int) $string;
         }

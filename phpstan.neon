@@ -1,0 +1,13 @@
+parameters:
+    level: 5
+    paths:
+        - src
+        - plugin.php
+    ignoreErrors:
+        - 
+            message: '#unknown class WP_CLI#'
+        - 
+            message: '#unknown class DustPress\\Debugger#'
+        -
+            message: '#Function WP_CLI#'
+

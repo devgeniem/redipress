@@ -14,7 +14,7 @@ use Geniem\RediPressPlugin,
     Geniem\RediPress\Rest;
 
 // Require the external API functions
-require_once( __DIR__ . '/API.php' );
+require_once __DIR__ . '/API.php';
 
 /**
  * RediPress main class
@@ -96,7 +96,7 @@ class RediPress {
      *
      * @return boolean Whether the connection succeeded or not.
      */
-    protected function connect() : bool {
+    protected function connect(): bool {
         $client = new Client();
 
         try {
@@ -120,10 +120,10 @@ class RediPress {
      *
      * @return boolean Whether the Redisearch module is installed or not.
      */
-    protected function check_redisearch() : bool {
+    protected function check_redisearch(): bool {
         $modules = $this->connection->raw_command( 'MODULE', [ 'LIST' ] );
 
-        $redisearch = array_reduce( $modules, function( $carry, $item = null ) {
+        $redisearch = array_reduce( $modules, function ( $carry, $item = null ) {
             if ( $carry === true || ( ! empty( $item[1] ) && $item[1] === 'search' ) ) {
                 return true;
             }
@@ -151,7 +151,7 @@ class RediPress {
      *
      * @return void
      */
-    protected function init_indexes () {
+    protected function init_indexes() {
         $this->indexes['posts'] = new PostIndex( $this->connection );
 
         if ( Settings::get( 'use_user_query' ) ) {
@@ -164,7 +164,7 @@ class RediPress {
      *
      * @return boolean Whether the Redisearch index exists or not.
      */
-    protected function check_indexes() : bool {
+    protected function check_indexes(): bool {
         foreach ( $this->indexes as $type => $info ) {
             $index = $this->indexes[ $type ];
 
@@ -202,8 +202,8 @@ class RediPress {
      *
      * @return bool
      */
-    protected function check_schema_integrity() : bool {
-        add_action( 'wp_loaded',  function() {
+    protected function check_schema_integrity(): bool {
+        add_action( 'wp_loaded',  function () {
             foreach ( $this->indexes as $index_type => $info ) {
                 $index_name = Settings::get( "{$index_type}_index" );
 
@@ -215,7 +215,7 @@ class RediPress {
 
                 [ $options, $schema_fields, $raw_schema ] = $index->get_schema_fields();
 
-                $fields = array_map( function( $field ) {
+                $fields = array_map( function ( $field ) {
                     // Remove some fields so that we can compare the output to our own schema
                     // definitions.
                     unset( $field[0] );
@@ -230,7 +230,7 @@ class RediPress {
                 usort( $fields, fn( $a, $b ) => $a[0] <=> $b[0] );
 
                 // Convert everything to strings.
-                $schema = array_map( function( $field ) {
+                $schema = array_map( function ( $field ) {
                     return array_map( 'strval', $field->get() );
                 }, $schema_fields );
 
@@ -243,7 +243,7 @@ class RediPress {
                 );
 
                 if ( count( $diff ) > 0 ) {
-                    array_map( function( $json ) use ( $index_type ) {
+                    array_map( function ( $json ) use ( $index_type ) {
                         $field = json_decode( $json );
 
                         $this->plugin->show_admin_error(
@@ -306,7 +306,7 @@ class RediPress {
      *
      * @return RediPressPlugin
      */
-    public function get_plugin() : RediPressPlugin {
+    public function get_plugin(): RediPressPlugin {
         return $this->plugin;
     }
 }

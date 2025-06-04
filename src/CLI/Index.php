@@ -19,7 +19,7 @@ class Index implements Command {
      * @param array $assoc_args The optional command parameters.
      * @return boolean
      */
-    public function run( array $args = [], array $assoc_args = [] ) : bool {
+    public function run( array $args = [], array $assoc_args = [] ): bool {
         switch ( $args[0] ) {
             case 'posts':
                 if ( count( $args ) === 1 ) {
@@ -124,7 +124,7 @@ class Index implements Command {
      *
      * @return integer
      */
-    public static function get_min_parameters() : int {
+    public static function get_min_parameters(): int {
         return 1;
     }
 
@@ -133,7 +133,7 @@ class Index implements Command {
      *
      * @return integer
      */
-    public static function get_max_parameters() : int {
+    public static function get_max_parameters(): int {
         return 2;
     }
 }

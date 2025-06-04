@@ -21,7 +21,7 @@ abstract class SchemaField {
      *
      * @var string
      */
-    public const TYPE = self::TYPE;
+    public const TYPE = '';
 
     /**
      * Field name
@@ -35,14 +35,14 @@ abstract class SchemaField {
      *
      * @return array
      */
-    abstract public function export() : array;
+    abstract public function export(): array;
 
     /**
      * Get the whole defining one-dimensional array. Uses the required export() method.
      *
      * @return array
      */
-    public function get() : array {
+    public function get(): array {
         $export = [
             $this->name,
             static::TYPE,

@@ -85,6 +85,8 @@ class Delete implements Command {
             WP_CLI::error( 'No posts found on the given criteria.' );
         }
 
+        $doc_ids_as_string = '';
+
         // Success message.
         if ( ! empty( $removed_doc_ids ) && is_array( $removed_doc_ids ) ) {
             $doc_ids_as_string = implode( ', ', $removed_doc_ids );

@@ -28,7 +28,7 @@ class Client {
      * @param string  $password Redis password (optional).
      * @return self
      */
-    public function connect( string $hostname, int $port, int $db, string $password = null ) : self {
+    public function connect( string $hostname, int $port, int $db, string $password = null ): self {
         $this->predis = new Predis([
             'scheme'   => 'tcp',
             'host'     => $hostname,
@@ -40,7 +40,7 @@ class Client {
         $this->predis->connect();
 
         // You can use this in your theme to get a Client instance.
-        add_filter( 'redipress/client', function( $client = null ) {
+        add_filter( 'redipress/client', function ( $client = null ) {
             return $this;
         });
 
@@ -88,8 +88,8 @@ class Client {
      * @param array  $arguments The arguments to prepare.
      * @return array Prepared arguments with the command in front.
      */
-    public function prepare_raw_command_arguments( string $command, array $arguments ) : array {
-        $arguments = array_map( function( $argument ) {
+    public function prepare_raw_command_arguments( string $command, array $arguments ): array {
+        $arguments = array_map( function ( $argument ) {
             return is_scalar( $argument ) ? $argument : (string) $argument;
         }, $arguments );
 
@@ -104,7 +104,7 @@ class Client {
      * @param array $array The array to convert.
      * @return array
      */
-    public function convert_associative( array $array ) : array {
+    public function convert_associative( array $array ): array {
         $return = [];
 
         foreach ( $array as $key => $value ) {

@@ -5,8 +5,6 @@
 
 namespace Geniem\RediPress\CLI;
 
-use WP_CLI;
-
 /**
  * RediPress CLI index command class.
  */
@@ -33,8 +31,7 @@ class Index implements Command {
                         return $this->index_missing( $assoc_args );
                     }
                     else {
-                        WP_CLI::error( 'RediPress: "index" does not accept second parameter "' . $args[1] . '"' );
-                        return false;
+                        \WP_CLI::error( 'RediPress: "index" does not accept second parameter "' . $args[1] . '"' );
                     }
                 }
                 break;
@@ -47,8 +44,7 @@ class Index implements Command {
                         return $this->index_single_user( $args[1] );
                     }
                     else {
-                        WP_CLI::error( 'RediPress: "index" does not accept second parameter "' . $args[1] . '"' );
-                        return false;
+                        \WP_CLI::error( 'RediPress: "index" does not accept second parameter "' . $args[1] . '"' );
                     }
                 }
                 break;
@@ -65,7 +61,7 @@ class Index implements Command {
     public function index_posts( array $assoc_args = [] ) {
         $result = apply_filters( 'redipress/cli/index_all', null, $assoc_args );
 
-        WP_CLI::success( 'All ' . $result . ' posts indexed successfully!' );
+        \WP_CLI::success( 'All ' . $result . ' posts indexed successfully!' );
         return true;
     }
 
@@ -78,7 +74,7 @@ class Index implements Command {
     public function index_single( int $id ) {
         do_action( 'redipress/cli/index_single', $id );
 
-        WP_CLI::success( 'Post by ID ' . $id . ' indexed successfully!' );
+        \WP_CLI::success( 'Post by ID ' . $id . ' indexed successfully!' );
         return true;
     }
 
@@ -90,7 +86,7 @@ class Index implements Command {
     public function index_missing( $assoc_args ) {
         $result = apply_filters( 'redipress/cli/index_missing', null, $assoc_args );
 
-        WP_CLI::success( $result . ' posts indexed successfully!' );
+        \WP_CLI::success( $result . ' posts indexed successfully!' );
         return true;
     }
 
@@ -102,7 +98,7 @@ class Index implements Command {
     public function index_users() {
         $result = apply_filters( 'redipress/cli/index_all_users', 0 );
 
-        WP_CLI::success( 'All ' . $result . ' users indexed successfully!' );
+        \WP_CLI::success( 'All ' . $result . ' users indexed successfully!' );
         return true;
     }
 
@@ -115,7 +111,7 @@ class Index implements Command {
     public function index_single_user( int $id ) {
         do_action( 'redipress/cli/index_single_user', $id );
 
-        WP_CLI::success( 'User by ID ' . $id . ' indexed successfully!' );
+        \WP_CLI::success( 'User by ID ' . $id . ' indexed successfully!' );
         return true;
     }
 

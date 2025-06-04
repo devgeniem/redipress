@@ -300,7 +300,6 @@ class PostIndex extends Index {
 
         if ( empty( $ids ) ) {
             \WP_CLI::error( 'No posts matching the criteria were found.' );
-            return 0;
         }
 
         $count = count( $ids );
@@ -422,7 +421,6 @@ class PostIndex extends Index {
 
         $count = count( $ids );
 
-        // @phpstan-ignore function.notFound
         $progress = \WP_CLI\Utils\make_progress_bar( __( 'Checking existing posts', 'redipress' ), $count );
 
         $posts = array_filter( $ids, function ( $row ) use ( $progress ) {
@@ -458,7 +456,6 @@ class PostIndex extends Index {
         if ( defined( 'WP_CLI' ) ) {
             \WP_CLI::success( 'Starting to index a total of ' . $new_count . ' posts. Skipped already existing ' . ( $count - $new_count ) . ' posts.' );
 
-            // @phpstan-ignore function.notFound
             $progress = \WP_CLI\Utils\make_progress_bar( __( 'Indexing posts', 'redipress' ), $new_count );
         }
         else {
@@ -1050,7 +1047,6 @@ class PostIndex extends Index {
      */
     protected function free_memory() {
         if ( function_exists( 'Utils\\wp_clear_object_cache' ) ) {
-            // @phpstan-ignore function.notFound
             Utils\wp_clear_object_cache();
         }
     }

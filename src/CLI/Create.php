@@ -28,8 +28,6 @@ class Create implements Command {
         }
 
         \WP_CLI::error( 'RediPress: "create" command doesn\'t accept more than one parameter.' );
-
-        return false;
     }
 
     /**
@@ -60,10 +58,8 @@ class Create implements Command {
                 return true;
             case 'Index already exists. Drop it first!':
                 \WP_CLI::error( 'Index already exists.' );
-                return false;
             default:
                 \WP_CLI::error( 'Unprecetended response: ' . $return );
-                return false;
         }
     }
 

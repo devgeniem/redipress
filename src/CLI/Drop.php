@@ -5,8 +5,6 @@
 
 namespace Geniem\RediPress\CLI;
 
-use WP_CLI;
-
 /**
  * RediPress CLI drop index command class.
  */
@@ -24,8 +22,7 @@ class Drop implements Command {
             return $this->drop_index( $args[0], $assoc_args );
         }
         elseif ( count( $args ) > 1 ) {
-            WP_CLI::error( 'RediPress: "drop" command does not accept more than two parameters.' );
-            return false;
+            \WP_CLI::error( 'RediPress: "drop" command does not accept more than two parameters.' );
         }
 
         return false;
@@ -57,11 +54,9 @@ class Drop implements Command {
         }
         elseif ( $return === 'Unknown Index name' ) {
             \WP_CLI::error( 'There was no index to delete or it was created under another name.' );
-            return false;
         }
         else {
             \WP_CLI::error( 'Unprecetended response: ' . $return );
-            return false;
         }
     }
 

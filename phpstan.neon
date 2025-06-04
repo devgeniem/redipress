@@ -3,11 +3,9 @@ parameters:
     paths:
         - src
         - plugin.php
+    scanDirectories:
+        - vendor/php-stubs/wp-cli-stubs/
     ignoreErrors:
         - 
-            message: '#unknown class WP_CLI#'
-        - 
             message: '#unknown class DustPress\\Debugger#'
-        -
-            message: '#Function WP_CLI#'
 

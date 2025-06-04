@@ -181,7 +181,7 @@ class RediPress {
                     );
                 }
                 else {
-                    // If the response is not a string, it is an error.
+                    // Unknown error, show the raw info.
                     $this->plugin->show_admin_error(
                         sprintf( __( 'RediPress: Error while checking index "%s".', 'redipress' ), $type ), $raw_info
                     );

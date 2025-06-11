@@ -5,13 +5,16 @@
 
 namespace Geniem\RediPress\Search;
 
-use WP_Query;
-use Geniem\RediPress\Utility;
-
 /**
  * RediPress search query builder class
  */
 class UserQueryBuilder extends QueryBuilder {
+    /**
+     * Query builder type.
+     *
+     * @var string
+     */
+    const TYPE = 'user';
 
     /**
      * Group by
@@ -29,13 +32,6 @@ class UserQueryBuilder extends QueryBuilder {
      * @var array
      */
     protected $return_fields = [ 'user_id', 'user_object' ];
-
-    /**
-     * Reduce functions for return fields
-     *
-     * @var array
-     */
-    protected $reduce_functions = [];
 
     /**
      * Mapped query vars
@@ -90,11 +86,6 @@ class UserQueryBuilder extends QueryBuilder {
     protected $use_only_defined = false;
 
     /**
-     * Whether the builder is for posts or for users
-     */
-    const TYPE = 'user';
-
-    /**
      * Query builder constructor
      *
      * @param \WP_User_Query $query      WP User Query object.
@@ -130,7 +121,7 @@ class UserQueryBuilder extends QueryBuilder {
      *
      * @return boolean
      */
-    public function use_only_defined_search_fields() : bool {
+    public function use_only_defined_search_fields(): bool {
         return $this->use_only_defined;
     }
 
@@ -139,7 +130,7 @@ class UserQueryBuilder extends QueryBuilder {
      *
      * @return array
      */
-    public function get_must_use_search_fields() : array {
+    public function get_must_use_search_fields(): array {
         return $this->must_use_search_fields;
     }
 
@@ -148,7 +139,7 @@ class UserQueryBuilder extends QueryBuilder {
      *
      * @return string
      */
-    protected function search() : string {
+    protected function search(): string {
         return $this->conduct_search( 'search' );
     }
 
@@ -157,7 +148,7 @@ class UserQueryBuilder extends QueryBuilder {
      *
      * @return array
      */
-    protected function get_blogs() : array {
+    protected function get_blogs(): array {
         if ( empty( $this->query->query_vars['blog_id'] ) ) {
             $blog_id = \get_current_blog_id();
         }
@@ -173,7 +164,7 @@ class UserQueryBuilder extends QueryBuilder {
      *
      * @return string Redisearch query condition.
      */
-    protected function blog_id() : string {
+    protected function blog_id(): string {
         $clause = '@blogs:{' . implode( '|', $this->get_blogs() ) . '}';
 
         return $clause;
@@ -182,15 +173,14 @@ class UserQueryBuilder extends QueryBuilder {
     /**
      * WP_User_Query role parameter
      *
-     * @return string Redisearch query condition.
+     * @return ?string Redisearch query condition.
      */
-    protected function role() : string {
+    protected function role(): ?string {
         if ( empty( $this->query->query_vars['role'] ) ) {
-            return false;
+            return null;
         }
-        else {
-            $roles = $this->query->query_vars['role'];
-        }
+
+        $roles = $this->query->query_vars['role'];
 
         $clause = '';
 
@@ -198,8 +188,8 @@ class UserQueryBuilder extends QueryBuilder {
             $roles = [ $roles ];
         }
 
-        $roles = array_map( function( $role ) {
-            return implode( '|', array_map( function( $blog ) use ( $role ) {
+        $roles = array_map( function ( $role ) {
+            return implode( '|', array_map( function ( $blog ) use ( $role ) {
                 return $blog . '_' . $role;
             }, $this->get_blogs() ) );
         }, $roles );
@@ -212,15 +202,14 @@ class UserQueryBuilder extends QueryBuilder {
     /**
      * WP_User_Query roles parameter.
      *
-     * @return string Redisearch query condition.
+     * @return ?string Redisearch query condition.
      */
-    protected function role__not_in() : string {
+    protected function role__not_in(): ?string {
         if ( empty( $this->query->query_vars['role__not_in'] ) ) {
-            return false;
+            return null;
         }
-        else {
-            $roles = $this->query->query_vars['role__not_in'];
-        }
+
+        $roles = $this->query->query_vars['role__not_in'];
 
         $clause = '';
 
@@ -228,8 +217,8 @@ class UserQueryBuilder extends QueryBuilder {
             $roles = [ $roles ];
         }
 
-        $roles = array_map( function( $role ) {
-            return implode( '|', array_map( function( $blog ) use ( $role ) {
+        $roles = array_map( function ( $role ) {
+            return implode( '|', array_map( function ( $blog ) use ( $role ) {
                 return $blog . '_' . $role;
             }, $this->get_blogs() ) );
         }, $roles );
@@ -242,15 +231,14 @@ class UserQueryBuilder extends QueryBuilder {
     /**
      * WP_User_Query roles parameter.
      *
-     * @return string Redisearch query condition.
+     * @return ?string Redisearch query condition.
      */
-    protected function role__in() : string {
+    protected function role__in(): ?string {
         if ( empty( $this->query->query_vars['role__in'] ) ) {
-            return false;
+            return null;
         }
-        else {
-            $roles = $this->query->query_vars['role__in'];
-        }
+
+        $roles = $this->query->query_vars['role__in'];
 
         $clause = '';
 
@@ -258,8 +246,8 @@ class UserQueryBuilder extends QueryBuilder {
             $roles = [ $roles ];
         }
 
-        $roles = array_map( function( $role ) {
-            return implode( '|', array_map( function( $blog ) use ( $role ) {
+        $roles = array_map( function ( $role ) {
+            return implode( '|', array_map( function ( $blog ) use ( $role ) {
                 return $blog . '_' . $role;
             }, $this->get_blogs() ) );
         }, $roles );
@@ -272,15 +260,14 @@ class UserQueryBuilder extends QueryBuilder {
     /**
      * WP_User_Query nicename parameter
      *
-     * @return string Redisearch query condition.
+     * @return ?string Redisearch query condition.
      */
-    protected function nicename() : string {
+    protected function nicename(): ?string {
         if ( empty( $this->query->query_vars['nicename'] ) ) {
-            return false;
+            return null;
         }
-        else {
-            $nicename = $this->query->query_vars['nicename'];
-        }
+
+        $nicename = $this->query->query_vars['nicename'];
 
         $clause = '';
 
@@ -296,15 +283,14 @@ class UserQueryBuilder extends QueryBuilder {
     /**
      * WP_User_Query nicename__in parameter
      *
-     * @return string Redisearch query condition.
+     * @return ?string Redisearch query condition.
      */
-    protected function nicename__in() : string {
+    protected function nicename__in(): ?string {
         if ( empty( $this->query->query_vars['nicename__in'] ) ) {
-            return false;
+            return null;
         }
-        else {
-            $nicename = $this->query->query_vars['nicename__in'];
-        }
+
+        $nicename = $this->query->query_vars['nicename__in'];
 
         $clause = '';
 
@@ -320,15 +306,14 @@ class UserQueryBuilder extends QueryBuilder {
     /**
      * WP_User_Query nicename__not_in parameter
      *
-     * @return string Redisearch query condition.
+     * @return ?string Redisearch query condition.
      */
-    protected function nicename__not_in() : string {
+    protected function nicename__not_in(): ?string {
         if ( empty( $this->query->query_vars['nicename__not_in'] ) ) {
-            return false;
+            return null;
         }
-        else {
-            $nicename = $this->query->query_vars['nicename__not_in'];
-        }
+
+        $nicename = $this->query->query_vars['nicename__not_in'];
 
         $clause = '';
 
@@ -344,15 +329,14 @@ class UserQueryBuilder extends QueryBuilder {
     /**
      * WP_User_Query login parameter
      *
-     * @return string Redisearch query condition.
+     * @return ?string Redisearch query condition.
      */
-    protected function login() : string {
+    protected function login(): ?string {
         if ( empty( $this->query->query_vars['login'] ) ) {
-            return false;
+            return null;
         }
-        else {
-            $login = $this->query->query_vars['login'];
-        }
+
+        $login = $this->query->query_vars['login'];
 
         $clause = '';
 
@@ -368,15 +352,14 @@ class UserQueryBuilder extends QueryBuilder {
     /**
      * WP_User_Query login__in parameter
      *
-     * @return string Redisearch query condition.
+     * @return ?string Redisearch query condition.
      */
-    protected function login__in() : string {
+    protected function login__in(): ?string {
         if ( empty( $this->query->query_vars['login__in'] ) ) {
-            return false;
+            return null;
         }
-        else {
-            $login = $this->query->query_vars['login__in'];
-        }
+
+        $login = $this->query->query_vars['login__in'];
 
         $clause = '';
 
@@ -392,15 +375,14 @@ class UserQueryBuilder extends QueryBuilder {
     /**
      * WP_User_Query login__not_in parameter
      *
-     * @return string Redisearch query condition.
+     * @return ?string Redisearch query condition.
      */
-    protected function login__not_in() : string {
+    protected function login__not_in(): ?string {
         if ( empty( $this->query->query_vars['login__not_in'] ) ) {
-            return false;
+            return null;
         }
-        else {
-            $login = $this->query->query_vars['login__not_in'];
-        }
+
+        $login = $this->query->query_vars['login__not_in'];
 
         $clause = '';
 
@@ -416,18 +398,17 @@ class UserQueryBuilder extends QueryBuilder {
     /**
      * WP_User_Query include parameter.
      *
-     * @return string Redisearch query condition.
+     * @return ?string Redisearch query condition.
      */
-    protected function include() : string {
-
+    protected function include(): ?string {
         if ( empty( $this->query->query_vars['include'] ) ) {
-            return false;
+            return null;
         }
 
         $include = $this->query->query_vars['include'];
         $clause  = '';
 
-        if ( ! empty( $include ) && is_array( $include ) ) {
+        if ( is_array( $include ) ) {
             $clause = '@user_id:(' . implode( '|', $include ) . ')';
         }
 
@@ -437,18 +418,17 @@ class UserQueryBuilder extends QueryBuilder {
     /**
      * WP_User_Query exclude parameter.
      *
-     * @return string Redisearch query condition.
+     * @return ?string Redisearch query condition.
      */
-    protected function exclude() : string {
-
+    protected function exclude(): ?string {
         if ( empty( $this->query->query_vars['exclude'] ) ) {
-            return false;
+            return null;
         }
 
         $exclude = $this->query->query_vars['exclude'];
         $clause  = '';
 
-        if ( ! empty( $exclude ) && is_array( $exclude ) ) {
+        if ( is_array( $exclude ) ) {
             $clause = '-@user_id:{' . implode( '|', $exclude ) . '}';
         }
 
@@ -458,9 +438,9 @@ class UserQueryBuilder extends QueryBuilder {
     /**
      * WP_User_Query search_columns parameter.
      *
-     * @return string Empty string.
+     * @return ?string Empty string.
      */
-    protected function search_columns() : string {
+    protected function search_columns(): ?string {
         if ( ! empty( $this->query->query_vars['search_columns'] ) ) {
             $this->must_use_search_fields = $this->query->query_vars['search_columns'];
 
@@ -468,7 +448,7 @@ class UserQueryBuilder extends QueryBuilder {
                 $field_type = $this->get_field_type( $column );
 
                 if ( ! $field_type ) {
-                    return false;
+                    return null;
                 }
 
                 if ( $column === 'ID' ) {
@@ -487,7 +467,7 @@ class UserQueryBuilder extends QueryBuilder {
      *
      * @return boolean Whether we have a qualified orderby or not.
      */
-    protected function get_orderby() : bool {
+    protected function get_orderby(): bool {
         if ( ! empty( $this->sortby ) ) {
             return true;
         }
@@ -544,7 +524,7 @@ class UserQueryBuilder extends QueryBuilder {
             return false;
         }
 
-        $sortby = array_map( function( array $clause ) use ( $query ) {
+        $sortby = array_map( function ( array $clause ) use ( $query ) {
             // Create the mappings for orderby parameter
             switch ( $clause['orderby'] ) {
                 case 'menu_order':
@@ -577,6 +557,7 @@ class UserQueryBuilder extends QueryBuilder {
                 default:
                     // If we have a distance clause, just pass it on
                     if (
+                        // @phpstan-ignore offsetAccess.notFound
                         is_array( $clause['compare'] ) &&
                         ! empty( $clause['compare']['lat'] ) &&
                         ! empty( $clause['compare']['lng'] )
@@ -621,9 +602,10 @@ class UserQueryBuilder extends QueryBuilder {
 
         $this->sortby = array_merge(
             [ 'SORTBY', ( count( $sortby ) * 2 ) ],
-            array_reduce( $sortby, function( $carry, $item ) {
+            array_reduce( $sortby, function ( $carry, $item ) {
                 // Distance clauses need a special treatment
                 if (
+                    // @phpstan-ignore offsetAccess.notFound
                     is_array( $item['compare'] ) &&
                     ! empty( $item['compare']['lat'] ) &&
                     ! empty( $item['compare']['lng'] )

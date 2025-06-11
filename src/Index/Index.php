@@ -74,7 +74,7 @@ abstract class Index {
      *
      * @return array
      */
-    abstract protected function define_core_fields() : array;
+    abstract protected function define_core_fields(): array;
 
     /**
      * The constructor
@@ -91,7 +91,7 @@ abstract class Index {
         $this->index = $settings->get( "{$index_type}_index" );
 
         // Reverse filter for getting the Index instance.
-        add_filter( "redipress/{$index_type}_index_instance", function() {
+        add_filter( "redipress/{$index_type}_index_instance", function () {
             return $this;
         }, 1, 0 );
 
@@ -139,14 +139,12 @@ abstract class Index {
      * @param string $key The run-time key to identify the gathering.
      * @return void
      */
-    public function gather_schema_fields( string $key, bool $throw_error = true ) : void {
+    public function gather_schema_fields( string $key, bool $throw_error = true ): void {
         [ $options, $schema_fields ] = $this->get_schema_fields();
 
         $fields = \get_option( "redipress_gather_fields_$key", [] );
 
         foreach ( $schema_fields as $field ) {
-            $found = false;
-
             // If there is a field with the same name within the initial fields, find it
             foreach ( $fields as &$original_field ) {
                 if ( $field->name === $original_field->name ) {
@@ -167,9 +165,7 @@ abstract class Index {
                 }
             }
 
-            if ( ! $found ) {
-                $fields[] = $field;
-            }
+            $fields[] = $field;
         }
 
         \update_option( "redipress_gather_fields_$key", $fields, false );
@@ -180,7 +176,7 @@ abstract class Index {
      *
      * @return array
      */
-    public function get_schema_fields() : array {
+    public function get_schema_fields(): array {
         $index_type = static::INDEX_TYPE;
 
         // Filter to add possible more fields.
@@ -192,7 +188,7 @@ abstract class Index {
         $raw_schema = array_reduce(
             $schema_fields,
             // Convert SchemaField objects into raw arrays
-            fn( ?array $c, SchemaField $field ) : array => array_merge( $c, $field->get() ),
+            fn( ?array $c, SchemaField $field ): array => array_merge( $c, $field->get() ),
             []
         );
 
@@ -221,7 +217,7 @@ abstract class Index {
     /**
      * Add a document to Redis
      *
-     * @param array $converted_document The document to add in an alternating array format.
+     * @param array  $converted_document The document to add in an alternating array format.
      * @param string $document_id The document ID.
      * @return mixed
      */
@@ -273,15 +269,13 @@ abstract class Index {
                 return $this->write_to_disk();
             }
         }
+        elseif ( self::$written ) {
+            return true;
+        }
         else {
-            if ( self::$written ) {
-                return true;
-            }
-            else {
-                register_shutdown_function( [ $this, 'write_to_disk' ] );
-                self::$written = true;
-                return true;
-            }
+            register_shutdown_function( [ $this, 'write_to_disk' ] );
+            self::$written = true;
+            return true;
         }
     }
 
@@ -300,7 +294,7 @@ abstract class Index {
      * @param SchemaField $field The field object to handle.
      * @return string
      */
-    protected function return_field_name( SchemaField $field ) : string {
+    protected function return_field_name( SchemaField $field ): string {
         return $field->name;
     }
 
@@ -309,7 +303,7 @@ abstract class Index {
      *
      * @return string
      */
-    public static function get_tag_separator() : string {
+    public static function get_tag_separator(): string {
         return apply_filters( 'redipress/tag_separator', self::TAG_SEPARATOR );
     }
 
@@ -319,11 +313,10 @@ abstract class Index {
      * @param string $key The key for which to fetch the field type.
      * @return string|null
      */
-    protected function get_field_type( string $key ) : ?string {
+    protected function get_field_type( string $key ): ?string {
         $fields = Utility::format( $this->index_info['attributes'] );
 
-
-        $field_type = array_reduce( $fields, function( $carry = null, $item = null ) use ( $key ) {
+        $field_type = array_reduce( $fields, function ( $carry = null, $item = null ) use ( $key ) {
             if ( ! empty( $carry ) ) {
                 return $carry;
             }
@@ -344,7 +337,7 @@ abstract class Index {
      * @param array $info The data to set.
      * @return void
      */
-    public function set_info( array $info ) : void {
+    public function set_info( array $info ): void {
         $this->index_info = $info;
     }
 
@@ -353,7 +346,7 @@ abstract class Index {
      *
      * @return array
      */
-    public function get_info() : array {
+    public function get_info(): array {
         return $this->index_info;
     }
 
@@ -366,7 +359,7 @@ abstract class Index {
      * @param string $method  The method to use with multiple values. Defaults to "use_last". Possibilites: use_last, concat, concat_with_spaces, array_merge, sum, custom (needs filter).
      * @return void
      */
-    public static function store( $post_id, string $field, $data, string $method = 'use_last' ) : void {
+    public static function store( $post_id, string $field, $data, string $method = 'use_last' ): void {
         if ( ! isset( self::$additional[ $post_id ] ) ) {
             self::$additional[ $post_id ] = [];
         }

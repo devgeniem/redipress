@@ -49,7 +49,7 @@ class TagField extends SchemaField {
      *
      * @return array
      */
-    public function export() : array {
+    public function export(): array {
         $export = [];
 
         if ( $this->separator ) {

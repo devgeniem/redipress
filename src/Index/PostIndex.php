@@ -6,15 +6,14 @@
 namespace Geniem\RediPress\Index;
 
 use Geniem\RediPress\Settings,
-    Geniem\RediPress\Entity\SchemaField,
     Geniem\RediPress\Entity\NumericField,
     Geniem\RediPress\Entity\TagField,
     Geniem\RediPress\Entity\TextField,
     Geniem\RediPress\Redis\Client,
+    Geniem\RediPress\Rest,
     Geniem\RediPress\Utility,
     Smalot\PdfParser\Parser as PdfParser,
     PhpOffice\PhpWord\IOFactory,
-    Geniem\RediPress\Rest,
     WP_CLI\Utils;
 
 /**
@@ -81,24 +80,24 @@ class PostIndex extends Index {
         ]);
 
         // Register event hook for partial indexing
-        \add_action( static::HOOKS['schedule_partial_index'], [ $this, 'schedule_partial_index' ], 50, 1 );
+        \add_action( static::HOOKS['schedule_partial_index'], [ $this, 'schedule_partial_index' ], 50, 1 ); // @phpstan-ignore return.void
 
         // Register CLI bindings
         add_filter( 'redipress/cli/index_all', [ $this, 'index_all' ], 50, 2 );
         add_filter( 'redipress/cli/index_missing', [ $this, 'index_missing' ], 50, 2 );
-        add_action( 'redipress/cli/index_single', [ $this, 'index_single' ], 50, 1 );
+        add_action( 'redipress/cli/index_single', [ $this, 'index_single' ], 50, 1 ); // @phpstan-ignore return.void
         add_filter( 'redipress/index/posts/create', [ $this, 'create' ], 50, 1 );
         add_filter( 'redipress/index/posts/drop', [ $this, 'drop' ], 50, 2 );
         // Register external actions
-        add_action( 'redipress/delete_post', [ $this, 'delete_post' ], 50, 1 );
-        add_action( 'redipress/index_post', [ $this, 'upsert' ], 50, 3 );
+        add_action( 'redipress/delete_post', [ $this, 'delete_post' ], 50, 1 ); // @phpstan-ignore return.void
+        add_action( 'redipress/index_post', [ $this, 'upsert' ], 50, 3 ); // @phpstan-ignore return.void
 
         // Register indexing hooks
-        add_action( 'save_post', [ $this, 'upsert' ], 500, 3 );
+        add_action( 'save_post', [ $this, 'upsert' ], 500, 3 ); // @phpstan-ignore return.void
         add_action( 'delete_post', [ $this, 'delete' ], 10, 1 );
 
         // Register taxonomy actions
-        add_action( 'set_object_terms', [ $this, 'index_single' ], 50, 1 );
+        add_action( 'set_object_terms', [ $this, 'index_single' ], 50, 1 ); // @phpstan-ignore return.void
     }
 
     /**
@@ -219,8 +218,8 @@ class PostIndex extends Index {
     /**
      * Create a wp cron event chain to index all posts.
      *
-     * @param  int|WP_Rest_Request $offset Int for offset or WP_Rest_Request on first run.
-     * @return true|false|WP_Error         Result of next wp_schedule_single_event call or true on final run.
+     * @param mixed $args           Array containing Limit & offset details or null if not doing a partial index.
+     * @return true|false|\WP_Error Result of next wp_schedule_single_event call or true on final run.
      */
     public function schedule_partial_index( $args = null ) {
 
@@ -260,15 +259,19 @@ class PostIndex extends Index {
     /**
      * Index all or a part of posts to the RediSearch database
      *
-     * @param  array|null $args Array containing Limit & offset details or null if not doing a partial index.
-     * @return int              Amount of items indexed.
+     * @param  array|null $args  Array containing Limit & offset details or null if not doing a partial index.
+     * @param  array      $query_args Additional query arguments to filter posts.
+     * @return int               Amount of items indexed.
      */
-    public function index_all( array $args = null, array $query_args = [] ): int {
+    public function index_all( ?array $args = null, array $query_args = [] ): int {
         global $wpdb;
 
         define( 'WP_IMPORTING', true );
 
-        \do_action( 'redipress/index/posts/before_index_all', $request ?? null );
+        \do_action( 'redipress/index/posts/before_index_all', null );
+
+        $params = [];
+
         // phpcs:disable
         if ( ! empty( $args['limit'] ) && ! empty( $args['offset'] ) ) {
             $query  = $wpdb->prepare( "SELECT ID FROM $wpdb->posts LIMIT %d OFFSET %d", $args['limit'], $args['offset'] );
@@ -276,7 +279,6 @@ class PostIndex extends Index {
         else {
             if ( ! empty( $query_args ) ) {
                 $wheres = [];
-                $params = [];
 
                 foreach ( $query_args as $key => $value ) {
                     $wheres[] = esc_sql( $key ) . ' = %s';
@@ -287,7 +289,6 @@ class PostIndex extends Index {
             }
             else {
                 $where  = '';
-                $params = [];
             }
 
             $query  = "SELECT ID FROM $wpdb->posts$where";
@@ -299,7 +300,6 @@ class PostIndex extends Index {
 
         if ( empty( $ids ) ) {
             \WP_CLI::error( 'No posts matching the criteria were found.' );
-            return 0;
         }
 
         $count = count( $ids );
@@ -333,7 +333,7 @@ class PostIndex extends Index {
 
             $converted = $this->convert_post( $post );
 
-            $return = $this->add_post( $converted, self::get_document_id( $post ), $language );
+            $return = $this->add_post( $converted, self::get_document_id( $post ) );
 
             if ( ! empty( $progress ) ) {
                 $progress->tick();
@@ -346,7 +346,7 @@ class PostIndex extends Index {
             return $return;
         }, $posts );
 
-        \do_action( 'redipress/index/posts/indexed_all', $result, $request ?? null );
+        \do_action( 'redipress/index/posts/indexed_all', $result, null );
 
         $this->maybe_write_to_disk( 'indexed_all' );
 
@@ -388,7 +388,7 @@ class PostIndex extends Index {
      * @param  \WP_REST_Request|null $request Rest request details or null if not rest api request.
      * @return int                            Amount of items indexed.
      */
-    public function index_missing( \WP_REST_Request $request = null, array $query_args = [] ): int {
+    public function index_missing( ?\WP_REST_Request $request = null, array $query_args = [] ): int {
         global $wpdb;
 
         \do_action( 'redipress/before_index_all', $request );
@@ -476,7 +476,7 @@ class PostIndex extends Index {
 
             $converted = $this->convert_post( $post );
 
-            $return = $this->add_post( $converted, self::get_document_id( $post ), $language );
+            $return = $this->add_post( $converted, self::get_document_id( $post ) );
 
             if ( ! empty( $progress ) ) {
                 $progress->tick();
@@ -598,7 +598,7 @@ class PostIndex extends Index {
 
         // Get the author data
         $author_field = apply_filters( 'redipress/post_author_field', 'display_name', $post->ID, $post );
-        $user_object  = get_userdata( $post->post_author );
+        $user_object  = get_userdata( (int) $post->post_author );
 
         if ( $user_object instanceof \WP_User ) {
             $post_author = $user_object->{ $author_field };
@@ -703,11 +703,11 @@ class PostIndex extends Index {
             // Add the terms
             $slug_string = implode( self::get_tag_separator(), array_column( $terms, 'slug' ) );
 
-            $tax[ 'taxonomy_' . $taxonomy ] = $term_string ?? '';
+            $tax[ 'taxonomy_' . $taxonomy ] = $term_string;
 
-            $tax[ 'taxonomy_id_' . $taxonomy ] = $id_string ?? '';
+            $tax[ 'taxonomy_id_' . $taxonomy ] = $id_string;
 
-            $tax[ 'taxonomy_slug_' . $taxonomy ] = $slug_string ?? '';
+            $tax[ 'taxonomy_slug_' . $taxonomy ] = $slug_string;
 
             if ( in_array( $taxonomy, $wanted_taxonomies, true ) && ! empty( $term_string ) ) {
                 $search_index[] = $search_term_string;
@@ -746,9 +746,9 @@ class PostIndex extends Index {
 
         $post_content = $this->get_post_content( $post );
 
-        $post_password = apply_filters( 'redipress/post_password', $post->post_password ?? '' );
+        $post_password = apply_filters( 'redipress/post_password', $post->post_password );
 
-        $post_status = apply_filters( 'redipress/post_status', $post->post_status ?? 'publish' );
+        $post_status = apply_filters( 'redipress/post_status', $post->post_status );
 
         // Get rest of the fields
         $rest = [

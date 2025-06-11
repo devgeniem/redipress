@@ -6,30 +6,21 @@
 namespace Geniem\RediPress;
 
 use Geniem\RediPress\Index\PostIndex;
-use Geniem\RediPress\Index\UserIndex;
 
 /**
  * Get one post with its from RediPress index.
  *
  * @param mixed $post_id The ID to fetch.
- * @return WP_Post|null The post to fetch or null if not found.
+ * @return \WP_Post|null The post to fetch or null if not found.
  */
 function get_post( $post_id ) {
-    $settings = new Settings();
-    $client   = apply_filters( 'redipress/client', null );
+    $client = apply_filters( 'redipress/client', null );
 
     $index = Settings::get( 'posts_index' );
 
     $doc_id = PostIndex::get_document_id( \get_post( $post_id ), $post_id );
 
     $result = $client->raw_command( 'HGETALL', [ $index . ':' . $doc_id ] );
-
-    $query = (object) [
-        'redisearch_query' => "HGETALL $index:$doc_id",
-        'query_vars'       => [
-            'post_id' => $post_id,
-        ],
-    ];
 
     // If nothing is found, just return null
     if ( ! $result ) {
@@ -46,7 +37,7 @@ function get_post( $post_id ) {
         }
     }
 
-    return false;
+    return null;
 }
 
 /**
@@ -54,7 +45,7 @@ function get_post( $post_id ) {
  *
  * @param string  $doc_id Document ID to modify.
  * @param string  $field  Field to update.
- * @param string  $value  Value to update the field with.
+ * @param mixed   $value  Value to update the field with.
  * @param integer $score  Possible weighing score to the value.
  * @param bool    $users  Whether to make the change to users table.
  * @return array
@@ -128,7 +119,7 @@ function update_value( $doc_id, $field, $value, $score = 1, $users = false ) {
  * @param  string $string Unescaped string.
  * @return string         Escaped $string.
  */
-function escape_string( ?string $string = '' ) : string {
+function escape_string( ?string $string = '' ): string {
     return Utility::escape_string( $string );
 }
 
@@ -139,10 +130,10 @@ function escape_string( ?string $string = '' ) : string {
  * @param array  $index The index.
  * @return string|null
  */
-function get_field_type( string $key, array $index ) : ?string {
+function get_field_type( string $key, array $index ): ?string {
     $fields = Utility::format( $index['attributes'] );
 
-    $field_type = array_reduce( $fields, function( $carry = null, $item = null ) use ( $key ) {
+    $field_type = array_reduce( $fields, function ( $carry = null, $item = null ) use ( $key ) {
         if ( ! empty( $carry ) ) {
             return $carry;
         }

@@ -5,8 +5,6 @@
 
 namespace Geniem\RediPress\CLI;
 
-use WP_CLI;
-
 /**
  * RediPress CLI create index command class.
  */
@@ -19,21 +17,17 @@ class Create implements Command {
      * @param array $assoc_args The optional command parameters.
      * @return boolean
      */
-    public function run( array $args = [], array $assoc_args = [] ) : bool {
+    public function run( array $args = [], array $assoc_args = [] ): bool {
         if ( count( $args ) === 0 ) {
-            return [
-                'posts'     => $this->create_index( 'posts' ),
-                'users'     => $this->create_index( 'users' ),
-                'analytics' => $this->create_index( 'analytics' ),
-            ];
+            return $this->create_index( 'posts' )
+                && $this->create_index( 'users' )
+                && $this->create_index( 'analytics' );
         }
         elseif ( count( $args ) === 1 ) {
             return $this->create_index( $args[0] );
         }
-        elseif ( count( $args ) > 1 ) {
-            WP_CLI::error( 'RediPress: "create" command doesn\'t accept more than one parameter.' );
-            return false;
-        }
+
+        \WP_CLI::error( 'RediPress: "create" command doesn\'t accept more than one parameter.' );
     }
 
     /**
@@ -56,19 +50,16 @@ class Create implements Command {
                 break;
             default:
                 throw new \Exception( 'Index type ' . $index . ' is not supported.' );
-                break;
         }
 
         switch ( $return ) {
             case true:
-                WP_CLI::success( 'Index created.' );
+                \WP_CLI::success( 'Index created.' );
                 return true;
             case 'Index already exists. Drop it first!':
-                WP_CLI::error( 'Index already exists.' );
-                return false;
+                \WP_CLI::error( 'Index already exists.' );
             default:
-                WP_CLI::error( 'Unprecetended response: ' . $return );
-                return false;
+                \WP_CLI::error( 'Unprecetended response: ' . $return );
         }
     }
 
@@ -77,7 +68,7 @@ class Create implements Command {
      *
      * @return integer
      */
-    public static function get_min_parameters() : int {
+    public static function get_min_parameters(): int {
         return 0;
     }
 
@@ -86,7 +77,7 @@ class Create implements Command {
      *
      * @return integer
      */
-    public static function get_max_parameters() : int {
+    public static function get_max_parameters(): int {
         return 1;
     }
 }

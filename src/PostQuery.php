@@ -271,6 +271,7 @@ class PostQuery {
             }, $results );
 
             // Store the search query string so that in can be debugged easily via WP_Query.
+            // @phpstan-ignore property.notFound
             $query->redisearch_query = 'FT.AGGREGATE ' . implode( ' ', array_map( function ( $comm ) {
                 if ( \strpos( $comm, ' ' ) !== false ) {
                     return '"' . $comm . '"';
@@ -312,6 +313,7 @@ class PostQuery {
             );
 
             // Store the search query string so that in can be debugged easily via WP_Query.
+            // @phpstan-ignore property.notFound
             $query->redisearch_query = 'FT.SEARCH ' . implode( ' ', array_map( function ( $comm ) {
                 if ( \strpos( $comm, ' ' ) !== false ) {
                     return '"' . $comm . '"';
@@ -352,7 +354,7 @@ class PostQuery {
 
         // If the query is empty, we are probably dealing with the front page and we want to skip RediSearch with that.
         if ( empty( $query->query ) ) {
-            $query->is_front_page = true;
+            $query->is_front_page = true; // @phpstan-ignore property.notFound
             return null;
         }
 
@@ -401,6 +403,7 @@ class PostQuery {
             $raw_results = $this->search( $query );
 
             if ( empty( $raw_results->results ) || $raw_results->results[0] === 0 ) {
+                // @phpstan-ignore property.notFound
                 $query->redipress_no_results = true;
 
                 if ( ! empty( $query->query_vars['post_type'] ) && is_array( $query->query_vars['post_type'] ) ) {
@@ -417,8 +420,10 @@ class PostQuery {
 
             $count = $raw_results->results[0];
 
+            // @phpstan-ignore property.notFound
             $query->post_type_counts = [];
 
+            // @phpstan-ignore property.notFound
             if ( is_array( $raw_results->counts ) ) {
                 unset( $raw_results->counts[0] );
 
@@ -439,8 +444,9 @@ class PostQuery {
             );
 
             $query->found_posts   = $count;
-            $query->max_num_pages = ceil( $count / $query->query_vars['posts_per_page'] );
+            $query->max_num_pages = (int) ceil( $count / $query->query_vars['posts_per_page'] );
 
+            // @phpstan-ignore property.notFound
             $query->using_redisearch = true;
 
             if ( isset( $query->query['attributes'] ) && $query->query['attributes'] === 'ids' ) {

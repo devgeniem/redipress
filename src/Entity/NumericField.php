@@ -59,7 +59,7 @@ class NumericField extends SchemaField {
      *
      * @return array
      */
-    public function export() : array {
+    public function export(): array {
         $export = [];
 
         if ( $this->sortable ) {

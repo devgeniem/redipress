@@ -39,7 +39,7 @@ class GeoField extends SchemaField {
      *
      * @return array
      */
-    public function export() : array {
+    public function export(): array {
         $export = [];
 
         return $export;

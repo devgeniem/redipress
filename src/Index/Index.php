@@ -145,8 +145,6 @@ abstract class Index {
         $fields = \get_option( "redipress_gather_fields_$key", [] );
 
         foreach ( $schema_fields as $field ) {
-            $found = false;
-
             // If there is a field with the same name within the initial fields, find it
             foreach ( $fields as &$original_field ) {
                 if ( $field->name === $original_field->name ) {

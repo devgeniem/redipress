@@ -89,19 +89,19 @@ class PostQueryBuilder extends QueryBuilder {
         $this->ignore_query_vars = apply_filters(
             'redipress/ignore_query_vars', array_merge(
                 [
-					'order',
-					'orderby',
-					'paged',
-					'posts_per_page',
-					'offset',
-					'meta_key',
-					'meta_type',
-					'update_post_meta_cache',
-					'update_post_term_cache',
-					'ignore_sticky_posts',
-					'rest_route',
-					'fields',
-				], $ignore_added_query_vars
+                    'order',
+                    'orderby',
+                    'paged',
+                    'posts_per_page',
+                    'offset',
+                    'meta_key',
+                    'meta_type',
+                    'update_post_meta_cache',
+                    'update_post_term_cache',
+                    'ignore_sticky_posts',
+                    'rest_route',
+                    'fields',
+                ], $ignore_added_query_vars
             )
         );
 
@@ -548,9 +548,9 @@ class PostQueryBuilder extends QueryBuilder {
 
         return implode(
             ' ', array_map(
-				function ( $cat ) {
-					return '@taxonomy_id_category:{' . $cat . '}';
-				}, $cat
+                function ( $cat ) {
+                    return '@taxonomy_id_category:{' . $cat . '}';
+                }, $cat
             )
         );
     }
@@ -751,13 +751,13 @@ class PostQueryBuilder extends QueryBuilder {
             // we are dealing with an actual clause.
             $single = array_reduce(
                 $clause, function ( int $carry, $item ) {
-					if ( ! is_array( $item ) ) {
-						return ++$carry;
-					}
-					else {
-						return $carry;
-					}
-				}, 0
+                    if ( ! is_array( $item ) ) {
+                        return ++$carry;
+                    }
+                    else {
+                        return $carry;
+                    }
+                }, 0
             );
 
             if ( $single ) {
@@ -784,9 +784,9 @@ class PostQueryBuilder extends QueryBuilder {
 
                 $filters[] = '(' . implode(
                     ' ' . $inner_relation . ' ', array_map(
-						function ( $clause ) use ( $compare ) {
-							return implode( ' ' . $compare . ' ', $clause );
-						}, $res
+                        function ( $clause ) use ( $compare ) {
+                            return implode( ' ' . $compare . ' ', $clause );
+                        }, $res
                     )
                 ) . ')';
             }
@@ -935,38 +935,38 @@ class PostQueryBuilder extends QueryBuilder {
             array_reduce(
                 $sortby, function ( $carry, $item ) {
 
-					// Distance clauses need a special treatment
-					if (
+                    // Distance clauses need a special treatment
+                    if (
                     ! empty( $item['order']['compare'] ) &&
                     is_array( $item['order']['compare'] ) &&
                     ! empty( $item['order']['compare']['lat'] ) &&
                     ! empty( $item['order']['compare']['lng'] )
-					) {
-						$field = $item['orderby'];
-						$lat   = $item['order']['compare']['lat'];
-						$lng   = $item['order']['compare']['lng'];
+                    ) {
+                        $field = $item['orderby'];
+                        $lat   = $item['order']['compare']['lat'];
+                        $lng   = $item['order']['compare']['lng'];
 
-						$this->applies[] = [
-							'APPLY',
-							"geodistance(@$field, \"$lat,$lng\")",
-							'AS',
-							'redipress__distance_order',
-						];
+                        $this->applies[] = [
+                            'APPLY',
+                            "geodistance(@$field, \"$lat,$lng\")",
+                            'AS',
+                            'redipress__distance_order',
+                        ];
 
-						$item['orderby'] = 'redipress__distance_order';
-						$item['order']   = $item['order']['order'];
+                        $item['orderby'] = 'redipress__distance_order';
+                        $item['order']   = $item['order']['order'];
 
-						// Store to return fields array, these need to be in sync with sortby params.
-						$this->return_fields[] = $field;
-					}
-					else {
+                        // Store to return fields array, these need to be in sync with sortby params.
+                        $this->return_fields[] = $field;
+                    }
+                    else {
 
-						// Store to return fields array, these need to be in sync with sortby params.
-						$this->return_fields[] = $item['orderby'];
-					}
+                        // Store to return fields array, these need to be in sync with sortby params.
+                        $this->return_fields[] = $item['orderby'];
+                    }
 
-					return array_merge( $carry, [ '@' . $item['orderby'], $item['order'] ] );
-				}, []
+                    return array_merge( $carry, [ '@' . $item['orderby'], $item['order'] ] );
+                }, []
             )
         );
 

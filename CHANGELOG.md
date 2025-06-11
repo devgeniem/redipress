@@ -6,9 +6,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [2.0.15] - 2025-06-11
+
+### Added
+
+- Install PHPStan and PHPCS rules for development.
+
 ### Fixed
 
 - Handle errors when checking the index existence returns an error as string.
+- Fix PHP8 deprecations, linting and formatting errors.
 
 ## [2.0.14] - 2025-02-21
 

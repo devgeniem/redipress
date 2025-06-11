@@ -937,10 +937,10 @@ class PostQueryBuilder extends QueryBuilder {
 
                     // Distance clauses need a special treatment
                     if (
-                    ! empty( $item['order']['compare'] ) &&
-                    is_array( $item['order']['compare'] ) &&
-                    ! empty( $item['order']['compare']['lat'] ) &&
-                    ! empty( $item['order']['compare']['lng'] )
+                        ! empty( $item['order']['compare'] ) &&
+                        is_array( $item['order']['compare'] ) &&
+                        ! empty( $item['order']['compare']['lat'] ) &&
+                        ! empty( $item['order']['compare']['lng'] )
                     ) {
                         $field = $item['orderby'];
                         $lat   = $item['order']['compare']['lat'];

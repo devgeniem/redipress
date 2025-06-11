@@ -172,9 +172,21 @@ class RediPress {
 
             $raw_info = $this->connection->raw_command( 'FT.INFO', [ $name ] );
 
-            // Create the index if it doesn't already exist
-            if ( $raw_info === 'Unknown Index name' ) {
-                $this->plugin->show_admin_error( sprintf( __( 'RediPress: Index "%s" does not exist.', 'redipress' ), $type ) );
+            // Handle error messages returned as strings.
+            if ( is_string( $raw_info ) ) {
+                // The error message case differs depending on the Redisearch version, so cast it to lowercase.
+                if ( strtolower( $raw_info ) === 'unknown index name' ) {
+                    $this->plugin->show_admin_error(
+                        sprintf( __( 'RediPress: Index "%s" does not exist.', 'redipress' ), $type )
+                    );
+                }
+                else {
+                    // Unknown error, show the raw info.
+                    $this->plugin->show_admin_error(
+                        sprintf( __( 'RediPress: Error while checking index "%s".', 'redipress' ), $type ), $raw_info
+                    );
+                }
+
                 return false;
             }
 

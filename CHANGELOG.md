@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Fixed
+
+- Handle errors when checking the index existence returns an error as string.
+
 ## [2.0.14] - 2025-02-21
 
 ### Fixed

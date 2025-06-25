@@ -433,8 +433,8 @@ class PostIndex extends Index {
 
         $progress->finish();
 
-        $posts = array_map( function ( $id ) {
-            return \get_post( $id );
+        $posts = array_map( function ( $row ) {
+            return \get_post( $row->ID );
         }, $posts );
 
         $custom_posts = [];

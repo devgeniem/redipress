@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [2.0.16] - 2025-06-25
+
 ### Fixed
 
 - Fix bug in `wp redipress index posts missing` that indexes posts with default WP_Post values.

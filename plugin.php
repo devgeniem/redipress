@@ -3,7 +3,7 @@
  * Plugin Name: RediPress
  * Plugin URI:  https://github.com/devgeniem/redipress
  * Description: A WordPress plugin that provides a blazing fast search engine and WP Query performance enhancements.
- * Version:     2.0.15
+ * Version:     2.0.16
  * Author:      Geniem
  * Author URI:  http://www.geniem.fi/
  * License:     GPL3

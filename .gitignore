@@ -7,7 +7,7 @@ node_modules/
 # Composer lock file
 composer.lock
 
-# Wordpress
+# WordPress
 wordpress
 
 .DS_Store

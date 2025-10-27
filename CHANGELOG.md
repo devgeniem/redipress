@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [2.0.17] - 2025-10-27
+
+### Fixed
+
+- Fix syntax for weighted queries.
+- Use tag syntax for weighted taxonomy queries.
+- Update README on weighted queries.
+
 ## [2.0.16] - 2025-06-25
 
 ### Fixed

@@ -522,8 +522,10 @@ abstract class QueryBuilder {
                     $return,
                     array_map(
                         function ( $weight, $term ) use ( $taxonomy ): string {
+                            $term = $this->escape_string( $term );
+
                             return sprintf(
-                                '(~@taxonomy_id_%s:{%d}) => {$weight: %s}',
+                                '(~@taxonomy_slug_%s:{%s}) => {$weight: %s}',
                                 $taxonomy,
                                 $term,
                                 $weight

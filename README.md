@@ -154,7 +154,7 @@ new WP_Query([
 
 ##### Taxonomy terms
 
-It is also possible to weigh posts with certain taxonomy terms higher than others. In this case the first level inside the `taxonomy` parameter is the taxonomy name with another associative array as its value with term IDs and their weights as key-value pairs.
+It is also possible to weigh posts with certain taxonomy terms higher than others. In this case the first level inside the `taxonomy` parameter is the taxonomy name with another associative array as its value with term slugs and their weights as key-value pairs.
 
 ```php
 new WP_Query([
@@ -163,12 +163,12 @@ new WP_Query([
     'weight'    => [
         'taxonomy' => [
             'category' => [
-                1 => 3.0,
-                2 => 5.0,
+                'news'          => 3.0,
+                'announcements' => 5.0,
             ],
             'post_tag' => [
-                3 => 4.25,
-                4 => 6.0,
+                'some_tag'    => 4.25,
+                'another_tag' => 6.0,
             ],
         ],
     ],

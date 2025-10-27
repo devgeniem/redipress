@@ -478,7 +478,7 @@ abstract class QueryBuilder {
             $return = array_map(
                 function ( $weight, $post_type ): string {
                     return sprintf(
-                        '(~@post_type:%s => {$weight: %s})',
+                        '(~@post_type:%s) => {$weight: %s}',
                         $post_type,
                         $weight
                     );
@@ -495,7 +495,7 @@ abstract class QueryBuilder {
                 array_map(
                     function ( $weight, $author ): string {
                         return sprintf(
-                            '(~@post_author:%s => {$weight: %s})',
+                            '(~@post_author:%s) => {$weight: %s}',
                             $author,
                             $weight
                         );
@@ -509,20 +509,23 @@ abstract class QueryBuilder {
         // Create weight clauses for taxonomy terms
         if ( ! empty( $weight['taxonomy'] ) ) {
             foreach ( $weight['taxonomy'] as $taxonomy => $terms ) {
-                if ( strpos( $weight['taxonomy'][ $taxonomy ], '-' ) !== false ) {
-                    $new_taxonomy = str_replace( '-', '_', $weight['taxonomy'][ $taxonomy ] );
+                if ( strpos( $taxonomy, '-' ) !== false ) {
+                    $new_taxonomy = str_replace( '-', '_', $taxonomy );
 
                     unset( $weight['taxonomy'][ $taxonomy ] );
 
                     $weight['taxonomy'][ $new_taxonomy ] = $terms;
+                    $taxonomy = $new_taxonomy;
                 }
 
                 $return = array_merge(
                     $return,
                     array_map(
                         function ( $weight, $term ) use ( $taxonomy ): string {
+                            $term = $this->escape_string( $term );
+
                             return sprintf(
-                                '(~@taxonomy_id_%s:%s => {$weight: %s})',
+                                '(~@taxonomy_slug_%s:{%s}) => {$weight: %s}',
                                 $taxonomy,
                                 $term,
                                 $weight
@@ -551,7 +554,7 @@ abstract class QueryBuilder {
                             $this->add_search_field( $meta_key );
 
                             return sprintf(
-                                '(~@%s:%s => {$weight: %s})',
+                                '(~@%s:%s) => {$weight: %s}',
                                 $meta_key,
                                 $meta_value,
                                 $weight

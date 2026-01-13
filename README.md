@@ -342,6 +342,8 @@ Arguments:
 - `document field:` Any field from the document that should match the given value.
 - `limit:` If not defined the default value is 100.
 
+**Note**: the third argument (`posts` in the example) should be the direct _name_ of the index, not the type of index (`posts` or `users`). So check your admin configuration or `REDIPRESS_POSTS_INDEX` constant and use that value directly.
+
 Example usage:
 ```bash
 wp redipress delete posts --blog_id=1 --post_type=article --limit=500
